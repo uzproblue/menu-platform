@@ -1,0 +1,13 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// Cloudflare Workers Builds (dashboard): install with `pnpm install --frozen-lockfile`, deploy with `pnpm run deploy`.
+	// If the Git repo root is above this app, set the Worker project root directory to `menu-platform`.
+	"main": ".open-next/worker.js",
+	"name": "menu-platform",
+	"compatibility_date": "2026-05-01",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	}
+}
