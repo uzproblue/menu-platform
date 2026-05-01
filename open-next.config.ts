@@ -1,3 +1,14 @@
-import { defineCloudflareConfig } from "@opennextjs/cloudflare";
+import {
+  defineCloudflareConfig,
+  type OpenNextConfig,
+} from "@opennextjs/cloudflare";
 
-export default defineCloudflareConfig();
+// OpenNext invokes the package `build` script to compile Next.js. This project
+// uses `build` = `opennextjs-cloudflare build`, so the inner step must be plain
+// `next build` to avoid infinite recursion.
+const config: OpenNextConfig = {
+  ...defineCloudflareConfig(),
+  buildCommand: "npx next build",
+};
+
+export default config;
