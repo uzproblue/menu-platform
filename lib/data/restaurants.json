@@ -1,0 +1,44 @@
+{
+  "restaurants": [
+    {
+      "id": "r_harbor_bistro",
+      "name": "Harbor Bistro",
+      "slug": "harbor-bistro",
+      "logoUrl": "/menu/item-photo.svg",
+      "address": "12 Wharf St, Seattle, WA 98101",
+      "active": true,
+      "categoryCount": 4,
+      "menuItemCount": 18
+    },
+    {
+      "id": "r_urban_grill",
+      "name": "Urban Grill & Bar",
+      "slug": "urban-grill",
+      "logoUrl": "/menu/item-photo-alt.svg",
+      "address": "400 Market St, San Francisco, CA 94105",
+      "active": true,
+      "categoryCount": 5,
+      "menuItemCount": 24
+    },
+    {
+      "id": "r_lakeside_taco",
+      "name": "Lakeside Taco Co.",
+      "slug": "lakeside-taco",
+      "logoUrl": "/restaurants/placeholder.svg",
+      "address": "88 Lake Dr, Austin, TX 78704",
+      "active": false,
+      "categoryCount": 3,
+      "menuItemCount": 12
+    },
+    {
+      "id": "r_north_fork",
+      "name": "North Fork Bakery",
+      "slug": "north-fork-bakery",
+      "logoUrl": "/menu/item-photo.svg",
+      "address": "2 Main Rd, Burlington, VT 05401",
+      "active": true,
+      "categoryCount": 2,
+      "menuItemCount": 9
+    }
+  ]
+}

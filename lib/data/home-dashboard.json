@@ -1,0 +1,27 @@
+{
+  "menuAccessLast7Days": [
+    { "date": "2026-04-18", "day": "Fri", "minutes": 118, "sessions": 38 },
+    { "date": "2026-04-19", "day": "Sat", "minutes": 142, "sessions": 44 },
+    { "date": "2026-04-20", "day": "Sun", "minutes": 96, "sessions": 29 },
+    { "date": "2026-04-21", "day": "Mon", "minutes": 210, "sessions": 61 },
+    { "date": "2026-04-22", "day": "Tue", "minutes": 188, "sessions": 55 },
+    { "date": "2026-04-23", "day": "Wed", "minutes": 245, "sessions": 72 },
+    { "date": "2026-04-24", "day": "Thu", "minutes": 201, "sessions": 58 }
+  ],
+  "menuViewsByCategory": [
+    { "category": "Starters", "views": 1840 },
+    { "category": "Mains", "views": 3120 },
+    { "category": "Desserts", "views": 1420 },
+    { "category": "Beverages", "views": 2680 },
+    { "category": "Specials", "views": 980 }
+  ],
+  "qrScansVsOrders": [
+    { "date": "2026-04-18", "day": "Fri", "qrScans": 420, "orders": 118 },
+    { "date": "2026-04-19", "day": "Sat", "qrScans": 510, "orders": 142 },
+    { "date": "2026-04-20", "day": "Sun", "qrScans": 360, "orders": 96 },
+    { "date": "2026-04-21", "day": "Mon", "qrScans": 640, "orders": 210 },
+    { "date": "2026-04-22", "day": "Tue", "qrScans": 590, "orders": 188 },
+    { "date": "2026-04-23", "day": "Wed", "qrScans": 720, "orders": 245 },
+    { "date": "2026-04-24", "day": "Thu", "qrScans": 610, "orders": 201 }
+  ]
+}

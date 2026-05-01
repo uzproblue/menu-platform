@@ -1,0 +1,113 @@
+{
+  "categories": [
+    {
+      "id": "starters",
+      "name": "Starters",
+      "items": [
+        {
+          "id": "item-001",
+          "name": "Seasonal soup",
+          "active": true,
+          "image": "/menu/item-photo.svg",
+          "prices": [{ "id": "item-001-usd", "price": "9.50", "currency": "USD" }],
+          "description": "Chef's daily selection, served with bread.",
+          "tags": ["vegan"]
+        },
+        {
+          "id": "item-002",
+          "name": "Bruschetta trio",
+          "active": true,
+          "prices": [{ "id": "item-002-usd", "price": "12.00", "currency": "USD" }],
+          "description": "Tomato basil, olive tapenade, and whipped ricotta.",
+          "tags": ["vegetarian"]
+        },
+        {
+          "id": "item-003",
+          "name": "Calamari fritti",
+          "active": true,
+          "image": "/menu/item-photo-alt.svg",
+          "prices": [{ "id": "item-003-usd", "price": "14.50", "currency": "USD" }],
+          "description": "Crispy squid with lemon aioli and chili salt.",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id": "mains",
+      "name": "Mains",
+      "items": [
+        {
+          "id": "item-004",
+          "name": "Grilled sea bass",
+          "active": true,
+          "image": "/menu/item-photo.svg",
+          "prices": [{ "id": "item-004-usd", "price": "28.00", "currency": "USD" }],
+          "description": "Herb butter, charred lemon, seasonal greens.",
+          "tags": ["gluten-free"]
+        },
+        {
+          "id": "item-005",
+          "name": "Rigatoni alla vodka",
+          "active": true,
+          "prices": [{ "id": "item-005-usd", "price": "22.00", "currency": "USD" }],
+          "description": "San Marzano tomato cream, pecorino, fresh basil.",
+          "tags": ["vegetarian"]
+        },
+        {
+          "id": "item-006",
+          "name": "Braised short rib",
+          "active": true,
+          "prices": [{ "id": "item-006-usd", "price": "32.00", "currency": "USD" }],
+          "description": "Red wine jus, potato purée, roasted carrots.",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id": "desserts",
+      "name": "Desserts",
+      "items": [
+        {
+          "id": "item-007",
+          "name": "Olive oil cake",
+          "active": true,
+          "image": "/menu/item-photo-alt.svg",
+          "prices": [{ "id": "item-007-usd", "price": "10.00", "currency": "USD" }],
+          "description": "Citrus mascarpone and toasted almonds.",
+          "tags": ["vegetarian"]
+        },
+        {
+          "id": "item-008",
+          "name": "Dark chocolate fondant",
+          "active": true,
+          "prices": [{ "id": "item-008-usd", "price": "11.50", "currency": "USD" }],
+          "description": "Molten center, vanilla bean ice cream.",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id": "beverages",
+      "name": "Beverages",
+      "items": [
+        {
+          "id": "item-009",
+          "name": "House lemonade",
+          "active": true,
+          "image": "/menu/item-photo.svg",
+          "prices": [{ "id": "item-009-usd", "price": "5.00", "currency": "USD" }],
+          "description": "Still or sparkling.",
+          "tags": ["vegan"]
+        },
+        {
+          "id": "item-010",
+          "name": "Espresso",
+          "active": true,
+          "prices": [{ "id": "item-010-usd", "price": "3.50", "currency": "USD" }],
+          "description": "Double shot, locally roasted beans.",
+          "tags": ["vegan"]
+        }
+      ]
+    }
+  ]
+}
