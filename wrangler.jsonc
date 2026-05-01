@@ -1,10 +1,9 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	// Cloudflare Workers Builds — use a SEPARATE build step that runs OpenNext (not plain `next build`):
+	// Cloudflare Workers Builds:
 	//   Install: pnpm install --frozen-lockfile
-	//   Build:   pnpm run cf:build
+	//   Build:   pnpm run build   (OpenNext — emits `.open-next/`; plain `next build` is `pnpm run build:next`)
 	//   Deploy:  pnpm exec wrangler deploy   OR   pnpm run deploy
-	// (`pnpm run build` is only `next build` and does NOT emit .open-next / compiled open-next config.)
 	// If the Git repo root is above this app, set the Worker project root directory to `menu-platform`.
 	"main": ".open-next/worker.js",
 	"name": "menu-platform",
