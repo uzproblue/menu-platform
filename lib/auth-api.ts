@@ -1,6 +1,9 @@
 /**
- * Server-side calls to menu-server auth (see AUTH_API_BASE_URL in .env).
+ * Server-side calls to menu-server: prefer Cloudflare `MENU_SERVER` service binding,
+ * else `AUTH_API_BASE_URL` for local HTTP (e.g. plain `next dev`).
  */
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
 type LoginResponse = {
   access_token: string;
   token_type: "bearer";
@@ -243,28 +246,68 @@ type ApiErrorResponse = {
   message?: string;
 };
 
+const AUTH_API_UNAVAILABLE_MESSAGE =
+  "menu-server is not configured (Cloudflare MENU_SERVER binding or AUTH_API_BASE_URL for local HTTP)";
+
+/** Origin is ignored for service-binding `fetch`; only path matters. */
+const SERVICE_BINDING_ORIGIN = "http://menu-server.internal";
+
+type AuthApiTransport =
+  | { mode: "service"; fetcher: Fetcher }
+  | { mode: "http"; baseUrl: string };
+
 function getAuthApiBaseUrl(): string | null {
   const base = process.env.AUTH_API_BASE_URL?.trim();
   return base?.length ? base.replace(/\/$/, "") : null;
+}
+
+function getAuthApiTransport(): AuthApiTransport | null {
+  try {
+    const { env } = getCloudflareContext();
+    const fetcher = env.MENU_SERVER;
+    if (fetcher) {
+      return { mode: "service", fetcher };
+    }
+  } catch {
+    /* not in OpenNext / Workers request context */
+  }
+  const base = getAuthApiBaseUrl();
+  if (base) return { mode: "http", baseUrl: base };
+  return null;
+}
+
+async function authApiFetch(
+  transport: AuthApiTransport,
+  path: string,
+  init: RequestInit,
+): Promise<Response> {
+  const url =
+    transport.mode === "http"
+      ? new URL(path, `${transport.baseUrl}/`).toString()
+      : `${SERVICE_BINDING_ORIGIN}${path}`;
+  const request = new Request(url, init);
+  if (transport.mode === "service") {
+    return transport.fetcher.fetch(request);
+  }
+  return fetch(request);
 }
 
 export async function loginWithAuthServer(
   email: string,
   password: string,
 ): Promise<LoginResponse | null> {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        "[auth] Set AUTH_API_BASE_URL (e.g. http://127.0.0.1:4000) to use menu-server",
+        "[auth] Set MENU_SERVER (Wrangler) or AUTH_API_BASE_URL (e.g. http://127.0.0.1:4000) for menu-server",
       );
     }
     return null;
   }
 
-  const url = `${base}/api/auth/login`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, "/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -285,19 +328,18 @@ export async function updateProfileNameWithAuthServer(
   | { ok: true; data: UpdateProfileNameResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/auth/me`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/auth/me`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -342,19 +384,18 @@ export async function updatePasswordWithAuthServer(
   | { ok: true }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/auth/me/password`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/auth/me/password`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -397,19 +438,18 @@ export async function getTeammatesWithAuthServer(
   | { ok: true; data: TeammatesResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/auth/me/teammates`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/auth/me/teammates`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -451,19 +491,18 @@ export async function createTeammateWithAuthServer(
   | { ok: true; data: CreateTeammateResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/auth/me/teammates`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/auth/me/teammates`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -507,19 +546,18 @@ export async function revealTemporaryPasswordWithAuthServer(
   | { ok: true; data: RevealTemporaryPasswordResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/auth/me/teammates/${encodeURIComponent(teammateId)}/temporary-password`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/auth/me/teammates/${encodeURIComponent(teammateId)}/temporary-password`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -561,19 +599,18 @@ export async function deleteTeammateWithAuthServer(
   accessToken: string,
   teammateId: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/auth/me/teammates/${encodeURIComponent(teammateId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/auth/me/teammates/${encodeURIComponent(teammateId)}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -614,19 +651,18 @@ export async function getCategoriesWithAuthServer(
   | { ok: true; data: CategoriesResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/categories`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/categories`, {
       method: "GET",
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
@@ -663,19 +699,18 @@ export async function getGlobalMenuWithAuthServer(
   | { ok: true; data: GlobalMenuResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/global-menu`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/global-menu`, {
       method: "GET",
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
@@ -713,19 +748,18 @@ export async function createMenuItemWithAuthServer(
   | { ok: true; data: CreateMenuItemResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/menu-items`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/menu-items`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -768,19 +802,18 @@ export async function updateMenuItemActivationWithAuthServer(
   | { ok: true; data: UpdateMenuItemActivationResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/menu-items/${encodeURIComponent(itemId)}/activation`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/menu-items/${encodeURIComponent(itemId)}/activation`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -823,19 +856,18 @@ export async function updateMenuItemWithAuthServer(
   | { ok: true; data: UpdateMenuItemResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/menu-items/${encodeURIComponent(itemId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/menu-items/${encodeURIComponent(itemId)}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -874,19 +906,18 @@ export async function deleteMenuItemWithAuthServer(
   accessToken: string,
   itemId: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/menu-items/${encodeURIComponent(itemId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/menu-items/${encodeURIComponent(itemId)}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
@@ -924,19 +955,18 @@ export async function createCategoryWithAuthServer(
   | { ok: true; data: CategoryResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/categories`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/categories`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -984,19 +1014,18 @@ export async function updateCategoryWithAuthServer(
   | { ok: true; data: CategoryResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/categories/${encodeURIComponent(categoryId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/categories/${encodeURIComponent(categoryId)}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -1035,19 +1064,18 @@ export async function deleteCategoryWithAuthServer(
   accessToken: string,
   categoryId: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/categories/${encodeURIComponent(categoryId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/categories/${encodeURIComponent(categoryId)}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
@@ -1084,19 +1112,18 @@ export async function getLocationsWithAuthServer(
   | { ok: true; data: LocationsResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1137,19 +1164,18 @@ export async function createLocationWithAuthServer(
   | { ok: true; data: CreateLocationResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1191,19 +1217,18 @@ export async function getLocationWithAuthServer(
   | { ok: true; data: GetLocationResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1244,19 +1269,18 @@ export async function getLocationMenuWithAuthServer(
   | { ok: true; data: GlobalMenuResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}/menu`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/menu`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1298,19 +1322,18 @@ export async function updateLocationDetailsWithAuthServer(
   | { ok: true; data: UpdateLocationDetailsResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -1353,19 +1376,18 @@ export async function deleteLocationWithAuthServer(
   accessToken: string,
   locationId: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1408,19 +1430,18 @@ export async function updateLocationActivationWithAuthServer(
   | { ok: true; data: UpdateLocationActivationResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}/activation`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/activation`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -1467,19 +1488,18 @@ export async function updateLocationCategoriesWithAuthServer(
   | { ok: true; data: UpdateLocationCategoriesResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}/categories`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/categories`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -1526,19 +1546,18 @@ export async function publishLocationMenuItemsWithAuthServer(
   | { ok: true; data: PutLocationMenuItemsResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
-  const base = getAuthApiBaseUrl();
-  if (!base) {
+  const transport = getAuthApiTransport();
+  if (!transport) {
     return {
       ok: false,
       status: 503,
       error: "auth_api_unavailable",
-      message: "AUTH_API_BASE_URL is not configured",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
     };
   }
 
-  const url = `${base}/api/locations/${encodeURIComponent(locationId)}/menu-items`;
   try {
-    const res = await fetch(url, {
+    const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/menu-items`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

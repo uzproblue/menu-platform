@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## menu-server (API backend)
+
+Server-side code calls **menu-server** via the Cloudflare **`MENU_SERVER` service binding** when running on Workers (see [`wrangler.jsonc`](wrangler.jsonc)). If the binding is missing (for example during plain `next dev`), it falls back to **`AUTH_API_BASE_URL`** over HTTP.
+
+### Production (binding-only)
+
+1. Deploy the **menu-server** Worker first, then **menu-platform**.
+2. On the deployed **menu-platform** Worker, **omit `AUTH_API_BASE_URL`** from vars/secrets if you want all API traffic to go through the binding only.
+
+### Local development
+
+- **`pnpm dev`**: set `AUTH_API_BASE_URL` in `.env` (e.g. `http://127.0.0.1:4000`) so Next can reach a local menu-server over HTTP.
+- **`pnpm cf:dev:paired`**: runs Wrangler with [`wrangler.jsonc`](wrangler.jsonc) and [`../menu-server/wrangler.toml`](../menu-server/wrangler.toml) so the **menu-server** Worker is attached as the `MENU_SERVER` binding (see [Cloudflare service bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/)).
+
 ## Getting Started
 
 First, run the development server:

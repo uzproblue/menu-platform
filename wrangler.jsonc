@@ -12,5 +12,11 @@
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
-	}
+	},
+	"services": [
+		{
+			"binding": "MENU_SERVER",
+			"service": "menu-server"
+		}
+	]
 }
