@@ -62,14 +62,18 @@ export function RestaurantsListTable({
           </tr>
         </thead>
         <tbody>
-          {locations.map((location) => (
+          {locations.map((location, index) => (
             <tr
               key={location.id}
               className="border-b border-foreground/5 last:border-0 transition-colors hover:bg-foreground/3"
               onClick={() => onOpenLocationPage(location.id)}
             >
               <td className="px-4 py-3.5 pl-5">
-                <LocationLogo src={location.logoUrl} name={location.name} />
+                <LocationLogo
+                  src={location.logoUrl}
+                  name={location.name}
+                  priority={index < 12}
+                />
               </td>
               <td className="px-4 py-3.5 pl-5">
                 <div className="space-y-1">

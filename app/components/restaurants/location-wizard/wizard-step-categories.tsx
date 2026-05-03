@@ -1,6 +1,8 @@
 import clsx from "clsx";
+import Image from "next/image";
 import type { Category } from "@/lib/auth-api";
 import { useI18n } from "@/app/components/i18n-provider";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 
 type WizardStepCategoriesProps = {
   catalogLoading: boolean;
@@ -41,7 +43,7 @@ export function WizardStepCategories({
             <p className="mb-3 text-sm text-foreground/60">{t("restaurants.newWizard.noCategories")}</p>
           )}
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {allCategories.map((cat) => {
+            {allCategories.map((cat, catIndex) => {
               const sel = selectedCategoryIds.includes(cat.id);
               const desc = cat.description?.trim();
               return (
@@ -60,11 +62,15 @@ export function WizardStepCategories({
                     )}
                   >
                     {cat.coverPhoto ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- category cover URLs (remote or app paths)
-                      <img
+                      <Image
                         src={cat.coverPhoto}
                         alt={t("restaurants.newWizard.categoryCoverAlt", { name: cat.name })}
-                        className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        priority={catIndex < 6}
+                        {...(catIndex >= 6 ? { loading: "lazy" as const } : {})}
+                        unoptimized={imageSrcIsNonOptimizable(cat.coverPhoto)}
                       />
                     ) : (
                       <div className="absolute inset-0 size-full bg-gradient-to-br from-foreground/15 to-foreground/5" />

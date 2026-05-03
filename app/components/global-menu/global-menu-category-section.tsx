@@ -49,7 +49,7 @@ export function GlobalMenuCategorySection({
         </div>
       </div>
       <ul className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 lg:grid-cols-3">
-        {category.items.map((item) => (
+        {category.items.map((item, index) => (
           <GlobalMenuItemRow
             key={item.id}
             item={item}
@@ -59,6 +59,7 @@ export function GlobalMenuCategorySection({
             onDelete={onDeleteItem}
             isBusy={isItemBusy?.(item.id) ?? false}
             hideEditButton={hideEditButton}
+            thumbnailPriority={index < 6}
           />
         ))}
       </ul>

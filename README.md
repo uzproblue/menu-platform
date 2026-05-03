@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Images (Cloudflare zone transformations)
+
+In **production**, `next/image` uses a [custom loader](image-loader.ts) that points to **`/cdn-cgi/image/...`** so Cloudflare can resize and serve WebP/AVIF via zone Image Resizing. The HTML uses **relative** URLs, so no extra public base URL env is required—the browser uses the same host as the app.
+
+In **`pnpm dev`**, the loader returns the original image URL (R2 or local path) because `/cdn-cgi/image/` is not available on localhost.
+
+In the **Cloudflare dashboard**, allowlist only the origins you need (your R2 public hostname and same-origin paths). `data:` / `blob:` previews still use per-component `unoptimized` and bypass this pipeline.
+
+## Auth redirects (login / logout) on Cloudflare
+
+NextAuth builds redirect URLs from **`NEXTAUTH_URL`** unless **`AUTH_TRUST_HOST`** or **`VERCEL`** is set. On Workers, if `NEXTAUTH_URL` is missing or still `http://localhost:3000`, sign-in and sign-out send the browser to localhost.
+
+**Fix for deployed menu-platform:** set **`AUTH_TRUST_HOST=true`** in the Worker environment (Wrangler vars/secrets or dashboard). That makes NextAuth use `x-forwarded-host` / `x-forwarded-proto` from Cloudflare so redirects stay on your real domain.
+
+Optionally set **`NEXTAUTH_URL=https://your-domain.com`** (no trailing slash) as a canonical fallback. Do **not** ship production with `NEXTAUTH_URL` pointing at localhost.
+
 ## menu-server (API backend)
 
 Server-side code calls **menu-server** via the Cloudflare **`MENU_SERVER` service binding** when running on Workers (see [`wrangler.jsonc`](wrangler.jsonc)). If the binding is missing (for example during plain `next dev`), it falls back to **`AUTH_API_BASE_URL`** over HTTP.

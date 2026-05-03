@@ -1,8 +1,9 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { SessionProvider } from "next-auth/react";
 import { useEffect, useRef, type ReactNode } from "react";
+import { safeSignOut } from "@/lib/safe-sign-out";
 import { I18nProvider } from "./components/i18n-provider";
 import type { Locale, Messages } from "@/lib/i18n/types";
 
@@ -18,7 +19,7 @@ function AutoSignOutOnExpiry() {
 
     if (session?.authError === "AccessTokenExpired" && !signOutTriggeredRef.current) {
       signOutTriggeredRef.current = true;
-      void signOut({ callbackUrl: "/login" });
+      void safeSignOut("/login");
     }
   }, [session?.authError, status]);
 
@@ -29,14 +30,14 @@ function AutoSignOutOnExpiry() {
     const msUntilExpiry = session.accessTokenExpiresAt - Date.now();
     if (msUntilExpiry <= 0 && !signOutTriggeredRef.current) {
       signOutTriggeredRef.current = true;
-      void signOut({ callbackUrl: "/login" });
+      void safeSignOut("/login");
       return;
     }
 
     const timer = window.setTimeout(() => {
       if (signOutTriggeredRef.current) return;
       signOutTriggeredRef.current = true;
-      void signOut({ callbackUrl: "/login" });
+      void safeSignOut("/login");
     }, msUntilExpiry);
 
     return () => window.clearTimeout(timer);

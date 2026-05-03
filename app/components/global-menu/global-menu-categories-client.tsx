@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
 
@@ -198,16 +200,21 @@ export function GlobalMenuCategoriesClient() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <li
               key={cat.id}
               className="group relative overflow-hidden rounded-2xl border border-foreground/10 ring-1 ring-foreground/5"
             >
               {cat.coverPhoto ? (
-                <img
+                <Image
                   src={cat.coverPhoto}
                   alt={`${cat.name} cover`}
-                  className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 896px"
+                  priority={index < 4}
+                  {...(index >= 4 ? { loading: "lazy" as const } : {})}
+                  unoptimized={imageSrcIsNonOptimizable(cat.coverPhoto)}
                 />
               ) : (
                 <div className="absolute inset-0 size-full bg-gradient-to-br from-foreground/15 to-foreground/5" />

@@ -49,7 +49,20 @@ function LoginFormFields() {
       return;
     }
     if (res?.ok) {
-      router.push(res.url ?? callbackUrl);
+      // If NEXTAUTH_URL was wrong in production, the API may return an absolute URL on another host;
+      // only follow same-origin redirects and otherwise use the relative callbackUrl.
+      let target = callbackUrl;
+      if (res.url) {
+        try {
+          const u = new URL(res.url);
+          if (u.origin === window.location.origin) {
+            target = `${u.pathname}${u.search}${u.hash}`;
+          }
+        } catch {
+          /* keep callbackUrl */
+        }
+      }
+      router.push(target.startsWith("/") ? target : `/${target}`);
       router.refresh();
     }
   }

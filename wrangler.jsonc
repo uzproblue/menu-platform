@@ -18,5 +18,8 @@
 			"binding": "MENU_SERVER",
 			"service": "menu-server"
 		}
-	]
+	],
+	// Auth: set in dashboard or `wrangler secret put` / vars — do not use localhost in production:
+	//   AUTH_SECRET, AUTH_TRUST_HOST=true, and optionally NEXTAUTH_URL=https://your-domain.com
+	// "vars": { "AUTH_TRUST_HOST": "true" }
 }

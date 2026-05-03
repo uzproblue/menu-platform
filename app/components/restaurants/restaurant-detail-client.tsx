@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import type { GlobalMenuData } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { GlobalMenuCategorySection } from "@/app/components/global-menu/global-menu-category-section";
@@ -77,13 +79,15 @@ export function RestaurantDetailClient({
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border border-foreground/10 bg-background/80 ring-1 ring-foreground/5">
             {hasLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element -- local paths and remote URLs
-              <img
+              <Image
                 src={restaurant.logoUrl}
                 alt={t("restaurants.logoAlt", { name: displayName })}
-                className="size-full object-cover"
                 width={80}
                 height={80}
+                className="size-full object-cover"
+                sizes="80px"
+                priority
+                unoptimized={imageSrcIsNonOptimizable(restaurant.logoUrl)}
               />
             ) : (
               <div className="flex size-full items-center justify-center text-lg font-semibold text-foreground/40">

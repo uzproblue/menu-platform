@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
 
@@ -251,10 +253,14 @@ export function NewCategoryClient() {
           <div className="mt-4">
             <article className="group relative overflow-hidden rounded-2xl border border-foreground/10 ring-1 ring-foreground/5">
               {previewPhoto ? (
-                <img
+                <Image
                   src={previewPhoto}
                   alt={`${previewName} cover`}
-                  className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 896px"
+                  priority
+                  unoptimized={imageSrcIsNonOptimizable(previewPhoto)}
                 />
               ) : (
                 <div className="absolute inset-0 size-full bg-gradient-to-br from-foreground/15 to-foreground/5" />

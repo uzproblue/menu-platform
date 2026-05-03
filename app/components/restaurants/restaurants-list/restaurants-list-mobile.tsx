@@ -32,7 +32,7 @@ export function RestaurantsListMobile({
   return (
     <div className="md:hidden">
       <ul className="space-y-3">
-        {locations.map((location) => (
+        {locations.map((location, index) => (
           <li
             key={location.id}
             className="rounded-2xl border border-foreground/10 bg-background/40 p-4 ring-1 ring-foreground/5"
@@ -41,7 +41,11 @@ export function RestaurantsListMobile({
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex items-center gap-3">
-                  <LocationLogo src={location.logoUrl} name={location.name} />
+                  <LocationLogo
+                    src={location.logoUrl}
+                    name={location.name}
+                    priority={index < 8}
+                  />
                   <div className="min-w-0">
                     <p className="font-semibold tracking-tight text-foreground">
                       {location.name}

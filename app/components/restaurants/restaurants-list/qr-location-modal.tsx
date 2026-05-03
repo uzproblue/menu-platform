@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 
@@ -98,13 +99,14 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
         </p>
         <div className="mt-5 flex flex-col items-center gap-4">
           {qrDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- data URL from qrcode
-            <img
+            <Image
               src={qrDataUrl}
               alt={t("restaurants.newWizard.qrAlt")}
               className="rounded-xl border border-foreground/10 bg-white p-2"
               width={280}
               height={280}
+              unoptimized
+              priority
             />
           ) : (
             <div className="flex h-[280px] w-[280px] items-center justify-center rounded-xl border border-dashed border-foreground/20 text-sm text-foreground/50">

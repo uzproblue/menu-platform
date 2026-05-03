@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { useI18n } from "../i18n-provider";
 
 export type MenuPreviewSection = {
@@ -64,8 +66,16 @@ export function LocationWizardMenuPreview({
                 <div className="flex items-start gap-2.5">
                   <div className="relative size-11 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
                     {logoSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- blob URLs and arbitrary paths
-                      <img src={logoSrc} alt="" className="size-full object-cover" />
+                      <Image
+                        src={logoSrc}
+                        alt=""
+                        width={44}
+                        height={44}
+                        className="size-full object-cover"
+                        sizes="44px"
+                        priority
+                        unoptimized={imageSrcIsNonOptimizable(logoSrc)}
+                      />
                     ) : (
                       <div className="flex size-full items-center justify-center bg-stone-100 text-sm font-semibold text-stone-400">
                         {title.slice(0, 1).toUpperCase() || "·"}

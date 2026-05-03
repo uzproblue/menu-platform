@@ -1,43 +1,32 @@
 import Image from "next/image";
 import type { MenuItem } from "@/lib/data/global-menu-types";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { useI18n } from "../i18n-provider";
-
-const CARD_IMAGE_SIZES =
-  "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 400px";
 
 export function ItemThumbnail({
   src,
   alt,
-  sizes = CARD_IMAGE_SIZES,
+  sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
+  priority = false,
 }: {
   src: string;
   alt: string;
   sizes?: string;
+  priority?: boolean;
 }) {
-  const remote = /^https?:\/\//i.test(src);
-  const svg = /\.svg(\?|$)/i.test(src);
-
-  if (remote || svg) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- remote URLs and SVGs skip next/image config
-      <img
-        src={src}
-        alt={alt}
-        className="size-full object-cover"
-        loading="lazy"
-        decoding="async"
-      />
-    );
-  }
-
+  const unoptimized = imageSrcIsNonOptimizable(src);
   return (
     <Image
       src={src}
       alt={alt}
-      fill
-      className="object-cover"
+      width={512}
+      height={512}
+      className="size-full object-cover"
       sizes={sizes}
-      loading="lazy"
+      priority={priority}
+      unoptimized={unoptimized}
+      {...(!priority ? { loading: "lazy" as const } : {})}
+      decoding="async"
     />
   );
 }
@@ -65,7 +54,9 @@ function ItemActiveToggle({
         disabled={disabled}
         onClick={onToggle}
         className={`flex h-8 w-[3.35rem] shrink-0 cursor-pointer items-center rounded-full border border-foreground/15 px-1 transition-colors disabled:cursor-not-allowed disabled:opacity-55 ${
-          active ? "justify-end bg-foreground/25" : "justify-start bg-foreground/8"
+          active
+            ? "justify-end bg-foreground/25"
+            : "justify-start bg-foreground/8"
         }`}
       >
         <span className="pointer-events-none block size-6 rounded-full bg-background shadow-sm ring-1 ring-foreground/10" />
@@ -114,6 +105,8 @@ type GlobalMenuItemRowProps = {
   isBusy?: boolean;
   /** When true, hides the edit overlay button (e.g. read-only restaurant menu view). */
   hideEditButton?: boolean;
+  /** Load the thumbnail eagerly (first screen of a category grid). */
+  thumbnailPriority?: boolean;
 };
 
 export function GlobalMenuItemRow({
@@ -124,6 +117,7 @@ export function GlobalMenuItemRow({
   onDelete,
   isBusy = false,
   hideEditButton = false,
+  thumbnailPriority = false,
 }: GlobalMenuItemRowProps) {
   const { t } = useI18n();
   const hasImage = Boolean(item.image?.trim());
@@ -138,7 +132,11 @@ export function GlobalMenuItemRow({
       >
         <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden bg-foreground/5">
           {hasImage ? (
-            <ItemThumbnail src={item.image!} alt={item.name} />
+            <ItemThumbnail
+              src={item.image!}
+              alt={item.name}
+              priority={thumbnailPriority}
+            />
           ) : (
             <NoImagePlaceholder label={t("global.noImage")} />
           )}
@@ -198,7 +196,13 @@ export function GlobalMenuItemRow({
                 className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-red-400/40 bg-background/90 text-red-700 shadow-md ring-1 ring-red-400/25 backdrop-blur-md transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-55 dark:text-red-300"
                 aria-label={t("global.deleteItemAria", { name: item.name })}
               >
-                <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg
+                  className="size-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -224,7 +228,9 @@ export function GlobalMenuItemRow({
               {item.description}
             </p>
           ) : (
-            <p className="flex-1 text-sm italic text-foreground/40">{t("global.noDescription")}</p>
+            <p className="flex-1 text-sm italic text-foreground/40">
+              {t("global.noDescription")}
+            </p>
           )}
 
           <div className="mt-auto flex flex-wrap items-end justify-between gap-3 border-t border-foreground/10 pt-3">

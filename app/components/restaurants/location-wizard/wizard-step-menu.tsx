@@ -1,5 +1,7 @@
+import Image from "next/image";
 import type { Category, GlobalMenuItemApi } from "@/lib/auth-api";
 import { useI18n } from "@/app/components/i18n-provider";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { CUSTOM_PRICE_SELECTION, MANUAL_PRICE_SELECTION } from "./constants";
 import {
   formatPriceSummary,
@@ -98,7 +100,7 @@ export function WizardStepMenu({
               </p>
             ) : (
               <ul className="divide-y divide-foreground/10 rounded-xl border border-foreground/10">
-                {items.map((item) => {
+                {items.map((item, itemIdx) => {
                   const on = Boolean(selectedItems[item.id]);
                   const row = selectedItems[item.id];
                   const matchingPrices = getMatchingCatalogPrices(item, currency);
@@ -115,13 +117,16 @@ export function WizardStepMenu({
                         <span className="flex min-w-0 items-start gap-3">
                           <span className="relative mt-0.5 block size-12 shrink-0 overflow-hidden rounded-lg border border-foreground/10 bg-foreground/5">
                             {item.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element -- supports menu item image URLs
-                              <img
+                              <Image
                                 src={item.image}
                                 alt={item.name}
-                                className="size-full object-cover"
                                 width={48}
                                 height={48}
+                                className="size-full object-cover"
+                                sizes="48px"
+                                priority={itemIdx < 12}
+                                {...(itemIdx >= 12 ? { loading: "lazy" as const } : {})}
+                                unoptimized={imageSrcIsNonOptimizable(item.image)}
                               />
                             ) : (
                               <span className="flex size-full items-center justify-center text-[10px] font-medium text-foreground/45">
