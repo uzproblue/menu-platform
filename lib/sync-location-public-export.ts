@@ -24,7 +24,8 @@ export type SyncAndPurgeAllLocationExportsResult = {
 };
 
 /**
- * Fetches latest location + published menu from the auth API and uploads the public JSON snapshot to R2.
+ * Fetches latest location + published menu from the auth API and uploads the public menu snapshot
+ * to R2 as Brotli-compressed JSON (`Content-Encoding: br`).
  */
 export async function syncLocationPublicExportToR2(
   accessToken: string,
