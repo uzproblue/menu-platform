@@ -4,7 +4,7 @@ import {
   getLocationsWithAuthServer,
   getLocationWithAuthServer,
 } from "@/lib/auth-api";
-import { purgeCloudflareUrl } from "@/lib/cloudflare-cache";
+import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
 import { buildLocationPublicExport } from "@/lib/data/location-public-export";
 import {
   makeLocationPublicExportObjectKey,
@@ -12,9 +12,63 @@ import {
 } from "@/lib/r2-location-export";
 import { getR2UploadConfig } from "@/lib/r2-upload";
 
+/** Result of Cloudflare CDN purge for the public snapshot URL(s). */
+export type LocationSnapshotPurgeDetail = {
+  /** URLs sent to Cloudflare `purge_cache` (canonical + any `LOCATION_EXPORT_PURGE_EXTRA_BASES`). */
+  urls: string[];
+  /** True when purge API succeeded for all URLs. */
+  purgeOk: boolean;
+  /** True when credentials were missing and purge was not attempted. */
+  skipped: boolean;
+  message?: string;
+};
+
 export type LocationExportResult =
-  | { ok: true; publicUrl: string; objectKey: string }
+  | { ok: true; publicUrl: string; objectKey: string; purge: LocationSnapshotPurgeDetail }
   | { ok: false; message: string };
+
+/** Comma-separated origins (no path), same object key appended — e.g. guest `MENU_PUBLIC_BASE_URL` if it differs from `R2_PUBLIC_BASE_URL`. */
+function parseLocationExportPurgeExtraBases(): string[] {
+  const raw = process.env.LOCATION_EXPORT_PURGE_EXTRA_BASES?.trim() ?? "";
+  if (!raw.length) return [];
+  return raw
+    .split(/[,]+/)
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+}
+
+export function buildLocationSnapshotPurgeUrls(
+  publicUrl: string,
+  objectKey: string,
+): string[] {
+  const urls = new Set<string>();
+  urls.add(publicUrl.trim());
+  for (const base of parseLocationExportPurgeExtraBases()) {
+    urls.add(`${base}/${objectKey}`);
+  }
+  return [...urls];
+}
+
+function logPurgeOutcome(
+  context: string,
+  detail: LocationSnapshotPurgeDetail,
+): void {
+  if (detail.skipped) {
+    console.warn(
+      `[${context}] Cloudflare CDN purge skipped — guest menus may stay stale up to Cache-Control max-age/s-maxage. Set CLOUDFLARE_ZONE_ID and CLOUDFLARE_API_TOKEN on menu-platform; align MENU_PUBLIC_BASE_URL with R2_PUBLIC_BASE_URL or set LOCATION_EXPORT_PURGE_EXTRA_BASES.`,
+      { urls: detail.urls },
+    );
+    return;
+  }
+  if (!detail.purgeOk) {
+    console.warn(`[${context}] Cloudflare CDN purge failed`, {
+      urls: detail.urls,
+      message: detail.message,
+    });
+    return;
+  }
+  console.info(`[${context}] Cloudflare CDN purge ok`, { urls: detail.urls });
+}
 
 export type SyncAndPurgeAllLocationExportsResult = {
   ok: boolean;
@@ -71,7 +125,10 @@ export async function scheduleOrAwaitAllRestaurantLocationExports(
 export async function syncLocationPublicExportToR2(
   accessToken: string,
   locationId: string,
-): Promise<LocationExportResult> {
+): Promise<
+  | { ok: true; publicUrl: string; objectKey: string }
+  | { ok: false; message: string }
+> {
   const [locRes, menuRes] = await Promise.all([
     getLocationWithAuthServer(accessToken, locationId),
     getLocationMenuWithAuthServer(accessToken, locationId),
@@ -117,30 +174,52 @@ export async function syncAndPurgeLocationPublicExport(
     return syncRes;
   }
 
-  const purgeRes = await purgeCloudflareUrl(syncRes.publicUrl);
-  if (!purgeRes.ok && !purgeRes.skipped) {
-    return { ok: false, message: purgeRes.message };
+  const urls = buildLocationSnapshotPurgeUrls(syncRes.publicUrl, syncRes.objectKey);
+  const purgeRes = await purgeCloudflareUrls(urls);
+
+  const purge: LocationSnapshotPurgeDetail = {
+    urls,
+    purgeOk: purgeRes.ok,
+    skipped: !purgeRes.ok ? Boolean(purgeRes.skipped) : false,
+    message: !purgeRes.ok ? purgeRes.message : undefined,
+  };
+
+  if (!purgeRes.ok && !purge.skipped) {
+    logPurgeOutcome("syncAndPurgeLocationPublicExport", purge);
+    return { ok: false, message: purge.message ?? "purge_failed" };
   }
 
-  return syncRes;
+  logPurgeOutcome("syncAndPurgeLocationPublicExport", purge);
+
+  return { ok: true, publicUrl: syncRes.publicUrl, objectKey: syncRes.objectKey, purge };
 }
 
 export async function purgeLocationPublicExportUrl(
   locationId: string,
-): Promise<{ ok: true } | { ok: false; message: string; skipped?: boolean }> {
+): Promise<
+  | { ok: true; purge: LocationSnapshotPurgeDetail }
+  | { ok: false; message: string; skipped?: boolean; purge?: LocationSnapshotPurgeDetail }
+> {
   try {
     const config = getR2UploadConfig();
     const objectKey = makeLocationPublicExportObjectKey(locationId);
     const publicUrl = `${config.publicBaseUrl}/${objectKey}`;
-    const purgeRes = await purgeCloudflareUrl(publicUrl);
-    if (!purgeRes.ok) {
-      return {
-        ok: false,
-        message: purgeRes.message,
-        skipped: purgeRes.skipped,
-      };
+    const urls = buildLocationSnapshotPurgeUrls(publicUrl, objectKey);
+    const purgeRes = await purgeCloudflareUrls(urls);
+    const purge: LocationSnapshotPurgeDetail = {
+      urls,
+      purgeOk: purgeRes.ok,
+      skipped: !purgeRes.ok ? Boolean(purgeRes.skipped) : false,
+      message: !purgeRes.ok ? purgeRes.message : undefined,
+    };
+
+    if (!purgeRes.ok && !purge.skipped) {
+      logPurgeOutcome("purgeLocationPublicExportUrl", purge);
+      return { ok: false, message: purge.message ?? "purge_failed", purge };
     }
-    return { ok: true };
+
+    logPurgeOutcome("purgeLocationPublicExportUrl", purge);
+    return { ok: true, purge };
   } catch (e) {
     return {
       ok: false,
@@ -224,4 +303,14 @@ export async function syncAndPurgeAllRestaurantLocationExports(
 export function isLocationExportStrict(): boolean {
   const v = process.env.LOCATION_EXPORT_STRICT?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
+}
+
+/** Shape for `locationExport` on settings API JSON responses. */
+export function toLocationExportApiField(result: LocationExportResult):
+  | { ok: true; publicUrl: string; purge: LocationSnapshotPurgeDetail }
+  | { ok: false; message: string } {
+  if (result.ok) {
+    return { ok: true, publicUrl: result.publicUrl, purge: result.purge };
+  }
+  return { ok: false, message: result.message };
 }

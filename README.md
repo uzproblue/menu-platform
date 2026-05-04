@@ -30,6 +30,19 @@ Server-side code calls **menu-server** via the Cloudflare **`MENU_SERVER` servic
 - **`pnpm dev`**: set `AUTH_API_BASE_URL` in `.env` (e.g. `http://127.0.0.1:4000`) so Next can reach a local menu-server over HTTP.
 - **`pnpm cf:dev:paired`**: runs Wrangler with [`wrangler.jsonc`](wrangler.jsonc) and [`../menu-server/wrangler.toml`](../menu-server/wrangler.toml) so the **menu-server** Worker is attached as the `MENU_SERVER` binding (see [Cloudflare service bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/)).
 
+## Public menu snapshots (R2 + CDN purge)
+
+After location/menu changes, the platform writes `location-public/v1/{locationId}.json` to R2 and calls Cloudflare [purge by URL](https://developers.cloudflare.com/cache/how-to/purge-cache/purge-by-single-file/) so edge caches refetch the object.
+
+**Checklist if the guest app still shows old data:**
+
+1. **Purge credentials** — Set **`CLOUDFLARE_ZONE_ID`** and **`CLOUDFLARE_API_TOKEN`** on the **menu-platform** Worker (same zone that fronts the public JSON hostname). If unset, purge is skipped (see logs: `Cloudflare CDN purge skipped`).
+2. **Same URL the guest uses** — `R2_PUBLIC_BASE_URL` (platform) must match how **menu-customer** builds URLs from **`MENU_PUBLIC_BASE_URL`**: both should resolve to the same `https://…/location-public/v1/{id}.json`. If the guest uses another hostname (e.g. second CDN), set **`LOCATION_EXPORT_PURGE_EXTRA_BASES`** to a comma-separated list of origins (no path, no trailing slash); each gets the same object path purged.
+3. **Manual purge** — In the Cloudflare dashboard, **Custom purge → URL** for the exact guest URL; then reload the guest app and check **`CF-Cache-Status: MISS`** on the first response.
+4. **Custom cache keys / transforms** — If your zone uses cache key rules or path transforms, dashboard purge may not match; see Cloudflare’s purge docs for API options with matching headers.
+
+API responses that sync a location now include **`locationExport.purge`** (`urls`, `purgeOk`, `skipped`, `message`) so you can confirm purge behavior from the admin network tab.
+
 ## Getting Started
 
 First, run the development server:

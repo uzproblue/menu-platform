@@ -41,7 +41,7 @@ export async function putLocationPublicExportToR2(
       ContentType: "application/json; charset=utf-8",
       ContentEncoding: "br",
       CacheControl:
-        "public, max-age=28800, s-maxage=28800, stale-while-revalidate=600",
+        "public, max-age=300, s-maxage=600, stale-while-revalidate=120",
     }),
   );
   return {

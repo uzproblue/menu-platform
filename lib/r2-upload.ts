@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-type UploadTarget = "menu-item" | "location-logo" | "category-cover";
+export type UploadTarget = "menu-item" | "location-logo" | "category-cover";
 
 export type R2UploadConfig = {
   accountId: string;
@@ -153,6 +153,31 @@ function getS3Client(config: R2UploadConfig): S3Client {
 /** Shared client for server-side bucket writes (e.g. public JSON exports). */
 export function createR2S3Client(config: R2UploadConfig): S3Client {
   return getS3Client(config);
+}
+
+/** Server-side write (avoids browser CORS to `*.r2.cloudflarestorage.com`). */
+export async function putValidatedUploadToR2(input: {
+  target: UploadTarget;
+  contentType: string;
+  extension: string;
+  restaurantId: string;
+  body: Buffer | Uint8Array;
+}): Promise<{ objectKey: string; publicUrl: string }> {
+  const config = getR2UploadConfig();
+  const objectKey = makeObjectKey(input.target, input.extension, input.restaurantId);
+  const client = getS3Client(config);
+  await client.send(
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      Key: objectKey,
+      Body: input.body,
+      ContentType: input.contentType,
+    }),
+  );
+  return {
+    objectKey,
+    publicUrl: `${config.publicBaseUrl}/${objectKey}`,
+  };
 }
 
 export async function createSignedUpload(input: {

@@ -10,6 +10,7 @@ import {
   isLocationExportStrict,
   purgeLocationPublicExportUrl,
   syncAndPurgeLocationPublicExport,
+  toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 
 export async function GET(
@@ -176,9 +177,7 @@ export async function PATCH(
   return NextResponse.json(
     {
       ...result.data,
-      locationExport: exportResult.ok
-        ? { ok: true as const, publicUrl: exportResult.publicUrl }
-        : { ok: false as const, message: exportResult.message },
+      locationExport: toLocationExportApiField(exportResult),
     },
     { status: 200 },
   );

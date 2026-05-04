@@ -5,6 +5,7 @@ import { publishLocationMenuItemsWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
   syncAndPurgeLocationPublicExport,
+  toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 
 export async function PUT(
@@ -137,9 +138,7 @@ export async function PUT(
   return NextResponse.json(
     {
       ...result.data,
-      locationExport: exportResult.ok
-        ? { ok: true as const, publicUrl: exportResult.publicUrl }
-        : { ok: false as const, message: exportResult.message },
+      locationExport: toLocationExportApiField(exportResult),
     },
     { status: 200 },
   );
