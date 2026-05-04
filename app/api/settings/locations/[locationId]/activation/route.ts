@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { updateLocationActivationWithAuthServer } from "@/lib/auth-api";
+import {
+  isLocationExportStrict,
+  syncAndPurgeLocationPublicExport,
+} from "@/lib/sync-location-public-export";
 
 export async function PATCH(
   req: Request,
@@ -53,5 +57,33 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json(result.data, { status: 200 });
+  const exportResult = await syncAndPurgeLocationPublicExport(token, trimmedId);
+  if (!exportResult.ok) {
+    console.error(
+      "[PATCH location activation] location public export failed",
+      trimmedId,
+      exportResult.message,
+    );
+    if (isLocationExportStrict()) {
+      return NextResponse.json(
+        {
+          ...result.data,
+          error: "location_export_failed",
+          message: exportResult.message,
+          locationExport: { ok: false as const, message: exportResult.message },
+        },
+        { status: 503 },
+      );
+    }
+  }
+
+  return NextResponse.json(
+    {
+      ...result.data,
+      locationExport: exportResult.ok
+        ? { ok: true as const, publicUrl: exportResult.publicUrl }
+        : { ok: false as const, message: exportResult.message },
+    },
+    { status: 200 },
+  );
 }
