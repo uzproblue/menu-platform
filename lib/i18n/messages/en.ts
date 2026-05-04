@@ -392,6 +392,7 @@ export const enMessages: Messages = {
   "newItem.creating": "Creating…",
   "newItem.createFailed": "Could not create this item. Check the fields and try again.",
   "newItem.createFailedNetwork": "Network error while creating the item.",
+  "newItem.imageUploadFailed": "Could not upload the image before saving the item.",
   "newItem.imageTooLarge": "Image is too large. Maximum allowed size is {maxMb}MB.",
   "newItem.categoriesUnavailable": "Could not load categories",
   "newItem.loadErrorUnauthorized": "You need to be signed in to load categories.",

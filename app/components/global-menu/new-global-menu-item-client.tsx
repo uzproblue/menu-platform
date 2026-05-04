@@ -133,7 +133,16 @@ export function NewGlobalMenuItemClient({
           );
           return;
         }
-        imageUrl = await uploadFileToR2(imageFile, "menu-item");
+        try {
+          imageUrl = await uploadFileToR2(imageFile, "menu-item");
+        } catch (uploadErr) {
+          setSubmitError(
+            uploadErr instanceof Error && uploadErr.message.trim().length
+              ? uploadErr.message
+              : t("newItem.imageUploadFailed"),
+          );
+          return;
+        }
       } else if (imageUrlInput.trim()) {
         imageUrl = imageUrlInput.trim();
       }

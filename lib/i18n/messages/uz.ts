@@ -387,6 +387,7 @@ export const uzMessages: Messages = {
   "newItem.creating": "Yaratilmoqda…",
   "newItem.createFailed": "Element yaratilmadi. Maydonlarni tekshirib qayta urinib ko'ring.",
   "newItem.createFailedNetwork": "Element yaratishda tarmoq xatosi.",
+  "newItem.imageUploadFailed": "Elementni saqlashdan oldin rasmni yuklab bo'lmadi.",
   "newItem.imageTooLarge": "Rasm hajmi juda katta. Maksimal ruxsat etilgan hajm: {maxMb}MB.",
   "newItem.categoriesUnavailable": "Kategoriyalarni yuklab bo'lmadi",
   "newItem.loadErrorUnauthorized": "Kategoriyalarni yuklash uchun tizimga kiring.",

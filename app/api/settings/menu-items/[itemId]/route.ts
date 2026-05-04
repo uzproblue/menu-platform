@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { deleteMenuItemWithAuthServer, updateMenuItemWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  syncAndPurgeAllRestaurantLocationExports,
+  scheduleOrAwaitAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
 
 export async function PATCH(
@@ -86,7 +86,7 @@ export async function PATCH(
     );
   }
 
-  const exportBatchResult = await syncAndPurgeAllRestaurantLocationExports(token);
+  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
   if (!exportBatchResult.ok) {
     console.error(
       "[PATCH menu-item] restaurant location export batch failed",
@@ -141,7 +141,7 @@ export async function DELETE(
     );
   }
 
-  const exportBatchResult = await syncAndPurgeAllRestaurantLocationExports(token);
+  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
   if (!exportBatchResult.ok) {
     console.error(
       "[DELETE menu-item] restaurant location export batch failed",

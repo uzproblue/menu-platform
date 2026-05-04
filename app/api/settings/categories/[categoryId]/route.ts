@@ -7,7 +7,7 @@ import {
 } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  syncAndPurgeAllRestaurantLocationExports,
+  scheduleOrAwaitAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
 
 export async function PATCH(
@@ -101,7 +101,7 @@ export async function PATCH(
     );
   }
 
-  const exportBatchResult = await syncAndPurgeAllRestaurantLocationExports(token);
+  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
   if (!exportBatchResult.ok) {
     console.error(
       "[PATCH category] restaurant location export batch failed",
@@ -156,7 +156,7 @@ export async function DELETE(
     );
   }
 
-  const exportBatchResult = await syncAndPurgeAllRestaurantLocationExports(token);
+  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
   if (!exportBatchResult.ok) {
     console.error(
       "[DELETE category] restaurant location export batch failed",

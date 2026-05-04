@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import {
   getLocationMenuWithAuthServer,
   getLocationsWithAuthServer,
@@ -21,7 +22,47 @@ export type SyncAndPurgeAllLocationExportsResult = {
   succeeded: number;
   failed: number;
   failures: Array<{ locationId: string; message: string }>;
+  /** Set when the batch was scheduled on `ctx.waitUntil` (non-strict Workers); counts are placeholders. */
+  deferred?: boolean;
 };
+
+/**
+ * Refreshes every location's public R2 export after a catalog change.
+ * On Cloudflare with `LOCATION_EXPORT_STRICT` off (default), runs in the background so the
+ * HTTP handler can return before the batch finishes — avoids Worker wall-clock timeouts that
+ * surface in the browser as "Failed to fetch" / generic network errors.
+ */
+export async function scheduleOrAwaitAllRestaurantLocationExports(
+  accessToken: string,
+): Promise<SyncAndPurgeAllLocationExportsResult> {
+  if (isLocationExportStrict()) {
+    return syncAndPurgeAllRestaurantLocationExports(accessToken);
+  }
+
+  try {
+    const { ctx } = getCloudflareContext();
+    ctx.waitUntil(
+      syncAndPurgeAllRestaurantLocationExports(accessToken).catch((err) => {
+        console.error(
+          "[scheduleOrAwaitAllRestaurantLocationExports] background sync failed",
+          err,
+        );
+      }),
+    );
+    return {
+      ok: true,
+      total: 0,
+      succeeded: 0,
+      failed: 0,
+      failures: [],
+      deferred: true,
+    };
+  } catch {
+    /* `next dev` or non-Workers: no execution context */
+  }
+
+  return syncAndPurgeAllRestaurantLocationExports(accessToken);
+}
 
 /**
  * Fetches latest location + published menu from the auth API and uploads the public menu snapshot

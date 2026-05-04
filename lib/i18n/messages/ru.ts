@@ -384,6 +384,7 @@ export const ruMessages: Messages = {
   "newItem.creating": "Создание…",
   "newItem.createFailed": "Не удалось создать позицию. Проверьте поля и попробуйте снова.",
   "newItem.createFailedNetwork": "Сетевая ошибка при создании позиции.",
+  "newItem.imageUploadFailed": "Не удалось загрузить изображение перед сохранением позиции.",
   "newItem.imageTooLarge": "Изображение слишком большое. Максимальный размер: {maxMb} МБ.",
   "newItem.categoriesUnavailable": "Не удалось загрузить категории",
   "newItem.loadErrorUnauthorized": "Войдите в аккаунт, чтобы загрузить категории.",

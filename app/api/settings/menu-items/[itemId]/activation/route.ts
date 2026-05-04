@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { updateMenuItemActivationWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  syncAndPurgeAllRestaurantLocationExports,
+  scheduleOrAwaitAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
 
 export async function PATCH(
@@ -57,7 +57,7 @@ export async function PATCH(
     );
   }
 
-  const exportBatchResult = await syncAndPurgeAllRestaurantLocationExports(token);
+  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
   if (!exportBatchResult.ok) {
     console.error(
       "[PATCH menu-item activation] restaurant location export batch failed",
