@@ -40,11 +40,26 @@ export const uzMessages: Messages = {
   "login.emailPlaceholder": "you@example.com",
   "forgot.title": "Parolni unutdingizmi",
   "forgot.subtitle":
-    "Email kiriting, funksiya yoqilgach parolni tiklash yo'riqnomasini yuboramiz.",
+    "Email kiriting — bunday hisob bo'lsa, tiklash havolasini yuboramiz.",
   "forgot.sendResetLink": "Tiklash havolasini yuborish",
+  "forgot.sending": "Yuborilmoqda…",
   "forgot.backToSignIn": "Kirishga qaytish",
-  "forgot.notWired":
-    "Email orqali parol tiklash hali ulanmagan. Ulanganda ko'rsatgan manzilingizga yo'riqnoma yuboriladi.",
+  "forgot.success":
+    "Bunday email bilan hisob bo'lsa, parolni tiklash havolasi yuborildi. Pochtangizni tekshiring.",
+  "forgot.error":
+    "Xatolik yuz berdi. Keyinroq qayta urinib ko'ring yoki qo'llab-quvvatlashga murojaat qiling.",
+
+  "reset.title": "Yangi parol",
+  "reset.subtitle": "Hisobingiz uchun yangi parol tanlang.",
+  "reset.newPassword": "Yangi parol",
+  "reset.confirmPassword": "Parolni tasdiqlang",
+  "reset.submit": "Parolni yangilash",
+  "reset.submitting": "Yangilanmoqda…",
+  "reset.success": "Parolingiz yangilandi. Endi kirishingiz mumkin.",
+  "reset.invalidToken":
+    "Tiklash havolasi yo'q yoki yaroqsiz. «Parolni unutdim» sahifasidan yangisini so'rang.",
+  "reset.mismatch": "Parollar mos kelmaydi.",
+  "reset.error": "Parolni yangilab bo'lmadi. Havola muddati tugagan bo'lishi mumkin.",
   "home.welcome": "Xush kelibsiz",
   "home.subtitle":
     "Siz tizimga kirdingiz. Yon paneldan Umumiy menyu yoki Restoranlarni oching.",

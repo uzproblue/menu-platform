@@ -43,11 +43,26 @@ export const enMessages: Messages = {
 
   "forgot.title": "Forgot password",
   "forgot.subtitle":
-    "Enter your email and we will send reset instructions when this feature is enabled.",
+    "Enter your email and we will send a reset link if an account exists for that address.",
   "forgot.sendResetLink": "Send reset link",
+  "forgot.sending": "Sending…",
   "forgot.backToSignIn": "Back to sign in",
-  "forgot.notWired":
-    "Password reset by email is not wired up yet. When it is, you will receive instructions at the address you entered.",
+  "forgot.success":
+    "If an account exists for that email, we sent a link to reset your password. Check your inbox.",
+  "forgot.error":
+    "Something went wrong. Try again later or contact support if the problem continues.",
+
+  "reset.title": "Set a new password",
+  "reset.subtitle": "Choose a new password for your account.",
+  "reset.newPassword": "New password",
+  "reset.confirmPassword": "Confirm new password",
+  "reset.submit": "Update password",
+  "reset.submitting": "Updating…",
+  "reset.success": "Your password was updated. You can sign in now.",
+  "reset.invalidToken":
+    "This reset link is missing or invalid. Request a new link from the forgot password page.",
+  "reset.mismatch": "Passwords do not match.",
+  "reset.error": "Could not update your password. The link may have expired.",
 
   "home.welcome": "Welcome",
   "home.subtitle":

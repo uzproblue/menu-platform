@@ -1,10 +1,10 @@
 import type { GlobalMenuResponse, Location } from "@/lib/auth-api";
 
-export const LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION = 1 as const;
+export const LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION = 2 as const;
 
 /**
  * Public snapshot written to R2 after menu publish. Safe for anonymous guest menu apps.
- * Shape is stable for `schemaVersion` 1; bump version when breaking fields change.
+ * Shape is stable for `schemaVersion` 2; includes category/item translations.
  */
 export type LocationPublicExport = {
   schemaVersion: typeof LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION;

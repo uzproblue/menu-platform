@@ -44,6 +44,12 @@ export type RevealTemporaryPasswordResponse = {
   temporaryPassword: string;
 };
 
+export type TranslationTextApi = {
+  lang: string;
+  name: string;
+  description?: string | null;
+};
+
 export type Category = {
   id: string;
   name: string;
@@ -51,6 +57,7 @@ export type Category = {
   coverPhoto?: string | null;
   sortOrder: number;
   itemsCount: number;
+  translations: TranslationTextApi[];
 };
 
 export type CategoriesResponse = {
@@ -77,12 +84,15 @@ export type GlobalMenuItemApi = {
   tags: string[];
   description?: string;
   image?: string;
+  translations: TranslationTextApi[];
 };
 
 export type GlobalMenuCategoryWithItemsApi = {
   id: string;
   name: string;
+  description?: string;
   sortOrder: number;
+  translations: TranslationTextApi[];
   items: GlobalMenuItemApi[];
 };
 
@@ -115,6 +125,7 @@ export type CreatedMenuItemApi = {
   tags: string[];
   description?: string;
   image?: string;
+  translations: TranslationTextApi[];
 };
 
 export type CreateMenuItemResponse = {
@@ -147,6 +158,7 @@ export type Location = {
   currency: string;
   address: string;
   logoUrl: string;
+  translationLangs: string[];
   /** Menu category ids enabled for this location (subset of restaurant catalog). */
   enabledCategoryIds: string[];
   isDefault: boolean;
@@ -160,6 +172,7 @@ export type Location = {
 export type CreateLocationInput = {
   name: string;
   currency: string;
+  translationLangs: string[];
   logoUrl?: string;
   address?: string;
 };
@@ -170,6 +183,7 @@ export type CreateLocationResponse = {
     name: string;
     currency: string;
     logoUrl: string;
+    translationLangs: string[];
     isDefault: boolean;
     isActive: boolean;
     createdAt: string;
@@ -209,6 +223,7 @@ export type UpdateLocationDetailsInput = {
   currency?: string;
   logoUrl?: string;
   address?: string | null;
+  translationLangs?: string[];
 };
 
 export type UpdateLocationDetailsResponse = {
@@ -218,6 +233,7 @@ export type UpdateLocationDetailsResponse = {
     currency: string;
     address: string;
     logoUrl: string;
+    translationLangs: string[];
     enabledCategoryIds: string[];
     isDefault: boolean;
     isActive: boolean;
@@ -318,6 +334,101 @@ export async function loginWithAuthServer(
     return (await res.json()) as LoginResponse;
   } catch {
     return null;
+  }
+}
+
+export async function requestPasswordResetWithAuthServer(
+  email: string,
+): Promise<
+  | { ok: true }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(transport, "/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.ok) {
+      return { ok: true };
+    }
+    let message: string | undefined;
+    let error = "request_failed";
+    try {
+      const j = (await res.json()) as ApiErrorResponse;
+      if (typeof j.error === "string") error = j.error;
+      if (typeof j.message === "string") message = j.message;
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, status: res.status, error, message };
+  } catch {
+    return {
+      ok: false,
+      status: 503,
+      error: "network_error",
+      message: "Could not reach auth server",
+    };
+  }
+}
+
+export async function resetPasswordWithAuthServer(
+  token: string,
+  newPassword: string,
+): Promise<
+  | { ok: true }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(transport, "/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.status === 204) {
+      return { ok: true };
+    }
+    let message: string | undefined;
+    let error = "request_failed";
+    try {
+      const j = (await res.json()) as ApiErrorResponse;
+      if (typeof j.error === "string") error = j.error;
+      if (typeof j.message === "string") message = j.message;
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, status: res.status, error, message };
+  } catch {
+    return {
+      ok: false,
+      status: 503,
+      error: "network_error",
+      message: "Could not reach auth server",
+    };
   }
 }
 

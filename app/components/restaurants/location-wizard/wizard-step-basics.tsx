@@ -9,6 +9,8 @@ type WizardStepBasicsProps = {
   setAddress: (v: string) => void;
   currency: string;
   setCurrency: (v: string) => void;
+  translationLangs: string[];
+  setTranslationLangs: (v: string[]) => void;
   logoUrlInputId: string;
   logoFileInputId: string;
   logoUrlInput: string;
@@ -34,6 +36,8 @@ export function WizardStepBasics({
   setAddress,
   currency,
   setCurrency,
+  translationLangs,
+  setTranslationLangs,
   logoUrlInputId,
   logoFileInputId,
   logoUrlInput,
@@ -98,6 +102,31 @@ export function WizardStepBasics({
               </option>
             ))}
           </select>
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-medium text-foreground/70">Translation languages</p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {["EN", "RU", "UZ"].map((lang) => {
+            const checked = translationLangs.includes(lang);
+            return (
+              <label key={lang} className="inline-flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setTranslationLangs(Array.from(new Set([...translationLangs, lang])));
+                    } else {
+                      setTranslationLangs(translationLangs.filter((x) => x !== lang));
+                    }
+                  }}
+                  disabled={formDisabled}
+                />
+                {lang}
+              </label>
+            );
+          })}
         </div>
       </div>
       <div>

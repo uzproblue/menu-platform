@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { useI18n } from "../components/i18n-provider";
 
@@ -24,36 +25,48 @@ function SubmitButton({
   );
 }
 
-export function ForgotPasswordForm() {
+export function ResetPasswordForm({ token }: { token: string }) {
   const { t } = useI18n();
-  const emailId = useId();
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
+  const newId = useId();
+  const confirmId = useId();
+  const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const form = e.currentTarget;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value
-      .trim()
-      .toLowerCase();
-    if (!email.length || !email.includes("@")) {
+    const newPassword = (form.elements.namedItem("newPassword") as HTMLInputElement)
+      .value;
+    const confirm = (form.elements.namedItem("confirmPassword") as HTMLInputElement)
+      .value;
+    if (newPassword !== confirm) {
+      setError(t("reset.mismatch"));
       return;
     }
     setPending(true);
     try {
-      const res = await fetch("/api/auth/forgot-password", {
+      const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ token, newPassword }),
       });
-      if (res.ok) {
-        setSubmitted(true);
+      if (res.status === 204) {
+        setDone(true);
         return;
       }
-      const data = (await res.json().catch(() => ({}))) as { message?: string };
-      setError(data.message ?? t("forgot.error"));
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+      };
+      if (data.error === "invalid_or_expired_token") {
+        setError(t("reset.error"));
+      } else {
+        setError(data.message ?? t("reset.error"));
+      }
     } catch {
       setError(t("forgot.error"));
     } finally {
@@ -61,14 +74,14 @@ export function ForgotPasswordForm() {
     }
   }
 
-  if (submitted) {
+  if (done) {
     return (
       <div className="space-y-5">
         <p
           className="rounded-lg border border-foreground/15 bg-foreground/5 px-3 py-2.5 text-sm text-foreground/80"
           role="status"
         >
-          {t("forgot.success")}
+          {t("reset.success")}
         </p>
         <Link
           href="/login"
@@ -91,34 +104,60 @@ export function ForgotPasswordForm() {
         </p>
       ) : null}
       <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor={newId} className="text-sm font-medium text-foreground">
+            {t("reset.newPassword")}
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="text-xs font-medium text-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {showPassword ? t("login.hidePassword") : t("login.showPassword")}
+          </button>
+        </div>
+        <input
+          id={newId}
+          name="newPassword"
+          type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          maxLength={128}
+          className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none ring-offset-background transition-[box-shadow,background-color] placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+        />
+      </div>
+      <div className="space-y-2">
         <label
-          htmlFor={emailId}
+          htmlFor={confirmId}
           className="text-sm font-medium text-foreground"
         >
-          {t("common.email")}
+          {t("reset.confirmPassword")}
         </label>
         <input
-          id={emailId}
-          name="email"
-          type="email"
-          autoComplete="email"
+          id={confirmId}
+          name="confirmPassword"
+          type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
           required
+          minLength={8}
+          maxLength={128}
           className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none ring-offset-background transition-[box-shadow,background-color] placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
-          placeholder={t("login.emailPlaceholder")}
         />
       </div>
       <SubmitButton
         pending={pending}
-        label={t("forgot.sendResetLink")}
-        pendingLabel={t("forgot.sending")}
+        label={t("reset.submit")}
+        pendingLabel={t("reset.submitting")}
       />
       <p className="text-center text-sm text-foreground/60">
-        <Link
-          href="/login"
+        <button
+          type="button"
+          onClick={() => router.push("/forgot-pass")}
           className="font-medium text-foreground/80 underline-offset-2 hover:text-foreground hover:underline"
         >
-          {t("forgot.backToSignIn")}
-        </Link>
+          {t("forgot.sendResetLink")}
+        </button>
       </p>
     </form>
   );

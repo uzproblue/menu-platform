@@ -85,6 +85,7 @@ export async function PATCH(
     currency?: string;
     logoUrl?: string;
     address?: string | null;
+    translationLangs?: string[];
   } = {};
 
   if ("name" in o) {
@@ -133,15 +134,39 @@ export async function PATCH(
       );
     }
   }
+  if ("translationLangs" in o) {
+    if (!Array.isArray(o.translationLangs)) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "translationLangs must be an array" },
+        { status: 400 },
+      );
+    }
+    const langs = o.translationLangs
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim().toUpperCase())
+      .filter((x) => /^[A-Z0-9_-]{2,8}$/.test(x));
+    if (langs.length === 0) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "translationLangs must contain language codes" },
+        { status: 400 },
+      );
+    }
+    payload.translationLangs = [...new Set(langs)];
+  }
 
   if (
     payload.name === undefined &&
     payload.currency === undefined &&
     payload.logoUrl === undefined &&
-    payload.address === undefined
+    payload.address === undefined &&
+    payload.translationLangs === undefined
   ) {
     return NextResponse.json(
-      { error: "invalid_body", message: "at least one of name, currency, logoUrl, address is required" },
+      {
+        error: "invalid_body",
+        message:
+          "at least one of name, currency, logoUrl, address, translationLangs is required",
+      },
       { status: 400 },
     );
   }

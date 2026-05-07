@@ -44,6 +44,7 @@ export function NewLocationWizard({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState("UZS");
+  const [translationLangs, setTranslationLangs] = useState<string[]>(["EN", "RU", "UZ"]);
   const logoUrlInputId = useId();
   const logoFileInputId = useId();
   const [logoUrlInput, setLogoUrlInput] = useState("");
@@ -126,6 +127,11 @@ export function NewLocationWizard({
         setName(loc.name);
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
+        setTranslationLangs(
+          Array.isArray(loc.translationLangs) && loc.translationLangs.length > 0
+            ? loc.translationLangs
+            : ["EN", "RU", "UZ"],
+        );
         setLogoUrlInput(loc.logoUrl ?? "");
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
@@ -356,6 +362,7 @@ export function NewLocationWizard({
               currency: currency.trim().toUpperCase(),
               address: trimmedAddress.length ? trimmedAddress : null,
               logoUrl: logoForPatch,
+              translationLangs,
             }),
           },
         );
@@ -368,6 +375,11 @@ export function NewLocationWizard({
         setName(loc.name);
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
+        setTranslationLangs(
+          Array.isArray(loc.translationLangs) && loc.translationLangs.length > 0
+            ? loc.translationLangs
+            : ["EN", "RU", "UZ"],
+        );
         setLogoUrlInput(loc.logoUrl ?? "");
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
@@ -397,13 +409,17 @@ export function NewLocationWizard({
         name: name.trim(),
         currency: currency.trim().toUpperCase(),
       };
-      if (logoUrl) body.logoUrl = logoUrl;
-      if (trimmedAddress) body.address = trimmedAddress;
+      const bodyWithLangs: Record<string, unknown> = {
+        ...body,
+        translationLangs,
+      };
+      if (logoUrl) bodyWithLangs.logoUrl = logoUrl;
+      if (trimmedAddress) bodyWithLangs.address = trimmedAddress;
 
       const res = await fetch("/api/settings/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(bodyWithLangs),
       });
       if (!res.ok) {
         setStepError(t("restaurants.newWizard.errCreateLocation"));
@@ -671,6 +687,8 @@ export function NewLocationWizard({
             setAddress={setAddress}
             currency={currency}
             setCurrency={setCurrency}
+            translationLangs={translationLangs}
+            setTranslationLangs={setTranslationLangs}
             logoUrlInputId={logoUrlInputId}
             logoFileInputId={logoFileInputId}
             logoUrlInput={logoUrlInput}

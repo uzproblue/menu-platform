@@ -53,6 +53,9 @@ export async function POST(req: Request) {
   const currency = typeof o.currency === "string" ? o.currency.trim().toUpperCase() : "";
   const logoUrl = typeof o.logoUrl === "string" ? o.logoUrl.trim() : "";
   const rawAddress = typeof o.address === "string" ? o.address.trim() : "";
+  const rawTranslationLangs = Array.isArray(o.translationLangs)
+    ? o.translationLangs
+    : undefined;
   if (rawAddress.length > 1000) {
     return NextResponse.json(
       { error: "invalid_body", message: "address must be at most 1000 characters" },
@@ -71,10 +74,24 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  const translationLangs = (rawTranslationLangs ?? [])
+    .filter((x): x is string => typeof x === "string")
+    .map((x) => x.trim().toUpperCase())
+    .filter((x) => /^[A-Z0-9_-]{2,8}$/.test(x));
+  if (translationLangs.length === 0) {
+    return NextResponse.json(
+      {
+        error: "invalid_body",
+        message: "translationLangs is required and must contain language codes",
+      },
+      { status: 400 },
+    );
+  }
 
   const result = await createLocationWithAuthServer(token, {
     name,
     currency,
+    translationLangs,
     logoUrl: logoUrl || undefined,
     address: rawAddress || undefined,
   });
