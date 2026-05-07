@@ -1,5 +1,6 @@
 import { ItemThumbnail } from "@/app/components/global-menu/global-menu-item-row";
 import { useI18n } from "@/app/components/i18n-provider";
+import { LOCATION_TRANSLATION_OPTIONS } from "@/lib/menu-translation-langs";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 
 type WizardStepBasicsProps = {
@@ -107,7 +108,7 @@ export function WizardStepBasics({
       <div>
         <p className="text-xs font-medium text-foreground/70">Translation languages</p>
         <div className="mt-2 flex flex-wrap gap-3">
-          {["EN", "RU", "UZ"].map((lang) => {
+          {LOCATION_TRANSLATION_OPTIONS.map((lang) => {
             const checked = translationLangs.includes(lang);
             return (
               <label key={lang} className="inline-flex items-center gap-2 text-sm text-foreground">

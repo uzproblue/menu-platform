@@ -5,6 +5,7 @@ import {
   createLocationWithAuthServer,
   getLocationsWithAuthServer,
 } from "@/lib/auth-api";
+import { validateTranslationLangsInput } from "@/lib/menu-translation-langs";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -74,19 +75,17 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const translationLangs = (rawTranslationLangs ?? [])
-    .filter((x): x is string => typeof x === "string")
-    .map((x) => x.trim().toUpperCase())
-    .filter((x) => /^[A-Z0-9_-]{2,8}$/.test(x));
-  if (translationLangs.length === 0) {
+  const translationCandidates = (rawTranslationLangs ?? []).filter(
+    (x): x is string => typeof x === "string",
+  );
+  const translationParsed = validateTranslationLangsInput(translationCandidates);
+  if (!translationParsed.ok) {
     return NextResponse.json(
-      {
-        error: "invalid_body",
-        message: "translationLangs is required and must contain language codes",
-      },
+      { error: "invalid_body", message: translationParsed.message },
       { status: 400 },
     );
   }
+  const translationLangs = translationParsed.value;
 
   const result = await createLocationWithAuthServer(token, {
     name,

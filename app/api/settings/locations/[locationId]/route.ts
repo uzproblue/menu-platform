@@ -6,6 +6,7 @@ import {
   getLocationWithAuthServer,
   updateLocationDetailsWithAuthServer,
 } from "@/lib/auth-api";
+import { validateTranslationLangsInput } from "@/lib/menu-translation-langs";
 import {
   isLocationExportStrict,
   purgeLocationPublicExportUrl,
@@ -141,17 +142,15 @@ export async function PATCH(
         { status: 400 },
       );
     }
-    const langs = o.translationLangs
-      .filter((x): x is string => typeof x === "string")
-      .map((x) => x.trim().toUpperCase())
-      .filter((x) => /^[A-Z0-9_-]{2,8}$/.test(x));
-    if (langs.length === 0) {
+    const candidates = o.translationLangs.filter((x): x is string => typeof x === "string");
+    const parsed = validateTranslationLangsInput(candidates);
+    if (!parsed.ok) {
       return NextResponse.json(
-        { error: "invalid_body", message: "translationLangs must contain language codes" },
+        { error: "invalid_body", message: parsed.message },
         { status: 400 },
       );
     }
-    payload.translationLangs = [...new Set(langs)];
+    payload.translationLangs = parsed.value;
   }
 
   if (

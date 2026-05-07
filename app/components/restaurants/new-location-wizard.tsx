@@ -26,6 +26,7 @@ import {
   createDefaultItemRow,
   reconcileItemRow,
 } from "./location-wizard/pricing";
+import { DEFAULT_LOCATION_TRANSLATION_SELECTION } from "@/lib/menu-translation-langs";
 import type { NewLocationWizardProps, SelectedItemRow } from "./location-wizard/types";
 import { WizardStepBasics } from "./location-wizard/wizard-step-basics";
 import { WizardStepCategories } from "./location-wizard/wizard-step-categories";
@@ -44,7 +45,9 @@ export function NewLocationWizard({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState("UZS");
-  const [translationLangs, setTranslationLangs] = useState<string[]>(["EN", "RU", "UZ"]);
+  const [translationLangs, setTranslationLangs] = useState<string[]>([
+    ...DEFAULT_LOCATION_TRANSLATION_SELECTION,
+  ]);
   const logoUrlInputId = useId();
   const logoFileInputId = useId();
   const [logoUrlInput, setLogoUrlInput] = useState("");
@@ -130,7 +133,7 @@ export function NewLocationWizard({
         setTranslationLangs(
           Array.isArray(loc.translationLangs) && loc.translationLangs.length > 0
             ? loc.translationLangs
-            : ["EN", "RU", "UZ"],
+            : [...DEFAULT_LOCATION_TRANSLATION_SELECTION],
         );
         setLogoUrlInput(loc.logoUrl ?? "");
         setLogoFile(null);
@@ -378,7 +381,7 @@ export function NewLocationWizard({
         setTranslationLangs(
           Array.isArray(loc.translationLangs) && loc.translationLangs.length > 0
             ? loc.translationLangs
-            : ["EN", "RU", "UZ"],
+            : [...DEFAULT_LOCATION_TRANSLATION_SELECTION],
         );
         setLogoUrlInput(loc.logoUrl ?? "");
         setLogoFile(null);
