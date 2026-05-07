@@ -18,8 +18,11 @@ export default function cloudflareImageLoader({ src, width, quality }: ImageLoad
   }
   const optsStr = opts.join(",");
 
+  // Absolute remote URLs (for example public R2 URLs) can fail through
+  // `/cdn-cgi/image/.../<absolute-url>` when zone allowlists are restrictive.
+  // Use the original URL to keep rendering reliable.
   if (/^https?:\/\//i.test(src)) {
-    return `/cdn-cgi/image/${optsStr}/${src}`;
+    return src;
   }
 
   const pathPart = src.startsWith("/") ? src.slice(1) : src;
