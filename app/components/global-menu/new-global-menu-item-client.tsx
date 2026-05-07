@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { appendMenuItemMutation } from "@/lib/pending-mutations";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
@@ -168,8 +169,59 @@ export function NewGlobalMenuItemClient({
         setSubmitError(await readErrorMessage(res, t("newItem.createFailed")));
         return;
       }
+
+      const successPayload = (await res.json().catch(() => null)) as
+        | {
+            item?: {
+              id?: unknown;
+              name?: unknown;
+              active?: unknown;
+              image?: unknown;
+              description?: unknown;
+              tags?: unknown;
+              prices?: unknown;
+            };
+          }
+        | null;
+      const created = successPayload?.item;
+      if (
+        created &&
+        typeof created.id === "string" &&
+        typeof created.name === "string" &&
+        Array.isArray(created.prices)
+      ) {
+        const prices = created.prices.flatMap((row) => {
+          if (!row || typeof row !== "object") return [];
+          const r = row as Record<string, unknown>;
+          if (
+            typeof r.id !== "string" ||
+            typeof r.price !== "string" ||
+            typeof r.currency !== "string"
+          ) {
+            return [];
+          }
+          return [{ id: r.id, price: r.price, currency: r.currency }];
+        });
+        const tags = Array.isArray(created.tags)
+          ? created.tags.filter((t): t is string => typeof t === "string")
+          : undefined;
+        appendMenuItemMutation({
+          kind: "upsert",
+          categoryId,
+          item: {
+            id: created.id,
+            name: created.name,
+            active: typeof created.active === "boolean" ? created.active : undefined,
+            image: typeof created.image === "string" ? created.image : undefined,
+            description:
+              typeof created.description === "string" ? created.description : undefined,
+            tags,
+            prices,
+          },
+        });
+      }
+
       router.push("/global-menu");
-      router.refresh();
     } catch {
       setSubmitError(t("newItem.createFailedNetwork"));
     } finally {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
+import { appendCategoryMutation } from "@/lib/pending-mutations";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
 
@@ -60,8 +61,42 @@ export function NewCategoryClient() {
         return;
       }
 
+      const successPayload = (await response.json().catch(() => null)) as
+        | {
+            category?: {
+              id?: unknown;
+              name?: unknown;
+              description?: unknown;
+              coverPhoto?: unknown;
+              sortOrder?: unknown;
+              itemsCount?: unknown;
+            };
+          }
+        | null;
+      const created = successPayload?.category;
+      if (
+        created &&
+        typeof created.id === "string" &&
+        typeof created.name === "string" &&
+        typeof created.sortOrder === "number" &&
+        typeof created.itemsCount === "number"
+      ) {
+        appendCategoryMutation({
+          kind: "upsert",
+          value: {
+            id: created.id,
+            name: created.name,
+            description:
+              typeof created.description === "string" ? created.description : null,
+            coverPhoto:
+              typeof created.coverPhoto === "string" ? created.coverPhoto : null,
+            sortOrder: created.sortOrder,
+            itemsCount: created.itemsCount,
+          },
+        });
+      }
+
       router.push("/global-menu/categories");
-      router.refresh();
     } catch {
       setSubmitError(t("newCategory.createFailed"));
     } finally {

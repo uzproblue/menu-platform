@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
 import { usePersistedGlobalMenu } from "@/hooks/use-persisted-global-menu";
+import {
+  appendMenuItemMutation,
+  applyMenuItemMutations,
+  getPendingMenuItemMutations,
+  setPendingMenuItemMutations,
+} from "@/lib/pending-mutations";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
 import { AddMenuItemButton } from "./add-menu-item-button";
@@ -79,6 +85,24 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     }
   }, [data, editor]);
 
+  // Overlay any pending create / edit / delete / toggle mutations queued from
+  // this client (in sessionStorage) on top of the freshly arrived server
+  // snapshot. usePersistedGlobalMenu resets `data` to `initialData` whenever
+  // the prop reference changes, so we re-apply the overlay then. Each mutation
+  // retires automatically once the server's content matches it.
+  useEffect(() => {
+    const pending = getPendingMenuItemMutations();
+    if (pending.length === 0) return;
+
+    const { data: applied, retained } = applyMenuItemMutations(initialData, pending);
+    if (retained.length !== pending.length) {
+      setPendingMenuItemMutations(retained);
+    }
+    if (retained.length > 0) {
+      setData(applied);
+    }
+  }, [initialData, setData]);
+
   const patchItem = useCallback(
     (categoryId: string, itemId: string, updater: (prev: MenuItem) => MenuItem) => {
       setData((prev) => ({
@@ -104,8 +128,9 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       if (!current) return;
       const currentlyOn = current.active !== false;
       const nextActive = !currentlyOn;
+      const optimistic: MenuItem = { ...current, active: nextActive };
 
-      patchItem(categoryId, itemId, (i) => ({ ...i, active: nextActive }));
+      patchItem(categoryId, itemId, () => optimistic);
 
       void withItemLock(itemId, async () => {
         try {
@@ -122,7 +147,9 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
             setRequestError(
               await readErrorMessage(response, t("global.errUpdateItemActivation")),
             );
+            return;
           }
+          appendMenuItemMutation({ kind: "upsert", categoryId, item: optimistic });
         } catch {
           patchItem(categoryId, itemId, (i) => ({ ...i, active: currentlyOn }));
           setRequestError(t("global.errUpdateItemActivationNetwork"));
@@ -142,42 +169,35 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       if (!previous) return;
       setRequestError(null);
 
-      const applyLocalPatch = (imageValue: string) =>
-        patchItem(categoryId, itemId, (i) => {
-        const first = i.prices[0];
-        const rest = i.prices.slice(1);
+      const buildOptimistic = (imageValue: string): MenuItem => {
+        const first = previous.prices[0];
+        const rest = previous.prices.slice(1);
         const newFirst = first
-          ? {
-              ...first,
-              price: payload.price,
-              currency: payload.currency,
-            }
-          : {
-              id: `local-${itemId}`,
-              price: payload.price,
-              currency: payload.currency,
-            };
+          ? { ...first, price: payload.price, currency: payload.currency }
+          : { id: `local-${itemId}`, price: payload.price, currency: payload.currency };
         const next: MenuItem = {
-          ...i,
+          ...previous,
           name: payload.name,
           description: payload.description,
           prices: [newFirst, ...rest],
         };
-          const img = imageValue.trim();
-          if (img) next.image = img;
-          else delete next.image;
-          return next;
-        });
+        const img = imageValue.trim();
+        if (img) next.image = img;
+        else delete next.image;
+        return next;
+      };
 
       setIsSavingEdit(true);
       void withItemLock(itemId, async () => {
         let resolvedImage = payload.image.trim();
+        let optimistic: MenuItem | null = null;
         try {
           if (payload.imageFile) {
             resolvedImage = await uploadFileToR2(payload.imageFile, "menu-item");
           }
 
-          applyLocalPatch(resolvedImage);
+          optimistic = buildOptimistic(resolvedImage);
+          patchItem(categoryId, itemId, () => optimistic!);
 
           const response = await fetch(`/api/settings/menu-items/${encodeURIComponent(itemId)}`, {
             method: "PATCH",
@@ -195,6 +215,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
             setRequestError(await readErrorMessage(response, t("global.errSaveItem")));
             return;
           }
+          appendMenuItemMutation({ kind: "upsert", categoryId, item: optimistic });
           setEditor(null);
         } catch {
           patchItem(categoryId, itemId, () => previous);
@@ -233,6 +254,11 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           setRequestError(await readErrorMessage(response, t("global.errDeleteItem")));
           return;
         }
+        appendMenuItemMutation({
+          kind: "delete",
+          categoryId: target.categoryId,
+          id: target.itemId,
+        });
         setDeleteTarget(null);
         setData((prev) => ({
           categories: prev.categories.map((c) =>

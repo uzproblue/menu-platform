@@ -4,17 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
+import {
+  appendCategoryMutation,
+  applyCategoryMutations,
+  getPendingCategoryMutations,
+  setPendingCategoryMutations,
+  type CategoryShape,
+} from "@/lib/pending-mutations";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
 
-type Category = {
-  id: string;
-  name: string;
-  sortOrder: number;
-  itemsCount: number;
-  description?: string | null;
-  coverPhoto?: string | null;
-};
+type Category = CategoryShape;
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as
@@ -61,9 +61,29 @@ export function GlobalMenuCategoriesClient() {
         coverPhoto?: string | null;
       }>;
     };
-    const next = Array.isArray(payload.categories) ? payload.categories : [];
+    const server: Category[] = (
+      Array.isArray(payload.categories) ? payload.categories : []
+    ).map((c) => ({
+      id: c.id,
+      name: c.name,
+      sortOrder: c.sortOrder,
+      itemsCount: c.itemsCount,
+      description: c.description ?? null,
+      coverPhoto: c.coverPhoto ?? null,
+    }));
+
+    // Overlay pending create/edit/delete mutations queued from this client so the
+    // UI stays correct even if an intermediate cache (e.g. Hyperdrive's read
+    // cache during its TTL window) returns a stale snapshot. Each mutation
+    // retires automatically once the server's content matches it.
+    const pending = getPendingCategoryMutations();
+    const { list: applied, retained } = applyCategoryMutations(server, pending);
+    if (retained.length !== pending.length) {
+      setPendingCategoryMutations(retained);
+    }
+
     setCategories(
-      [...next].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+      applied.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
     );
   }, [t]);
 
@@ -97,6 +117,44 @@ export function GlobalMenuCategoriesClient() {
         if (!response.ok) {
           throw new Error(await readErrorMessage(response, t("categories.errEdit")));
         }
+
+        // Persist an optimistic upsert so a stale re-fetch (Hyperdrive read
+        // cache) cannot visually undo the edit before the cache expires.
+        const successPayload = (await response.json().catch(() => null)) as
+          | {
+              category?: {
+                id?: unknown;
+                name?: unknown;
+                description?: unknown;
+                coverPhoto?: unknown;
+                sortOrder?: unknown;
+                itemsCount?: unknown;
+              };
+            }
+          | null;
+        const updated = successPayload?.category;
+        if (
+          updated &&
+          typeof updated.id === "string" &&
+          typeof updated.name === "string" &&
+          typeof updated.sortOrder === "number" &&
+          typeof updated.itemsCount === "number"
+        ) {
+          appendCategoryMutation({
+            kind: "upsert",
+            value: {
+              id: updated.id,
+              name: updated.name,
+              description:
+                typeof updated.description === "string" ? updated.description : null,
+              coverPhoto:
+                typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
+              sortOrder: updated.sortOrder,
+              itemsCount: updated.itemsCount,
+            },
+          });
+        }
+
         setNameModal(null);
         await loadCategories();
       } catch (error) {
@@ -125,6 +183,9 @@ export function GlobalMenuCategoriesClient() {
         if (!response.ok) {
           throw new Error(await readErrorMessage(response, t("categories.errDelete")));
         }
+        // Persist an optimistic delete so a stale re-fetch cannot resurrect the
+        // row visually before the read cache expires.
+        appendCategoryMutation({ kind: "delete", id: deleteTarget.id });
         setDeleteTarget(null);
         await loadCategories();
       } catch (error) {
