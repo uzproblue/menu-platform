@@ -278,6 +278,18 @@ function getAuthApiBaseUrl(): string | null {
 }
 
 function getAuthApiTransport(): AuthApiTransport | null {
+  // Prefer explicit local HTTP first. `AUTH_API_BASE_URL` is opt-in (only set
+  // for local dev) and never present in production, so this preserves the
+  // service-binding path in deployed Workers.
+  //
+  // Why this order matters: plain `next dev` invokes
+  // `initOpenNextCloudflareForDev()` which exposes `env.MENU_SERVER` as a
+  // miniflare stub even when no real menu-server worker is running. Letting
+  // that stub win silently swallows every login as a 401 because the stub
+  // fetch always fails.
+  const base = getAuthApiBaseUrl();
+  if (base) return { mode: "http", baseUrl: base };
+
   try {
     const { env } = getCloudflareContext();
     const fetcher = env.MENU_SERVER;
@@ -287,8 +299,6 @@ function getAuthApiTransport(): AuthApiTransport | null {
   } catch {
     /* not in OpenNext / Workers request context */
   }
-  const base = getAuthApiBaseUrl();
-  if (base) return { mode: "http", baseUrl: base };
   return null;
 }
 

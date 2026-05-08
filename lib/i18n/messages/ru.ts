@@ -338,6 +338,16 @@ export const ruMessages: Messages = {
   "categories.deleteCategoryAria": "Удалить {name}",
   "categories.itemSingular": "",
   "categories.itemPlural": "ов",
+
+  "locationExport.batchFailed":
+    "Сохранено, но не удалось обновить меню в {count} из {total} локаций. Гости могут видеть устаревшие данные.",
+  "locationExport.singleFailed":
+    "Сохранено, но публичный снимок меню не обновился: {detail}",
+  "locationExport.singleFailedFallback": "неизвестная ошибка",
+  "locationExport.purgeSkipped":
+    "Сохранено, но кеш CDN не очищен (CLOUDFLARE_ZONE_ID/CLOUDFLARE_API_TOKEN отсутствуют). Гости могут видеть устаревшие данные до 10 минут.",
+  "locationExport.purgeFailed":
+    "Сохранено, но очистка кеша Cloudflare CDN не удалась. Гости могут видеть устаревшие данные до 10 минут.",
   "categories.errLoad": "Сейчас не удается загрузить категории.",
   "categories.errLoadNetwork": "Ошибка сети при загрузке категорий.",
   "categories.errAdd": "Не удалось добавить категорию.",
@@ -372,6 +382,36 @@ export const ruMessages: Messages = {
     "Здесь появится меню после публикации в мастере настройки локации.",
   "restaurantDetail.menuHeading": "Меню",
   "restaurantDetail.metaDescription": "Данные локации и опубликованное меню",
+  "restaurantDetail.editCategoryItemsButton": "Редактировать",
+  "restaurantDetail.editCategoryItemsAria": "Редактировать позиции в «{name}»",
+  "restaurantDetail.editCategoryItemsTitle": "Редактировать позиции меню в «{name}»",
+  "restaurantDetail.editCategoryItemsHint":
+    "Отметьте позиции, которые нужно опубликовать в этой локации, и задайте цену для локации.",
+  "restaurantDetail.editCategoryItemsEmptyCatalog":
+    "В этой категории пока нет позиций в общем меню.",
+  "restaurantDetail.editCategoryItemsRequireAtLeastOne":
+    "Выберите хотя бы одну позицию или удалите категорию через «Редактировать локацию».",
+  "restaurantDetail.editCategoryItemsPriceInvalid":
+    "Каждой выбранной позиции нужна корректная цена для локации.",
+  "restaurantDetail.editCategoryItemsLoadingCatalog": "Загружаем каталог…",
+  "restaurantDetail.editCategoryItemsCatalogLoadFailed":
+    "Не удалось загрузить общее меню. Повторите попытку.",
+  "restaurantDetail.editCategoryItemsSaving": "Сохраняем…",
+  "restaurantDetail.editCategoryItemsSaveFailed":
+    "Не удалось сохранить позиции для этой категории. Попробуйте ещё раз.",
+  "restaurantDetail.emptyCategoryHint":
+    "Для этой локации в этой категории ещё нет опубликованных позиций. Нажмите «Редактировать», чтобы добавить.",
+  "restaurantDetail.addCategoryButton": "Добавить категорию",
+  "restaurantDetail.addCategoryNoneAvailable":
+    "Все категории уже включены в эту локацию.",
+  "restaurantDetail.addCategoryTitle": "Добавить категории в эту локацию",
+  "restaurantDetail.addCategoryHint":
+    "Отметьте категории, которые нужно включить. Позиции можно добавить позже.",
+  "restaurantDetail.addCategoryEmptyCatalog":
+    "Категорий пока нет. Сначала создайте их в общем меню.",
+  "restaurantDetail.addCategorySaveFailed":
+    "Не удалось обновить категории. Попробуйте ещё раз.",
+  "restaurantDetail.addCategoryAria": "Добавить категорию «{name}» в эту локацию",
 
   "newItem.title": "Новая позиция меню",
   "newItem.subtitle":

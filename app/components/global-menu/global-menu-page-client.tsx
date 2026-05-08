@@ -10,6 +10,11 @@ import {
   getPendingMenuItemMutations,
   setPendingMenuItemMutations,
 } from "@/lib/pending-mutations";
+import {
+  consumePendingLocationExportWarning,
+  readLocationExportWarning,
+  tryReadJson,
+} from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
 import { AddMenuItemButton } from "./add-menu-item-button";
@@ -46,6 +51,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     itemId: string;
   } | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [pendingItems, setPendingItems] = useState<Record<string, true>>({});
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -103,6 +109,11 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     }
   }, [initialData, setData]);
 
+  useEffect(() => {
+    const pending = consumePendingLocationExportWarning();
+    if (pending) setExportWarning(pending);
+  }, []);
+
   const patchItem = useCallback(
     (categoryId: string, itemId: string, updater: (prev: MenuItem) => MenuItem) => {
       setData((prev) => ({
@@ -124,6 +135,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       if (isSavingEdit) return;
       if (isItemBusy(itemId)) return;
       setRequestError(null);
+      setExportWarning(null);
       const current = findItem(data, categoryId, itemId);
       if (!current) return;
       const currentlyOn = current.active !== false;
@@ -150,6 +162,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
             return;
           }
           appendMenuItemMutation({ kind: "upsert", categoryId, item: optimistic });
+          setExportWarning(readLocationExportWarning(await tryReadJson(response), t));
         } catch {
           patchItem(categoryId, itemId, (i) => ({ ...i, active: currentlyOn }));
           setRequestError(t("global.errUpdateItemActivationNetwork"));
@@ -168,6 +181,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       const previous = findItem(data, categoryId, itemId);
       if (!previous) return;
       setRequestError(null);
+      setExportWarning(null);
 
       const buildOptimistic = (imageValue: string): MenuItem => {
         const first = previous.prices[0];
@@ -216,6 +230,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
             return;
           }
           appendMenuItemMutation({ kind: "upsert", categoryId, item: optimistic });
+          setExportWarning(readLocationExportWarning(await tryReadJson(response), t));
           setEditor(null);
         } catch {
           patchItem(categoryId, itemId, () => previous);
@@ -242,6 +257,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     if (!deleteTarget) return;
     if (isItemBusy(deleteTarget.itemId)) return;
     setRequestError(null);
+    setExportWarning(null);
     const target = deleteTarget;
 
     void withItemLock(target.itemId, async () => {
@@ -259,6 +275,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           categoryId: target.categoryId,
           id: target.itemId,
         });
+        setExportWarning(readLocationExportWarning(await tryReadJson(response), t));
         setDeleteTarget(null);
         setData((prev) => ({
           categories: prev.categories.map((c) =>
@@ -292,6 +309,24 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       </div>
     ) : null;
 
+  const exportWarningBanner =
+    exportWarning != null && exportWarning.length > 0 ? (
+      <div
+        role="status"
+        className="flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+      >
+        <p>{exportWarning}</p>
+        <button
+          type="button"
+          onClick={() => setExportWarning(null)}
+          aria-label={t("common.close")}
+          className="shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-foreground/65 hover:bg-foreground/5"
+        >
+          ×
+        </button>
+      </div>
+    ) : null;
+
   const emptyState =
     loadError == null && data.categories.length === 0 ? (
       <div className="rounded-2xl border border-foreground/10 bg-background/40 px-5 py-12 text-center text-sm text-foreground/70">
@@ -302,6 +337,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       {errorBanner}
+      {exportWarningBanner}
       <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-6">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">

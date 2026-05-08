@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { MenuCategory } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { GlobalMenuItemRow } from "./global-menu-item-row";
@@ -13,6 +14,10 @@ type GlobalMenuCategorySectionProps = {
   isItemBusy?: (itemId: string) => boolean;
   hideEditButton?: boolean;
   showAddItemButton?: boolean;
+  /** Custom slot rendered on the top-right of the section header. Takes precedence over `showAddItemButton`. */
+  headerActions?: ReactNode;
+  /** Optional message to render in place of the items grid when the category has no items. */
+  emptyMessage?: ReactNode;
 };
 
 export function GlobalMenuCategorySection({
@@ -23,6 +28,8 @@ export function GlobalMenuCategorySection({
   isItemBusy,
   hideEditButton = false,
   showAddItemButton = false,
+  headerActions,
+  emptyMessage,
 }: GlobalMenuCategorySectionProps) {
   const { t } = useI18n();
   const count = category.items.length;
@@ -38,7 +45,9 @@ export function GlobalMenuCategorySection({
               {count} {count === 1 ? t("categories.itemSingular") : t("categories.itemPlural")}
             </p>
           </div>
-          {showAddItemButton ? (
+          {headerActions ? (
+            <div className="flex items-center gap-2">{headerActions}</div>
+          ) : showAddItemButton ? (
             <Link
               href={`/global-menu/items/new?categoryId=${encodeURIComponent(category.id)}`}
               className="inline-flex min-h-10 items-center justify-center rounded-lg border border-foreground/20 bg-background/80 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5"
@@ -48,21 +57,25 @@ export function GlobalMenuCategorySection({
           ) : null}
         </div>
       </div>
-      <ul className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 lg:grid-cols-3">
-        {category.items.map((item, index) => (
-          <GlobalMenuItemRow
-            key={item.id}
-            item={item}
-            categoryId={category.id}
-            onEdit={onEditItem}
-            onToggleActive={onToggleActive}
-            onDelete={onDeleteItem}
-            isBusy={isItemBusy?.(item.id) ?? false}
-            hideEditButton={hideEditButton}
-            thumbnailPriority={index < 6}
-          />
-        ))}
-      </ul>
+      {count === 0 && emptyMessage ? (
+        <div className="px-4 py-5 text-sm text-foreground/55 sm:px-5">{emptyMessage}</div>
+      ) : (
+        <ul className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 lg:grid-cols-3">
+          {category.items.map((item, index) => (
+            <GlobalMenuItemRow
+              key={item.id}
+              item={item}
+              categoryId={category.id}
+              onEdit={onEditItem}
+              onToggleActive={onToggleActive}
+              onDelete={onDeleteItem}
+              isBusy={isItemBusy?.(item.id) ?? false}
+              hideEditButton={hideEditButton}
+              thumbnailPriority={index < 6}
+            />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

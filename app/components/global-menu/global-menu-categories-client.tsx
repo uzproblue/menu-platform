@@ -11,6 +11,10 @@ import {
   setPendingCategoryMutations,
   type CategoryShape,
 } from "@/lib/pending-mutations";
+import {
+  consumePendingLocationExportWarning,
+  readLocationExportWarning,
+} from "@/lib/location-export-warning";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
 
@@ -29,8 +33,14 @@ export function GlobalMenuCategoriesClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pending = consumePendingLocationExportWarning();
+    if (pending) setExportWarning(pending);
+  }, []);
 
   const [nameModal, setNameModal] = useState<{ mode: "edit"; categoryId: string } | null>(null);
 
@@ -104,6 +114,7 @@ export function GlobalMenuCategoriesClient() {
     async (payload: { name: string; description?: string; coverPhoto?: string }) => {
       if (!nameModal) return;
       setRequestError(null);
+      setExportWarning(null);
       setIsSaving(true);
       try {
         const response = await fetch(
@@ -121,7 +132,7 @@ export function GlobalMenuCategoriesClient() {
         // Persist an optimistic upsert so a stale re-fetch (Hyperdrive read
         // cache) cannot visually undo the edit before the cache expires.
         const successPayload = (await response.json().catch(() => null)) as
-          | {
+          | ({
               category?: {
                 id?: unknown;
                 name?: unknown;
@@ -130,8 +141,9 @@ export function GlobalMenuCategoriesClient() {
                 sortOrder?: unknown;
                 itemsCount?: unknown;
               };
-            }
+            } & Record<string, unknown>)
           | null;
+        setExportWarning(readLocationExportWarning(successPayload, t));
         const updated = successPayload?.category;
         if (
           updated &&
@@ -172,6 +184,7 @@ export function GlobalMenuCategoriesClient() {
     void (async () => {
       if (!deleteTarget) return;
       setRequestError(null);
+      setExportWarning(null);
       setDeletingCategoryId(deleteTarget.id);
       try {
         const response = await fetch(
@@ -183,6 +196,10 @@ export function GlobalMenuCategoriesClient() {
         if (!response.ok) {
           throw new Error(await readErrorMessage(response, t("categories.errDelete")));
         }
+        const successPayload = (await response.json().catch(() => null)) as
+          | Record<string, unknown>
+          | null;
+        setExportWarning(readLocationExportWarning(successPayload, t));
         // Persist an optimistic delete so a stale re-fetch cannot resurrect the
         // row visually before the read cache expires.
         appendCategoryMutation({ kind: "delete", id: deleteTarget.id });
@@ -245,6 +262,23 @@ export function GlobalMenuCategoriesClient() {
         </div>
       ) : null}
 
+      {exportWarning ? (
+        <div
+          role="status"
+          className="flex items-start justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+        >
+          <p>{exportWarning}</p>
+          <button
+            type="button"
+            onClick={() => setExportWarning(null)}
+            aria-label={t("common.close")}
+            className="shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-foreground/65 hover:bg-foreground/5"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
           <p className="text-sm font-medium text-foreground">{t("categories.loading")}</p>
@@ -260,7 +294,7 @@ export function GlobalMenuCategoriesClient() {
           <p className="max-w-md text-sm text-foreground/60">{t("categories.emptyHelp")}</p>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {categories.map((cat, index) => (
             <li
               key={cat.id}
@@ -272,7 +306,7 @@ export function GlobalMenuCategoriesClient() {
                   alt={`${cat.name} cover`}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, 896px"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 672px, 624px"
                   priority={index < 4}
                   {...(index >= 4 ? { loading: "lazy" as const } : {})}
                   unoptimized={imageSrcIsNonOptimizable(cat.coverPhoto)}
@@ -282,17 +316,8 @@ export function GlobalMenuCategoriesClient() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/25" />
 
-              <div className="relative flex min-h-44 items-start justify-between gap-3 p-4 sm:min-h-48 sm:p-5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-lg font-semibold tracking-tight text-white">{cat.name}</p>
-                  <p className="mt-2 line-clamp-3 text-sm text-white/80">
-                    {cat.description?.trim() || "No description"}
-                  </p>
-                  <p className="mt-3 text-xs font-medium uppercase tracking-wide text-white/75">
-                    {cat.itemsCount} {t("common.items")}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
+              <div className="relative flex min-h-44 flex-col justify-between gap-3 p-4 sm:min-h-48 sm:p-5">
+                <div className="flex items-center justify-end gap-1">
                   <button
                     type="button"
                     onClick={() => setNameModal({ mode: "edit", categoryId: cat.id })}
@@ -313,6 +338,15 @@ export function GlobalMenuCategoriesClient() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold tracking-tight text-white">{cat.name}</p>
+                  <p className="mt-2 line-clamp-3 text-sm text-white/80">
+                    {cat.description?.trim() || "No description"}
+                  </p>
+                  <p className="mt-3 text-xs font-medium uppercase tracking-wide text-white/75">
+                    {cat.itemsCount} {t("common.items")}
+                  </p>
                 </div>
               </div>
             </li>

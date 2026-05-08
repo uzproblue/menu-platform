@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { RestaurantDetailClient } from "@/app/components/restaurants/restaurant-detail-client";
+import { RestaurantDetailClient, type CategoryCatalogEntry } from "@/app/components/restaurants/restaurant-detail-client";
 import type { GlobalMenuData } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { authOptions } from "@/lib/auth-options";
 import {
+  getCategoriesWithAuthServer,
   getLocationMenuWithAuthServer,
   getLocationWithAuthServer,
 } from "@/lib/auth-api";
@@ -67,9 +68,10 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const [locResult, menuResult] = await Promise.all([
+  const [locResult, menuResult, categoriesResult] = await Promise.all([
     getLocationWithAuthServer(token, decoded),
     getLocationMenuWithAuthServer(token, decoded),
+    getCategoriesWithAuthServer(token),
   ]);
 
   if (!locResult.ok) {
@@ -79,15 +81,30 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
   }
 
   const restaurant = locationToDisplayInfo(locResult.data.location);
+  const enabledCategoryIds = locResult.data.location.enabledCategoryIds ?? [];
 
   let initialMenu: GlobalMenuData = { categories: [] };
   if (menuResult.ok) {
     initialMenu = mapGlobalMenuResponseToData(menuResult.data);
   }
 
+  const categoriesCatalog: CategoryCatalogEntry[] = categoriesResult.ok
+    ? categoriesResult.data.categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        sortOrder: c.sortOrder,
+        itemsCount: c.itemsCount,
+      }))
+    : [];
+
   return (
     <div className="mx-auto max-w-7xl px-0 py-6 sm:py-8">
-      <RestaurantDetailClient restaurant={restaurant} initialMenu={initialMenu} />
+      <RestaurantDetailClient
+        restaurant={restaurant}
+        initialMenu={initialMenu}
+        enabledCategoryIds={enabledCategoryIds}
+        categoriesCatalog={categoriesCatalog}
+      />
     </div>
   );
 }

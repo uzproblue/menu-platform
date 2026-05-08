@@ -345,6 +345,16 @@ export const enMessages: Messages = {
   "categories.deleteCategoryAria": "Delete {name}",
   "categories.itemSingular": "item",
   "categories.itemPlural": "items",
+
+  "locationExport.batchFailed":
+    "Saved, but {count} of {total} location menus failed to refresh. Guests may see stale data.",
+  "locationExport.singleFailed":
+    "Saved, but the public menu snapshot did not refresh: {detail}",
+  "locationExport.singleFailedFallback": "unknown error",
+  "locationExport.purgeSkipped":
+    "Saved, but CDN cache was not purged (CLOUDFLARE_ZONE_ID/CLOUDFLARE_API_TOKEN missing). Guests may see stale data up to 10 min.",
+  "locationExport.purgeFailed":
+    "Saved, but Cloudflare CDN purge failed. Guests may see stale data up to 10 min.",
   "categories.errLoad": "Unable to load categories right now.",
   "categories.errLoadNetwork": "Network error while loading categories.",
   "categories.errAdd": "Unable to add category.",
@@ -381,6 +391,36 @@ export const enMessages: Messages = {
     "Nothing to show here until you publish a menu from the location wizard.",
   "restaurantDetail.menuHeading": "Menu",
   "restaurantDetail.metaDescription": "Location details and published menu",
+  "restaurantDetail.editCategoryItemsButton": "Edit",
+  "restaurantDetail.editCategoryItemsAria": "Edit items in {name}",
+  "restaurantDetail.editCategoryItemsTitle": "Edit menu items in «{name}»",
+  "restaurantDetail.editCategoryItemsHint":
+    "Tick items to publish at this location and set their location price.",
+  "restaurantDetail.editCategoryItemsEmptyCatalog":
+    "This category has no items in the global menu yet.",
+  "restaurantDetail.editCategoryItemsRequireAtLeastOne":
+    "Select at least one item or use Edit location to remove the category.",
+  "restaurantDetail.editCategoryItemsPriceInvalid":
+    "Every selected item needs a valid location price.",
+  "restaurantDetail.editCategoryItemsLoadingCatalog": "Loading catalog…",
+  "restaurantDetail.editCategoryItemsCatalogLoadFailed":
+    "Could not load global menu. Try again.",
+  "restaurantDetail.editCategoryItemsSaving": "Saving…",
+  "restaurantDetail.editCategoryItemsSaveFailed":
+    "Could not save items for this category. Try again.",
+  "restaurantDetail.emptyCategoryHint":
+    "No items published in this category for this location yet. Use Edit to add some.",
+  "restaurantDetail.addCategoryButton": "Add category",
+  "restaurantDetail.addCategoryNoneAvailable":
+    "All categories are already enabled here.",
+  "restaurantDetail.addCategoryTitle": "Add categories to this location",
+  "restaurantDetail.addCategoryHint":
+    "Tick the categories to enable here. You can add items afterwards.",
+  "restaurantDetail.addCategoryEmptyCatalog":
+    "No categories exist yet. Create one in the global menu first.",
+  "restaurantDetail.addCategorySaveFailed":
+    "Could not update categories. Try again.",
+  "restaurantDetail.addCategoryAria": "Add category {name} to this location",
 
   "newItem.title": "New menu item",
   "newItem.subtitle":

@@ -341,6 +341,16 @@ export const uzMessages: Messages = {
   "categories.deleteCategoryAria": "{name} ni o'chirish",
   "categories.itemSingular": "",
   "categories.itemPlural": "lari",
+
+  "locationExport.batchFailed":
+    "Saqlandi, ammo {total} ta lokatsiyadan {count} tasining menyusi yangilanmadi. Mehmonlar eski ma'lumotni ko'rishi mumkin.",
+  "locationExport.singleFailed":
+    "Saqlandi, ammo umumiy menyu nusxasi yangilanmadi: {detail}",
+  "locationExport.singleFailedFallback": "noma'lum xatolik",
+  "locationExport.purgeSkipped":
+    "Saqlandi, ammo CDN keshi tozalanmadi (CLOUDFLARE_ZONE_ID/CLOUDFLARE_API_TOKEN sozlanmagan). Mehmonlar eski ma'lumotni 10 daqiqagacha ko'rishi mumkin.",
+  "locationExport.purgeFailed":
+    "Saqlandi, ammo Cloudflare CDN keshini tozalashda xatolik. Mehmonlar eski ma'lumotni 10 daqiqagacha ko'rishi mumkin.",
   "categories.errLoad": "Hozir kategoriyalarni yuklab bo'lmadi.",
   "categories.errLoadNetwork": "Kategoriyalarni yuklashda tarmoq xatosi.",
   "categories.errAdd": "Kategoriyani qo'shib bo'lmadi.",
@@ -375,6 +385,37 @@ export const uzMessages: Messages = {
     "Lokatsiya ustasi orqali menyu nashr qilinguncha bu yerda hech narsa ko'rinmaydi.",
   "restaurantDetail.menuHeading": "Menyu",
   "restaurantDetail.metaDescription": "Lokatsiya ma'lumotlari va nashr etilgan menyu",
+  "restaurantDetail.editCategoryItemsButton": "Tahrirlash",
+  "restaurantDetail.editCategoryItemsAria": "«{name}» bo'limidagi taomlarni tahrirlash",
+  "restaurantDetail.editCategoryItemsTitle": "«{name}» bo'limidagi menyu taomlarini tahrirlash",
+  "restaurantDetail.editCategoryItemsHint":
+    "Ushbu lokatsiyada nashr qilinadigan taomlarni belgilang va lokatsiya narxini kiriting.",
+  "restaurantDetail.editCategoryItemsEmptyCatalog":
+    "Bu bo'limda hali umumiy menyuda taomlar yo'q.",
+  "restaurantDetail.editCategoryItemsRequireAtLeastOne":
+    "Kamida bitta taomni tanlang yoki «Lokatsiyani tahrirlash» orqali bo'limni o'chirib qo'ying.",
+  "restaurantDetail.editCategoryItemsPriceInvalid":
+    "Har bir tanlangan taom uchun to'g'ri lokatsiya narxi kerak.",
+  "restaurantDetail.editCategoryItemsLoadingCatalog": "Katalog yuklanmoqda…",
+  "restaurantDetail.editCategoryItemsCatalogLoadFailed":
+    "Umumiy menyuni yuklab bo'lmadi. Qayta urinib ko'ring.",
+  "restaurantDetail.editCategoryItemsSaving": "Saqlanmoqda…",
+  "restaurantDetail.editCategoryItemsSaveFailed":
+    "Ushbu bo'lim uchun taomlarni saqlab bo'lmadi. Qayta urinib ko'ring.",
+  "restaurantDetail.emptyCategoryHint":
+    "Ushbu bo'limda hali bu lokatsiya uchun nashr qilingan taomlar yo'q. Qo'shish uchun «Tahrirlash»ni bosing.",
+  "restaurantDetail.addCategoryButton": "Bo'lim qo'shish",
+  "restaurantDetail.addCategoryNoneAvailable":
+    "Hamma bo'limlar allaqachon ushbu lokatsiyaga ulangan.",
+  "restaurantDetail.addCategoryTitle": "Lokatsiyaga bo'limlar qo'shish",
+  "restaurantDetail.addCategoryHint":
+    "Yoqmoqchi bo'lgan bo'limlarni belgilang. Taomlarni keyin qo'shsa bo'ladi.",
+  "restaurantDetail.addCategoryEmptyCatalog":
+    "Hali bo'limlar mavjud emas. Avval umumiy menyuda yarating.",
+  "restaurantDetail.addCategorySaveFailed":
+    "Bo'limlarni yangilab bo'lmadi. Qayta urinib ko'ring.",
+  "restaurantDetail.addCategoryAria":
+    "«{name}» bo'limini ushbu lokatsiyaga qo'shish",
 
   "newItem.title": "Yangi menyu elementi",
   "newItem.subtitle":

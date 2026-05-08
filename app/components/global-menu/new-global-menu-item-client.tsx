@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import { appendMenuItemMutation } from "@/lib/pending-mutations";
+import {
+  persistPendingLocationExportWarning,
+  readLocationExportWarning,
+} from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
@@ -171,7 +175,7 @@ export function NewGlobalMenuItemClient({
       }
 
       const successPayload = (await res.json().catch(() => null)) as
-        | {
+        | ({
             item?: {
               id?: unknown;
               name?: unknown;
@@ -181,7 +185,7 @@ export function NewGlobalMenuItemClient({
               tags?: unknown;
               prices?: unknown;
             };
-          }
+          } & Record<string, unknown>)
         | null;
       const created = successPayload?.item;
       if (
@@ -221,6 +225,9 @@ export function NewGlobalMenuItemClient({
         });
       }
 
+      persistPendingLocationExportWarning(
+        readLocationExportWarning(successPayload, t),
+      );
       router.push("/global-menu");
     } catch {
       setSubmitError(t("newItem.createFailedNetwork"));

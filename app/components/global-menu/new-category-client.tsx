@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { appendCategoryMutation } from "@/lib/pending-mutations";
+import {
+  persistPendingLocationExportWarning,
+  readLocationExportWarning,
+} from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
 
@@ -62,7 +66,7 @@ export function NewCategoryClient() {
       }
 
       const successPayload = (await response.json().catch(() => null)) as
-        | {
+        | ({
             category?: {
               id?: unknown;
               name?: unknown;
@@ -71,7 +75,7 @@ export function NewCategoryClient() {
               sortOrder?: unknown;
               itemsCount?: unknown;
             };
-          }
+          } & Record<string, unknown>)
         | null;
       const created = successPayload?.category;
       if (
@@ -96,6 +100,9 @@ export function NewCategoryClient() {
         });
       }
 
+      persistPendingLocationExportWarning(
+        readLocationExportWarning(successPayload, t),
+      );
       router.push("/global-menu/categories");
     } catch {
       setSubmitError(t("newCategory.createFailed"));

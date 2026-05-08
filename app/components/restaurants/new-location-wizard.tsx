@@ -232,6 +232,23 @@ export function NewLocationWizard({
     );
   }, [categoriesPayload]);
 
+  // Edit-mode prefill (`loc.enabledCategoryIds`) can include ids for categories
+  // that no longer exist in the catalog (deleted, or revoked from the
+  // restaurant). Those ids are invisible in the step-2 UI because it only
+  // renders rows from `allCategories`, but they remain in `selectedCategoryIds`
+  // and trip the click-time validation in `handleNextFrom2` with the
+  // misleading "categories no longer available — refresh" error. Reconcile
+  // silently as soon as the catalog has loaded successfully.
+  useEffect(() => {
+    if (catalogLoading) return;
+    if (categoriesLoadError) return;
+    setSelectedCategoryIds((prev) => {
+      const known = new Set(allCategories.map((c) => c.id));
+      const filtered = prev.filter((id) => known.has(id) && !id.startsWith("local-"));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [allCategories, catalogLoading, categoriesLoadError]);
+
   const handleCreateCategorySave = useCallback(
     async (payload: { name: string; description?: string; coverPhoto?: string }) => {
       setIsCreatingCategory(true);
