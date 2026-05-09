@@ -1,15 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Images (`/_next/image` + Cloudflare)
+## Images (R2 object keys + Cloudflare `/cdn-cgi/image/`)
 
-`next/image` uses the **default loader**, so the browser requests **`/_next/image?url=...&w=...&q=...`**. Allowed remote hosts come from [`lib/next-image-remote-patterns.ts`](lib/next-image-remote-patterns.ts) (`NEXT_PUBLIC_R2_PUBLIC_BASE_URL` / `R2_PUBLIC_BASE_URL` at build time, default `*.r2.dev` / `*.r2.cloudflarestorage.com`, and optional `NEXT_PUBLIC_IMAGE_SOURCE_HOSTS`).
+- **Database** — After `POST /api/uploads/r2/file`, clients store **`objectKey`** (e.g. `menu-items/.../file.jpeg`) on menu-server for `image`, `coverPhoto`, and location `logoUrl` when the file was uploaded via the platform. Users can still paste a full `https://…` URL; the loader accepts both.
+- **`next/image`** — Global custom loader [`lib/cloudflare-image-loader.ts`](lib/cloudflare-image-loader.ts): in **production** it builds  
+  `{NEXT_PUBLIC_R2_PUBLIC_BASE_URL}/cdn-cgi/image/width={w},quality={q},format=auto/{objectKey}`  
+  on your **public CDN** zone (enable [Image Resizing](https://developers.cloudflare.com/images/transform-images/) there). The same **`/cdn-cgi/image/...`** shape is used in **local `pnpm dev`** and in production so the browser always requests transformed URLs on the CDN host.
+- **Guest JSON** — [`buildLocationPublicExport`](lib/data/location-public-export.ts) expands stored object keys to **`{R2_PUBLIC_BASE_URL}/{key}`** in the exported snapshot so anonymous apps still see full URLs.
 
-- **`pnpm dev`** — Next serves `/_next/image` with its built-in optimizer. Scripts use **`next dev --webpack`** (Next.js 16’s default Turbopack dev can be less predictable for some image config).
-- **`pnpm run preview`** / **deployed Worker** — OpenNext handles `/_next/image` in the Worker. **[`wrangler.jsonc`](wrangler.jsonc)** must include **`images.binding` → `IMAGES`** so Cloudflare can transform images (enable Images / transformations for your account as needed; see [OpenNext image how-to](https://opennext.js.org/cloudflare/howtos/image)).
+Set **`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** (and **`R2_PUBLIC_BASE_URL`** on the server) to your public object origin (no trailing slash). Scripts use **`next dev --webpack`**.
 
-`data:` / `blob:` previews use per-component `unoptimized` and bypass `/_next/image`.
-
-**Deployed Worker returns `400` on `/_next/image?url=…`:** the `url` host is not in the allowlist baked in at **build** time. Set **`R2_PUBLIC_BASE_URL` or `NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** to the same origin browsers use for stored image URLs (e.g. `https://cdn.loyaltering.online`), or add **`NEXT_PUBLIC_IMAGE_SOURCE_HOSTS`** (comma-separated hostnames), or **`LOCATION_EXPORT_PURGE_EXTRA_BASES`** (comma-separated `https://…` origins — those hosts are also added to image `remotePatterns`). Then **rebuild and redeploy**. Runtime-only Worker secrets do not update this list.
+`data:` / `blob:` previews use per-component **`unoptimized`** (loader not used for those).
 
 ## Auth redirects (login / logout) on Cloudflare
 

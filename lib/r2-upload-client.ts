@@ -27,10 +27,10 @@ export async function uploadFileToR2(file: File, target: UploadTarget): Promise<
     throw new Error(await readErrorMessage(res, "failed to upload image"));
   }
 
-  const data = (await res.json().catch(() => null)) as { publicUrl?: string } | null;
-  const publicUrl = typeof data?.publicUrl === "string" ? data.publicUrl.trim() : "";
-  if (!publicUrl.length) {
-    throw new Error("upload response missing publicUrl");
+  const data = (await res.json().catch(() => null)) as { objectKey?: string } | null;
+  const objectKey = typeof data?.objectKey === "string" ? data.objectKey.trim() : "";
+  if (!objectKey.length) {
+    throw new Error("upload response missing objectKey");
   }
-  return publicUrl;
+  return objectKey;
 }

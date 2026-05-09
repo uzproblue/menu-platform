@@ -147,9 +147,11 @@ export async function syncLocationPublicExportToR2(
     };
   }
 
+  const r2Config = getR2UploadConfig();
   const payload = buildLocationPublicExport(
     locRes.data.location,
     menuRes.data,
+    r2Config.publicBaseUrl,
   );
 
   try {
