@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Images (Cloudflare zone transformations)
 
-In **production**, `next/image` uses a [custom loader](image-loader.ts) that points to **`/cdn-cgi/image/...`** so Cloudflare can resize and serve WebP/AVIF via zone Image Resizing. The HTML uses **relative** URLs, so no extra public base URL env is required—the browser uses the same host as the app.
+In **production**, `next/image` uses a [custom loader](image-loader.ts) that points to **`/cdn-cgi/image/...`** on the **app** host so Cloudflare can resize and serve WebP/AVIF. Public object URLs on **`*.r2.dev`** or **`*.r2.cloudflarestorage.com`** are rewritten automatically (no env). A **custom** R2 public hostname must have `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` or `R2_PUBLIC_BASE_URL` set at **build** time—Worker runtime vars alone do not reach the client bundle.
 
 In **`pnpm dev`**, the loader returns the original image URL (R2 or local path) because `/cdn-cgi/image/` is not available on localhost.
 
