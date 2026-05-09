@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { MenuCategory } from "@/lib/data/global-menu-types";
+import { getCategoryDisplayForLocale } from "@/lib/category-locale-display";
 import { useI18n } from "../i18n-provider";
 import { GlobalMenuItemRow } from "./global-menu-item-row";
 
@@ -18,6 +19,7 @@ type GlobalMenuCategorySectionProps = {
   headerActions?: ReactNode;
   /** Optional message to render in place of the items grid when the category has no items. */
   emptyMessage?: ReactNode;
+  onEditItemTranslations?: (categoryId: string, itemId: string) => void;
 };
 
 export function GlobalMenuCategorySection({
@@ -30,16 +32,23 @@ export function GlobalMenuCategorySection({
   showAddItemButton = false,
   headerActions,
   emptyMessage,
+  onEditItemTranslations,
 }: GlobalMenuCategorySectionProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const count = category.items.length;
+  const { name: headerName } = getCategoryDisplayForLocale(
+    category.name,
+    category.description,
+    category.translations,
+    locale,
+  );
   return (
     <section className="rounded-2xl border border-foreground/10 bg-background/60 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md">
       <div className="border-b border-foreground/10 px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              {category.name}
+              {headerName}
             </h2>
             <p className="mt-0.5 text-xs text-foreground/50">
               {count} {count === 1 ? t("categories.itemSingular") : t("categories.itemPlural")}
@@ -52,7 +61,7 @@ export function GlobalMenuCategorySection({
               href={`/global-menu/items/new?categoryId=${encodeURIComponent(category.id)}`}
               className="inline-flex min-h-10 items-center justify-center rounded-lg border border-foreground/20 bg-background/80 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5"
             >
-              {t("global.addNewInCategory", { name: category.name })}
+              {t("global.addNewInCategory", { name: headerName })}
             </Link>
           ) : null}
         </div>
@@ -69,6 +78,7 @@ export function GlobalMenuCategorySection({
               onEdit={onEditItem}
               onToggleActive={onToggleActive}
               onDelete={onDeleteItem}
+              onEditTranslations={onEditItemTranslations}
               isBusy={isItemBusy?.(item.id) ?? false}
               hideEditButton={hideEditButton}
               thumbnailPriority={index < 6}

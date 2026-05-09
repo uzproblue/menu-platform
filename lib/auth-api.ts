@@ -1023,6 +1023,64 @@ export async function updateMenuItemWithAuthServer(
   }
 }
 
+export async function updateMenuItemTranslationsWithAuthServer(
+  accessToken: string,
+  itemId: string,
+  input: { translations: TranslationTextApi[] },
+): Promise<
+  | { ok: true; data: UpdateMenuItemResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/menu-items/${encodeURIComponent(itemId)}/translations`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as UpdateMenuItemResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
 export async function deleteMenuItemWithAuthServer(
   accessToken: string,
   itemId: string,
@@ -1156,6 +1214,64 @@ export async function updateCategoryWithAuthServer(
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as CategoryResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function updateCategoryTranslationsWithAuthServer(
+  accessToken: string,
+  categoryId: string,
+  input: { translations: TranslationTextApi[] },
+): Promise<
+  | { ok: true; data: CategoryResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/categories/${encodeURIComponent(categoryId)}/translations`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
     if (!res.ok) {
       let payload: ApiErrorResponse | null = null;
       try {

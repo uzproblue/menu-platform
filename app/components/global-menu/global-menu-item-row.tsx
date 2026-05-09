@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { MenuItem } from "@/lib/data/global-menu-types";
+import { getMenuItemDisplayForLocale } from "@/lib/category-locale-display";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { useI18n } from "../i18n-provider";
 
@@ -102,6 +103,7 @@ type GlobalMenuItemRowProps = {
   onEdit: (categoryId: string, itemId: string) => void;
   onToggleActive: (categoryId: string, itemId: string) => void;
   onDelete: (categoryId: string, itemId: string) => void;
+  onEditTranslations?: (categoryId: string, itemId: string) => void;
   isBusy?: boolean;
   /** When true, hides the edit overlay button (e.g. read-only restaurant menu view). */
   hideEditButton?: boolean;
@@ -115,13 +117,20 @@ export function GlobalMenuItemRow({
   onEdit,
   onToggleActive,
   onDelete,
+  onEditTranslations,
   isBusy = false,
   hideEditButton = false,
   thumbnailPriority = false,
 }: GlobalMenuItemRowProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const hasImage = Boolean(item.image?.trim());
   const active = isActive(item);
+  const display = getMenuItemDisplayForLocale(
+    item.name,
+    item.description,
+    item.translations,
+    locale,
+  );
 
   return (
     <li className="h-full min-w-0 list-none">
@@ -134,7 +143,7 @@ export function GlobalMenuItemRow({
           {hasImage ? (
             <ItemThumbnail
               src={item.image!}
-              alt={item.name}
+              alt={display.name}
               priority={thumbnailPriority}
             />
           ) : (
@@ -167,12 +176,30 @@ export function GlobalMenuItemRow({
 
           {hideEditButton ? null : (
             <div className="absolute right-2 top-2 z-10 flex items-center gap-2 sm:right-3 sm:top-3">
+              {onEditTranslations ? (
+                <button
+                  type="button"
+                  onClick={() => onEditTranslations(categoryId, item.id)}
+                  disabled={isBusy}
+                  className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-foreground/15 bg-background/90 text-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-md transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-55"
+                  aria-label={t("global.editItemTranslationsAria", { name: display.name })}
+                >
+                  <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                    />
+                  </svg>
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onEdit(categoryId, item.id)}
                 disabled={isBusy}
                 className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-foreground/15 bg-background/90 text-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-md transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-55"
-                aria-label={t("global.editItemAria", { name: item.name })}
+                aria-label={t("global.editItemAria", { name: display.name })}
               >
                 <svg
                   className="size-5"
@@ -194,7 +221,7 @@ export function GlobalMenuItemRow({
                 onClick={() => onDelete(categoryId, item.id)}
                 disabled={isBusy}
                 className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-red-400/40 bg-background/90 text-red-700 shadow-md ring-1 ring-red-400/25 backdrop-blur-md transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-55 dark:text-red-300"
-                aria-label={t("global.deleteItemAria", { name: item.name })}
+                aria-label={t("global.deleteItemAria", { name: display.name })}
               >
                 <svg
                   className="size-5"
@@ -221,11 +248,11 @@ export function GlobalMenuItemRow({
               active ? "" : "line-through decoration-foreground/35"
             }`}
           >
-            {item.name}
+            {display.name}
           </h3>
-          {item.description ? (
+          {display.description ? (
             <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-foreground/65">
-              {item.description}
+              {display.description}
             </p>
           ) : (
             <p className="flex-1 text-sm italic text-foreground/40">

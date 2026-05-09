@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { TranslationTextApi } from "@/lib/auth-api";
+import { getCategoryDisplayForLocale } from "@/lib/category-locale-display";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import {
   appendCategoryMutation,
@@ -17,8 +19,11 @@ import {
 } from "@/lib/location-export-warning";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
+import { CategoryTranslationsModal } from "./category-translations-modal";
 
 type Category = CategoryShape;
+
+const EMPTY_CATEGORY_TRANSLATIONS: TranslationTextApi[] = [];
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as
@@ -28,7 +33,7 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 }
 
 export function GlobalMenuCategoriesClient() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -45,6 +50,9 @@ export function GlobalMenuCategoriesClient() {
   const [nameModal, setNameModal] = useState<{ mode: "edit"; categoryId: string } | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [translationsModalCategory, setTranslationsModalCategory] = useState<Category | null>(
+    null,
+  );
 
   const editingCategory = useMemo(() => {
     if (!nameModal || nameModal.mode !== "edit") return null;
@@ -69,6 +77,7 @@ export function GlobalMenuCategoriesClient() {
         itemsCount: number;
         description?: string | null;
         coverPhoto?: string | null;
+        translations?: TranslationTextApi[];
       }>;
     };
     const server: Category[] = (
@@ -80,6 +89,7 @@ export function GlobalMenuCategoriesClient() {
       itemsCount: c.itemsCount,
       description: c.description ?? null,
       coverPhoto: c.coverPhoto ?? null,
+      translations: Array.isArray(c.translations) ? c.translations : [],
     }));
 
     // Overlay pending create/edit/delete mutations queued from this client so the
@@ -140,6 +150,7 @@ export function GlobalMenuCategoriesClient() {
                 coverPhoto?: unknown;
                 sortOrder?: unknown;
                 itemsCount?: unknown;
+                translations?: unknown;
               };
             } & Record<string, unknown>)
           | null;
@@ -152,6 +163,9 @@ export function GlobalMenuCategoriesClient() {
           typeof updated.sortOrder === "number" &&
           typeof updated.itemsCount === "number"
         ) {
+          const translations = Array.isArray(updated.translations)
+            ? (updated.translations as TranslationTextApi[])
+            : undefined;
           appendCategoryMutation({
             kind: "upsert",
             value: {
@@ -163,6 +177,7 @@ export function GlobalMenuCategoriesClient() {
                 typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
               sortOrder: updated.sortOrder,
               itemsCount: updated.itemsCount,
+              ...(translations !== undefined ? { translations } : {}),
             },
           });
         }
@@ -178,6 +193,51 @@ export function GlobalMenuCategoriesClient() {
       }
     },
     [loadCategories, nameModal, t],
+  );
+
+  const handleTranslationsSaved = useCallback(
+    (successPayload: Record<string, unknown> | null) => {
+      setExportWarning(readLocationExportWarning(successPayload, t));
+      const updated = successPayload?.category as
+        | {
+            id?: unknown;
+            name?: unknown;
+            description?: unknown;
+            coverPhoto?: unknown;
+            sortOrder?: unknown;
+            itemsCount?: unknown;
+            translations?: unknown;
+          }
+        | undefined;
+      if (
+        updated &&
+        typeof updated.id === "string" &&
+        typeof updated.name === "string" &&
+        typeof updated.sortOrder === "number" &&
+        typeof updated.itemsCount === "number"
+      ) {
+        const translationsList = Array.isArray(updated.translations)
+          ? (updated.translations as TranslationTextApi[])
+          : undefined;
+        appendCategoryMutation({
+          kind: "upsert",
+          value: {
+            id: updated.id,
+            name: updated.name,
+            description:
+              typeof updated.description === "string" ? updated.description : null,
+            coverPhoto:
+              typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
+            sortOrder: updated.sortOrder,
+            itemsCount: updated.itemsCount,
+            ...(translationsList !== undefined ? { translations: translationsList } : {}),
+          },
+        });
+      }
+      setTranslationsModalCategory(null);
+      void loadCategories();
+    },
+    [loadCategories, t],
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -295,7 +355,14 @@ export function GlobalMenuCategoriesClient() {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {categories.map((cat, index) => (
+          {categories.map((cat, index) => {
+            const display = getCategoryDisplayForLocale(
+              cat.name,
+              cat.description,
+              cat.translations,
+              locale,
+            );
+            return (
             <li
               key={cat.id}
               className="group relative overflow-hidden rounded-2xl border border-foreground/10 ring-1 ring-foreground/5"
@@ -303,7 +370,7 @@ export function GlobalMenuCategoriesClient() {
               {cat.coverPhoto ? (
                 <Image
                   src={cat.coverPhoto}
-                  alt={`${cat.name} cover`}
+                  alt={`${display.name} cover`}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 672px, 624px"
@@ -320,9 +387,24 @@ export function GlobalMenuCategoriesClient() {
                 <div className="flex items-center justify-end gap-1">
                   <button
                     type="button"
+                    onClick={() => setTranslationsModalCategory(cat)}
+                    className="inline-flex size-10 items-center justify-center rounded-xl border border-white/20 bg-black/25 text-white backdrop-blur-sm transition-colors hover:border-white/40 hover:bg-black/40"
+                    aria-label={t("categories.translationsModal.openAria", { name: display.name })}
+                  >
+                    <svg className="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setNameModal({ mode: "edit", categoryId: cat.id })}
                     className="inline-flex size-10 items-center justify-center rounded-xl border border-white/20 bg-black/25 text-white backdrop-blur-sm transition-colors hover:border-white/40 hover:bg-black/40"
-                    aria-label={t("categories.editCategoryAria", { name: cat.name })}
+                    aria-label={t("categories.editCategoryAria", { name: display.name })}
                   >
                     <svg className="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -332,7 +414,7 @@ export function GlobalMenuCategoriesClient() {
                     type="button"
                     onClick={() => setDeleteTarget(cat)}
                     className="inline-flex size-10 items-center justify-center rounded-xl border border-red-300/45 bg-black/25 text-red-200 backdrop-blur-sm transition-colors hover:border-red-300/70 hover:bg-red-500/20 hover:text-red-100"
-                    aria-label={t("categories.deleteCategoryAria", { name: cat.name })}
+                    aria-label={t("categories.deleteCategoryAria", { name: display.name })}
                   >
                     <svg className="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -340,9 +422,10 @@ export function GlobalMenuCategoriesClient() {
                   </button>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-lg font-semibold tracking-tight text-white">{cat.name}</p>
+                  <p className="text-lg font-semibold tracking-tight text-white">{display.name}</p>
                   <p className="mt-2 line-clamp-3 text-sm text-white/80">
-                    {cat.description?.trim() || "No description"}
+                    {display.description?.trim() ||
+                      t("categories.translationsModal.noDescription")}
                   </p>
                   <p className="mt-3 text-xs font-medium uppercase tracking-wide text-white/75">
                     {cat.itemsCount} {t("common.items")}
@@ -350,9 +433,31 @@ export function GlobalMenuCategoriesClient() {
                 </div>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
+
+      <CategoryTranslationsModal
+        key={translationsModalCategory?.id ?? "closed"}
+        open={translationsModalCategory != null}
+        categoryId={translationsModalCategory?.id ?? null}
+        categoryTitle={
+          translationsModalCategory
+            ? getCategoryDisplayForLocale(
+                translationsModalCategory.name,
+                translationsModalCategory.description,
+                translationsModalCategory.translations,
+                locale,
+              ).name
+            : ""
+        }
+        translations={
+          translationsModalCategory?.translations ?? EMPTY_CATEGORY_TRANSLATIONS
+        }
+        onClose={() => setTranslationsModalCategory(null)}
+        onSaved={handleTranslationsSaved}
+      />
 
       <CategoryNameModal
         open={nameModal != null}
@@ -385,7 +490,12 @@ export function GlobalMenuCategoriesClient() {
             </h2>
             <p className="mt-2 text-sm text-foreground/70">
               {t("categories.deleteCategoryBody", {
-                name: deleteTarget.name,
+                name: getCategoryDisplayForLocale(
+                  deleteTarget.name,
+                  deleteTarget.description,
+                  deleteTarget.translations,
+                  locale,
+                ).name,
                 id: deleteTarget.id,
                 count: deleteTarget.itemsCount,
                 suffix:

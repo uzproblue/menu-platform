@@ -9,6 +9,7 @@
  * kept, so toggle-then-edit-then-delete of the same item collapses cleanly.
  */
 
+import type { TranslationTextApi } from "@/lib/auth-api";
 import type { GlobalMenuData, MenuItem } from "./data/global-menu-types";
 
 const CATEGORY_KEY = "menu-platform.pendingCategoryMutations";
@@ -21,6 +22,8 @@ export type CategoryShape = {
   coverPhoto: string | null;
   sortOrder: number;
   itemsCount: number;
+  /** Present on reads from menu-server; omitted on older pending upserts in sessionStorage. */
+  translations?: TranslationTextApi[];
 };
 
 export type CategoryMutation =
@@ -67,17 +70,38 @@ function writeJsonArray(key: string, value: unknown[]): void {
   }
 }
 
+function isTranslationTextApi(value: unknown): value is TranslationTextApi {
+  if (!value || typeof value !== "object") return false;
+  const o = value as Record<string, unknown>;
+  if (typeof o.lang !== "string" || typeof o.name !== "string") return false;
+  if (
+    o.description !== undefined &&
+    o.description !== null &&
+    typeof o.description !== "string"
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function isCategoryShape(value: unknown): value is CategoryShape {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return (
-    typeof v.id === "string" &&
-    typeof v.name === "string" &&
-    typeof v.sortOrder === "number" &&
-    typeof v.itemsCount === "number" &&
-    (v.description === null || typeof v.description === "string") &&
-    (v.coverPhoto === null || typeof v.coverPhoto === "string")
-  );
+  if (
+    typeof v.id !== "string" ||
+    typeof v.name !== "string" ||
+    typeof v.sortOrder !== "number" ||
+    typeof v.itemsCount !== "number" ||
+    (v.description !== null && typeof v.description !== "string") ||
+    (v.coverPhoto !== null && typeof v.coverPhoto !== "string")
+  ) {
+    return false;
+  }
+  if (v.translations !== undefined) {
+    if (!Array.isArray(v.translations)) return false;
+    if (!v.translations.every(isTranslationTextApi)) return false;
+  }
+  return true;
 }
 
 function isCategoryMutation(value: unknown): value is CategoryMutation {
@@ -103,6 +127,10 @@ function isMenuItemShape(value: unknown): value is MenuItem {
     ) {
       return false;
     }
+  }
+  if (v.translations !== undefined) {
+    if (!Array.isArray(v.translations)) return false;
+    if (!v.translations.every(isTranslationTextApi)) return false;
   }
   return true;
 }
@@ -236,7 +264,11 @@ export function applyCategoryMutations(
       // server caught up — drop mutation
       continue;
     }
-    byId.set(m.value.id, m.value);
+    const mergedTranslations =
+      m.value.translations !== undefined
+        ? m.value.translations
+        : (existing?.translations ?? []);
+    byId.set(m.value.id, { ...m.value, translations: mergedTranslations });
     retained.push(m);
   }
   return { list: [...byId.values()], retained };
@@ -278,10 +310,15 @@ export function applyMenuItemMutations(
       // server caught up — drop mutation
       continue;
     }
+    const mergedTranslations =
+      m.item.translations !== undefined
+        ? m.item.translations
+        : (existing?.translations ?? []);
+    const mergedItem = { ...m.item, translations: mergedTranslations };
     if (existingIdx >= 0) {
-      cat.items[existingIdx] = m.item;
+      cat.items[existingIdx] = mergedItem;
     } else {
-      cat.items.push(m.item);
+      cat.items.push(mergedItem);
     }
     retained.push(m);
   }

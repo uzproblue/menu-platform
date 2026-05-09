@@ -289,6 +289,7 @@ export const enMessages: Messages = {
   "global.enableItem": "Enable item",
   "global.disableItem": "Disable item",
   "global.editItemAria": "Edit {name}",
+  "global.editItemTranslationsAria": "Edit guest-language text for {name}",
   "global.deleteItemAria": "Delete {name}",
   "global.deleteItemQuestion": "Delete menu item?",
   "global.deleteItemBody":
@@ -345,6 +346,14 @@ export const enMessages: Messages = {
   "categories.deleteCategoryAria": "Delete {name}",
   "categories.itemSingular": "item",
   "categories.itemPlural": "items",
+  "categories.translationsModal.title": "Language versions: {name}",
+  "categories.translationsModal.noDescription": "No description",
+  "categories.translationsModal.openAria": "Edit guest-language text for {name}",
+  "categories.translationsModal.nameLabel": "Name",
+  "categories.translationsModal.descriptionLabel": "Description",
+  "categories.translationsModal.save": "Save",
+  "categories.translationsModal.saving": "Saving…",
+  "categories.translationsModal.errSave": "Could not save translations.",
 
   "locationExport.batchFailed":
     "Saved, but {count} of {total} location menus failed to refresh. Guests may see stale data.",

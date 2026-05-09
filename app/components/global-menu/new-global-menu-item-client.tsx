@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import type { TranslationTextApi } from "@/lib/auth-api";
 import { appendMenuItemMutation } from "@/lib/pending-mutations";
 import {
   persistPendingLocationExportWarning,
@@ -184,6 +185,7 @@ export function NewGlobalMenuItemClient({
               description?: unknown;
               tags?: unknown;
               prices?: unknown;
+              translations?: unknown;
             };
           } & Record<string, unknown>)
         | null;
@@ -209,6 +211,9 @@ export function NewGlobalMenuItemClient({
         const tags = Array.isArray(created.tags)
           ? created.tags.filter((t): t is string => typeof t === "string")
           : undefined;
+        const translations = Array.isArray(created.translations)
+          ? (created.translations as TranslationTextApi[])
+          : undefined;
         appendMenuItemMutation({
           kind: "upsert",
           categoryId,
@@ -221,6 +226,7 @@ export function NewGlobalMenuItemClient({
               typeof created.description === "string" ? created.description : undefined,
             tags,
             prices,
+            ...(translations !== undefined ? { translations } : {}),
           },
         });
       }

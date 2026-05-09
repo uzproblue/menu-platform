@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import type { TranslationTextApi } from "@/lib/auth-api";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { appendCategoryMutation } from "@/lib/pending-mutations";
 import {
@@ -74,6 +75,7 @@ export function NewCategoryClient() {
               coverPhoto?: unknown;
               sortOrder?: unknown;
               itemsCount?: unknown;
+              translations?: unknown;
             };
           } & Record<string, unknown>)
         | null;
@@ -85,6 +87,9 @@ export function NewCategoryClient() {
         typeof created.sortOrder === "number" &&
         typeof created.itemsCount === "number"
       ) {
+        const translations = Array.isArray(created.translations)
+          ? (created.translations as TranslationTextApi[])
+          : undefined;
         appendCategoryMutation({
           kind: "upsert",
           value: {
@@ -96,6 +101,7 @@ export function NewCategoryClient() {
               typeof created.coverPhoto === "string" ? created.coverPhoto : null,
             sortOrder: created.sortOrder,
             itemsCount: created.itemsCount,
+            ...(translations !== undefined ? { translations } : {}),
           },
         });
       }

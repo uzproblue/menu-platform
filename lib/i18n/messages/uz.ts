@@ -284,6 +284,7 @@ export const uzMessages: Messages = {
   "global.enableItem": "Elementni yoqish",
   "global.disableItem": "Elementni o'chirish",
   "global.editItemAria": "{name} ni tahrirlash",
+  "global.editItemTranslationsAria": "{name} uchun mehmon tili matnlarini tahrirlash",
   "global.deleteItemAria": "{name} ni o'chirish",
   "global.deleteItemQuestion": "Menyu elementi o'chirilsinmi?",
   "global.deleteItemBody":
@@ -341,6 +342,14 @@ export const uzMessages: Messages = {
   "categories.deleteCategoryAria": "{name} ni o'chirish",
   "categories.itemSingular": "",
   "categories.itemPlural": "lari",
+  "categories.translationsModal.title": "Til versiyalari: {name}",
+  "categories.translationsModal.noDescription": "Tavsif yo'q",
+  "categories.translationsModal.openAria": "{name} uchun mehmon tili matnlarini tahrirlash",
+  "categories.translationsModal.nameLabel": "Nomi",
+  "categories.translationsModal.descriptionLabel": "Tavsif",
+  "categories.translationsModal.save": "Saqlash",
+  "categories.translationsModal.saving": "Saqlanmoqda…",
+  "categories.translationsModal.errSave": "Tarjimalarni saqlab bo'lmadi.",
 
   "locationExport.batchFailed":
     "Saqlandi, ammo {total} ta lokatsiyadan {count} tasining menyusi yangilanmadi. Mehmonlar eski ma'lumotni ko'rishi mumkin.",

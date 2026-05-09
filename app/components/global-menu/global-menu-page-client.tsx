@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CreatedMenuItemApi, TranslationTextApi } from "@/lib/auth-api";
+import { getMenuItemDisplayForLocale } from "@/lib/category-locale-display";
 import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
+import { mapGlobalMenuItemApiToMenuItem } from "@/lib/menu/map-global-menu-response";
 import { usePersistedGlobalMenu } from "@/hooks/use-persisted-global-menu";
 import {
   appendMenuItemMutation,
@@ -20,6 +23,11 @@ import { useI18n } from "../i18n-provider";
 import { AddMenuItemButton } from "./add-menu-item-button";
 import { EditMenuItemModal, type MenuItemEditSavePayload } from "./edit-menu-item-modal";
 import { GlobalMenuCategorySection } from "./global-menu-category-section";
+import { GuestTranslationsBatchModal } from "./guest-translations-batch-modal";
+
+const EMPTY_ITEM_TRANSLATIONS: TranslationTextApi[] = [];
+const ITEM_TRANSLATION_NAME_MAX = 200;
+const ITEM_TRANSLATION_DESC_MAX = 2000;
 
 function findItem(
   data: GlobalMenuData,
@@ -44,7 +52,7 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 }
 
 export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageClientProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { data, setData } = usePersistedGlobalMenu(initialData, { persistDraft: false });
   const [editor, setEditor] = useState<{
     categoryId: string;
@@ -58,6 +66,10 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     categoryId: string;
     itemId: string;
     name: string;
+  } | null>(null);
+  const [translationsTarget, setTranslationsTarget] = useState<{
+    categoryId: string;
+    itemId: string;
   } | null>(null);
 
   const withItemLock = useCallback(async (itemId: string, fn: () => Promise<void>) => {
@@ -84,12 +96,24 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
   }, [data, editor]);
   const isEditorSaving = editor ? isItemBusy(editor.itemId) : false;
 
+  const itemTranslationsModalItem = useMemo(() => {
+    if (!translationsTarget) return null;
+    return findItem(data, translationsTarget.categoryId, translationsTarget.itemId);
+  }, [data, translationsTarget]);
+
   useEffect(() => {
     if (!editor) return;
     if (!findItem(data, editor.categoryId, editor.itemId)) {
       setEditor(null);
     }
   }, [data, editor]);
+
+  useEffect(() => {
+    if (!translationsTarget) return;
+    if (!findItem(data, translationsTarget.categoryId, translationsTarget.itemId)) {
+      setTranslationsTarget(null);
+    }
+  }, [data, translationsTarget]);
 
   // Overlay any pending create / edit / delete / toggle mutations queued from
   // this client (in sessionStorage) on top of the freshly arrived server
@@ -194,6 +218,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           name: payload.name,
           description: payload.description,
           prices: [newFirst, ...rest],
+          translations: previous.translations,
         };
         const img = imageValue.trim();
         if (img) next.image = img;
@@ -243,14 +268,47 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     [data, editor, isItemBusy, isSavingEdit, patchItem, t, withItemLock],
   );
 
+  const handleOpenItemTranslations = useCallback((categoryId: string, itemId: string) => {
+    if (isSavingEdit) return;
+    if (isItemBusy(itemId)) return;
+    setTranslationsTarget({ categoryId, itemId });
+  }, [isItemBusy, isSavingEdit]);
+
+  const handleItemTranslationsSaved = useCallback(
+    (payload: Record<string, unknown> | null) => {
+      if (!translationsTarget) return;
+      const { categoryId, itemId } = translationsTarget;
+      setExportWarning(readLocationExportWarning(payload, t));
+      const raw = payload?.item;
+      if (
+        raw &&
+        typeof raw === "object" &&
+        "id" in raw &&
+        typeof (raw as { id: unknown }).id === "string"
+      ) {
+        const item = mapGlobalMenuItemApiToMenuItem(raw as CreatedMenuItemApi);
+        appendMenuItemMutation({ kind: "upsert", categoryId, item });
+        patchItem(categoryId, itemId, () => item);
+      }
+      setTranslationsTarget(null);
+    },
+    [patchItem, t, translationsTarget],
+  );
+
   const handleRequestDelete = useCallback(
     (categoryId: string, itemId: string) => {
       if (isSavingEdit) return;
       const item = findItem(data, categoryId, itemId);
       if (!item || isItemBusy(itemId)) return;
-      setDeleteTarget({ categoryId, itemId, name: item.name });
+      const display = getMenuItemDisplayForLocale(
+        item.name,
+        item.description,
+        item.translations,
+        locale,
+      );
+      setDeleteTarget({ categoryId, itemId, name: display.name });
     },
-    [data, isItemBusy, isSavingEdit],
+    [data, isItemBusy, isSavingEdit, locale],
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -368,6 +426,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
               if (isSavingEdit) return;
               setEditor({ categoryId, itemId });
             }}
+            onEditItemTranslations={handleOpenItemTranslations}
             onToggleActive={handleToggleActive}
             onDeleteItem={handleRequestDelete}
             isItemBusy={isItemBusy}
@@ -386,6 +445,30 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
         }}
         onSave={handleSaveEdit}
       />
+
+      {itemTranslationsModalItem != null && translationsTarget != null ? (
+        <GuestTranslationsBatchModal
+          key={translationsTarget.itemId}
+          open
+          entityId={translationsTarget.itemId}
+          title={t("categories.translationsModal.title", {
+            name: getMenuItemDisplayForLocale(
+              itemTranslationsModalItem.name,
+              itemTranslationsModalItem.description,
+              itemTranslationsModalItem.translations,
+              locale,
+            ).name,
+          })}
+          saveUrl={`/api/settings/menu-items/${encodeURIComponent(translationsTarget.itemId)}/translations`}
+          nameMaxLength={ITEM_TRANSLATION_NAME_MAX}
+          descriptionMaxLength={ITEM_TRANSLATION_DESC_MAX}
+          initialTranslations={
+            itemTranslationsModalItem.translations ?? EMPTY_ITEM_TRANSLATIONS
+          }
+          onClose={() => setTranslationsTarget(null)}
+          onSaved={handleItemTranslationsSaved}
+        />
+      ) : null}
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-60 flex items-end justify-center p-0 sm:items-center sm:p-4">

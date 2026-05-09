@@ -281,6 +281,7 @@ export const ruMessages: Messages = {
   "global.enableItem": "Включить позицию",
   "global.disableItem": "Выключить позицию",
   "global.editItemAria": "Редактировать {name}",
+  "global.editItemTranslationsAria": "Редактировать тексты для гостей: {name}",
   "global.deleteItemAria": "Удалить {name}",
   "global.deleteItemQuestion": "Удалить позицию меню?",
   "global.deleteItemBody":
@@ -338,6 +339,14 @@ export const ruMessages: Messages = {
   "categories.deleteCategoryAria": "Удалить {name}",
   "categories.itemSingular": "",
   "categories.itemPlural": "ов",
+  "categories.translationsModal.title": "Языковые версии: {name}",
+  "categories.translationsModal.noDescription": "Без описания",
+  "categories.translationsModal.openAria": "Редактировать тексты для гостей: {name}",
+  "categories.translationsModal.nameLabel": "Название",
+  "categories.translationsModal.descriptionLabel": "Описание",
+  "categories.translationsModal.save": "Сохранить",
+  "categories.translationsModal.saving": "Сохранение…",
+  "categories.translationsModal.errSave": "Не удалось сохранить переводы.",
 
   "locationExport.batchFailed":
     "Сохранено, но не удалось обновить меню в {count} из {total} локаций. Гости могут видеть устаревшие данные.",
