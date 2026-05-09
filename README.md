@@ -10,7 +10,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 Set **`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** (and **`R2_PUBLIC_BASE_URL`** on the server) to your public object origin (no trailing slash). Scripts use **`next dev --webpack`**.
 
-**Cloudflare deploy:** The value must be present **during `next build`** (Workers Builds **build** environment variables, or your CI `env`), not only as **runtime** Worker vars. Runtime-only `R2_PUBLIC_BASE_URL` does not get inlined into the browser bundle; the custom image loader would then emit bare object keys and the browser would request wrong URLs on `*.workers.dev`.
+**Cloudflare deploy:** The CDN base must be available **when `next build` runs**. This repo commits [`.env.production`](.env.production) with `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` so Workers Builds pick it up automatically (Next loads `.env.production` before compiling). You can override that value with **build** environment variables in the dashboard or CI if needed. **Runtime-only** Worker vars are not enough by themselves; they do not change the compiled browser bundle.
 
 `data:` / `blob:` previews use per-component **`unoptimized`** (loader not used for those).
 
