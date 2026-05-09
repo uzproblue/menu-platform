@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "opennextjs-cloudflare build",
-    "build:next": "next build",
+    "build:next": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "cf:build": "opennextjs-cloudflare build",

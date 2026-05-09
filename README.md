@@ -1,12 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Images (Cloudflare zone transformations)
+## Images (`/_next/image` + Cloudflare)
 
-In **production**, `next/image` uses a [custom loader](image-loader.ts) that points to **`/cdn-cgi/image/...`** on the **app** host so Cloudflare can resize and serve WebP/AVIF. Public object URLs on **`*.r2.dev`** or **`*.r2.cloudflarestorage.com`** are rewritten automatically (no env). A **custom** R2 public hostname must have `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` or `R2_PUBLIC_BASE_URL` set at **build** time—Worker runtime vars alone do not reach the client bundle.
+`next/image` uses the **default loader**, so the browser requests **`/_next/image?url=...&w=...&q=...`**. Allowed remote hosts come from [`lib/next-image-remote-patterns.ts`](lib/next-image-remote-patterns.ts) (`NEXT_PUBLIC_R2_PUBLIC_BASE_URL` / `R2_PUBLIC_BASE_URL` at build time, default `*.r2.dev` / `*.r2.cloudflarestorage.com`, and optional `NEXT_PUBLIC_IMAGE_SOURCE_HOSTS`).
 
-In **`pnpm dev`**, the loader returns the original image URL (R2 or local path) because `/cdn-cgi/image/` is not available on localhost.
+- **`pnpm dev`** — Next serves `/_next/image` with its built-in optimizer. Scripts use **`next dev --webpack`** (Next.js 16’s default Turbopack dev can be less predictable for some image config).
+- **`pnpm run preview`** / **deployed Worker** — OpenNext handles `/_next/image` in the Worker. **[`wrangler.jsonc`](wrangler.jsonc)** must include **`images.binding` → `IMAGES`** so Cloudflare can transform images (enable Images / transformations for your account as needed; see [OpenNext image how-to](https://opennext.js.org/cloudflare/howtos/image)).
 
-In the **Cloudflare dashboard**, allowlist only the origins you need (your R2 public hostname and same-origin paths). `data:` / `blob:` previews still use per-component `unoptimized` and bypass this pipeline.
+`data:` / `blob:` previews use per-component `unoptimized` and bypass `/_next/image`.
 
 ## Auth redirects (login / logout) on Cloudflare
 
