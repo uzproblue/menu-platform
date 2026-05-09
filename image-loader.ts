@@ -6,7 +6,8 @@ import type { ImageLoaderProps } from "next/image";
  *
  * Behaviour by source kind:
  *
- *   - Absolute URL on the configured CDN host (`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`):
+ *   - Absolute URL on the configured CDN host (`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`,
+ *       or `R2_PUBLIC_BASE_URL` when forwarded at build via `next.config.ts`):
  *       rewrite to `<cdn>/cdn-cgi/image/<options>/<path>` so it always hits the
  *       transformations endpoint that Cloudflare exposes on that zone.
  *
@@ -19,7 +20,11 @@ import type { ImageLoaderProps } from "next/image";
  *       `/cdn-cgi/image/<options>/<path>`, resolved against the app's own zone.
  */
 
-const CDN_BASE_URL: string = (process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "")
+const CDN_BASE_URL: string = (
+  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+  process.env.R2_PUBLIC_BASE_URL ||
+  ""
+)
   .trim()
   .replace(/\/+$/, "");
 

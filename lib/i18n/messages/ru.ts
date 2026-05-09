@@ -79,7 +79,8 @@ export const ruMessages: Messages = {
   "settings.updatePassword": "Обновить пароль",
   "settings.updating": "Обновление...",
   "settings.teammates": "Сотрудники",
-  "settings.teammatesHelp": "Управляйте сотрудниками в рабочем пространстве ресторана.",
+  "settings.teammatesHelp":
+    "Управляйте сотрудниками в рабочем пространстве ресторана.",
   "settings.addTeammate": "Добавить сотрудника",
   "settings.loadingTeammates": "Загрузка сотрудников...",
   "settings.noTeammates": "Пока нет сотрудников",
@@ -93,7 +94,8 @@ export const ruMessages: Messages = {
   "settings.adminCannotDelete": "Админов нельзя удалять",
   "settings.deleteTeammate": "Удалить сотрудника",
   "settings.addTeammateTitle": "Добавить сотрудника",
-  "settings.addTeammateHelp": "Добавьте пользователя в рабочее пространство ресторана.",
+  "settings.addTeammateHelp":
+    "Добавьте пользователя в рабочее пространство ресторана.",
   "settings.fullNamePlaceholder": "Полное имя",
   "settings.adding": "Добавление...",
   "settings.deleteTeammateQuestion": "Удалить сотрудника?",
@@ -122,9 +124,11 @@ export const ruMessages: Messages = {
   "settings.errAddTeammate": "Не удалось добавить сотрудника.",
   "settings.errAddTeammateNetwork": "Ошибка сети при добавлении сотрудника.",
   "settings.teammateAdded": "Сотрудник успешно добавлен.",
-  "settings.teammateAddedTempPassword": "Сотрудник добавлен. Временный пароль: {password}",
+  "settings.teammateAddedTempPassword":
+    "Сотрудник добавлен. Временный пароль: {password}",
   "settings.errRevealTemp": "Не удалось показать временный пароль.",
-  "settings.errRevealTempNetwork": "Ошибка сети при получении временного пароля.",
+  "settings.errRevealTempNetwork":
+    "Ошибка сети при получении временного пароля.",
   "settings.errCopy": "Не удалось скопировать пароль.",
   "settings.errDeleteTeammate": "Не удалось удалить сотрудника.",
   "settings.errDeleteTeammateNetwork": "Ошибка сети при удалении сотрудника.",
@@ -147,7 +151,8 @@ export const ruMessages: Messages = {
     "Гости сканируют код или переходят по ссылке ниже, чтобы открыть публичное меню этой локации.",
   "restaurants.qrCopyLink": "Копировать ссылку",
   "restaurants.qrLinkCopied": "Скопировано",
-  "restaurants.qrCopyFailed": "Не удалось скопировать. Выделите ссылку и скопируйте вручную.",
+  "restaurants.qrCopyFailed":
+    "Не удалось скопировать. Выделите ссылку и скопируйте вручную.",
   "restaurants.qrUrlFieldLabel": "Ссылка на публичное меню",
   "restaurants.openQrModalAria": "Открыть модальное окно QR-кода для {name}",
   "restaurants.loadingLocations": "Загрузка локаций...",
@@ -169,9 +174,11 @@ export const ruMessages: Messages = {
   "restaurants.deleteLocationHelp":
     "Локация «{name}» будет безвозвратно удалена из ресторана. Это действие нельзя отменить.",
   "restaurants.deleteLocationFailed": "Не удалось удалить локацию.",
-  "restaurants.deleteLocationFailedNetwork": "Сетевая ошибка при удалении локации.",
+  "restaurants.deleteLocationFailedNetwork":
+    "Сетевая ошибка при удалении локации.",
   "restaurants.deletingLocation": "Удаление…",
-  "restaurants.cannotDeleteDefaultLocation": "Локацию по умолчанию нельзя удалить.",
+  "restaurants.cannotDeleteDefaultLocation":
+    "Локацию по умолчанию нельзя удалить.",
   "restaurants.logoAlt": "Логотип {name}",
   "restaurants.itemsSummary": "{categories} категорий · {items} позиций",
   "restaurants.addLocationTitle": "Добавить локацию",
@@ -182,7 +189,8 @@ export const ruMessages: Messages = {
   "restaurants.creatingLocation": "Создание…",
   "restaurants.createLocationNameRequired": "Введите название локации.",
   "restaurants.createLocationFailed": "Не удалось создать локацию.",
-  "restaurants.createLocationFailedNetwork": "Сетевая ошибка при создании локации.",
+  "restaurants.createLocationFailedNetwork":
+    "Сетевая ошибка при создании локации.",
   "restaurants.newWizard.entryCta": "Создать локацию",
   "restaurants.newWizard.pageTitle": "Создать локацию",
   "restaurants.newWizard.pageSubtitle":
@@ -195,26 +203,32 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.stepDone": "Готово",
   "restaurants.newWizard.errNameRequired": "Введите название локации.",
   "restaurants.newWizard.errAddressRequired": "Введите адрес.",
-  "restaurants.newWizard.errCategoriesRequired": "Выберите хотя бы одну категорию.",
+  "restaurants.newWizard.errCategoriesRequired":
+    "Выберите хотя бы одну категорию.",
   "restaurants.newWizard.errCategoriesInvalid":
     "Некоторые выбранные категории больше недоступны. Обновите страницу и попробуйте снова.",
-  "restaurants.newWizard.errSaveCategories": "Не удалось сохранить категории для этой локации. Попробуйте снова.",
+  "restaurants.newWizard.errSaveCategories":
+    "Не удалось сохранить категории для этой локации. Попробуйте снова.",
   "restaurants.newWizard.savingCategories": "Сохранение категорий…",
-  "restaurants.newWizard.errItemsRequired": "Выберите хотя бы одну позицию меню.",
+  "restaurants.newWizard.errItemsRequired":
+    "Выберите хотя бы одну позицию меню.",
   "restaurants.newWizard.errCreateLocation":
     "Не удалось создать локацию. Проверьте подключение и попробуйте снова.",
   "restaurants.newWizard.errUpdateLocation":
     "Не удалось сохранить данные локации. Проверьте подключение и попробуйте снова.",
   "restaurants.newWizard.errLoadLocationEdit":
     "Не удалось загрузить локацию для редактирования. Попробуйте снова или вернитесь к списку.",
-  "restaurants.newWizard.errLoadLocationNotFound": "Локация не найдена или больше недоступна.",
-  "restaurants.newWizard.errLoadLocationUnauthorized": "Войдите снова, чтобы загрузить эту локацию.",
+  "restaurants.newWizard.errLoadLocationNotFound":
+    "Локация не найдена или больше недоступна.",
+  "restaurants.newWizard.errLoadLocationUnauthorized":
+    "Войдите снова, чтобы загрузить эту локацию.",
   "restaurants.newWizard.loadingLocationEdit": "Загрузка локации…",
   "restaurants.newWizard.updatingLocation": "Сохранение изменений…",
   "restaurants.newWizard.editPageTitle": "Редактирование локации",
   "restaurants.newWizard.editPageSubtitle":
     "Обновите основные данные, категории и меню для этой локации.",
-  "restaurants.newWizard.errCompleteBasicsFirst": "Сначала завершите шаг 1 (Основное), затем публикуйте.",
+  "restaurants.newWizard.errCompleteBasicsFirst":
+    "Сначала завершите шаг 1 (Основное), затем публикуйте.",
   "restaurants.newWizard.continue": "Продолжить",
   "restaurants.newWizard.creatingLocation": "Создание локации…",
   "restaurants.newWizard.basicsLockedHint":
@@ -222,18 +236,21 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.logoLabel": "Логотип (необязательно)",
   "restaurants.newWizard.logoPreviewAlt": "Предпросмотр логотипа",
   "restaurants.newWizard.removeLogo": "Убрать логотип",
-  "restaurants.newWizard.logoEmptyHint": "Оставьте пустым, если у локации нет логотипа.",
+  "restaurants.newWizard.logoEmptyHint":
+    "Оставьте пустым, если у локации нет логотипа.",
   "restaurants.newWizard.logoUrlOrPath": "URL или путь к логотипу",
   "restaurants.newWizard.categoryCoverAlt": "Обложка категории «{name}»",
   "restaurants.newWizard.previewPlaceholderName": "Ваш ресторан",
   "restaurants.newWizard.previewMenuHeading": "Меню",
-  "restaurants.newWizard.menuPreviewCaption": "Предпросмотр меню для гостей (мобильный)",
+  "restaurants.newWizard.menuPreviewCaption":
+    "Предпросмотр меню для гостей (мобильный)",
   "restaurants.newWizard.next": "Далее",
   "restaurants.newWizard.back": "Назад",
   "restaurants.newWizard.loadingCatalog": "Загрузка каталога…",
   "restaurants.newWizard.catalogUnauthorized":
     "Войдите, чтобы загрузить категории и меню из вашего пространства.",
-  "restaurants.newWizard.categoriesLoadFailed": "Не удалось загрузить категории.",
+  "restaurants.newWizard.categoriesLoadFailed":
+    "Не удалось загрузить категории.",
   "restaurants.newWizard.menuLoadFailed": "Не удалось загрузить общее меню.",
   "restaurants.newWizard.noCategories":
     "Категорий пока нет. Создайте категорию через «Добавить категорию».",
@@ -257,8 +274,10 @@ export const ruMessages: Messages = {
     "У каждой выбранной позиции должна быть корректная цена в валюте этой локации.",
   "restaurants.newWizard.errPublishMenuCatalogMissing":
     "Выбранная позиция больше не в каталоге. Обновите страницу и попробуйте снова.",
-  "restaurants.newWizard.errPublishLocationMenu": "Не удалось сохранить меню для этой локации. Попробуйте снова.",
-  "restaurants.newWizard.errPublishLocationMenuWithDetail": "Не удалось сохранить меню: {detail}",
+  "restaurants.newWizard.errPublishLocationMenu":
+    "Не удалось сохранить меню для этой локации. Попробуйте снова.",
+  "restaurants.newWizard.errPublishLocationMenuWithDetail":
+    "Не удалось сохранить меню: {detail}",
   "restaurants.newWizard.publishFailed": "Не удалось опубликовать локацию.",
   "restaurants.newWizard.successTitle": "Локация готова",
   "restaurants.newWizard.successBody":
@@ -317,7 +336,8 @@ export const ruMessages: Messages = {
   "global.errDeleteItem": "Не удалось удалить позицию.",
   "global.errDeleteItemNetwork": "Сетевая ошибка при удалении позиции.",
   "global.errSaveItem": "Не удалось сохранить изменения позиции.",
-  "global.errSaveItemNetwork": "Сетевая ошибка при сохранении изменений позиции.",
+  "global.errSaveItemNetwork":
+    "Сетевая ошибка при сохранении изменений позиции.",
   "categories.title": "Категории меню",
   "categories.subtitle":
     "Меняйте порядок, переименовывайте, добавляйте и удаляйте категории. Изменения сохраняются в рабочем пространстве ресторана и синхронизируются с",
@@ -326,7 +346,8 @@ export const ruMessages: Messages = {
   "categories.loading": "Загрузка категорий...",
   "categories.couldNotLoad": "Не удалось загрузить категории",
   "categories.emptyTitle": "Категорий пока нет",
-  "categories.emptyHelp": "Создайте первую категорию, чтобы начать структурировать меню.",
+  "categories.emptyHelp":
+    "Создайте первую категорию, чтобы начать структурировать меню.",
   "categories.menuItemCount": "{count} пункт{suffix} меню",
   "categories.moveUpAria": "Переместить {name} вверх",
   "categories.moveDownAria": "Переместить {name} вниз",
@@ -338,10 +359,11 @@ export const ruMessages: Messages = {
   "categories.editCategoryAria": "Редактировать {name}",
   "categories.deleteCategoryAria": "Удалить {name}",
   "categories.itemSingular": "",
-  "categories.itemPlural": "ов",
+  "categories.itemPlural": "",
   "categories.translationsModal.title": "Языковые версии: {name}",
   "categories.translationsModal.noDescription": "Без описания",
-  "categories.translationsModal.openAria": "Редактировать тексты для гостей: {name}",
+  "categories.translationsModal.openAria":
+    "Редактировать тексты для гостей: {name}",
   "categories.translationsModal.nameLabel": "Название",
   "categories.translationsModal.descriptionLabel": "Описание",
   "categories.translationsModal.save": "Сохранить",
@@ -393,7 +415,8 @@ export const ruMessages: Messages = {
   "restaurantDetail.metaDescription": "Данные локации и опубликованное меню",
   "restaurantDetail.editCategoryItemsButton": "Редактировать",
   "restaurantDetail.editCategoryItemsAria": "Редактировать позиции в «{name}»",
-  "restaurantDetail.editCategoryItemsTitle": "Редактировать позиции меню в «{name}»",
+  "restaurantDetail.editCategoryItemsTitle":
+    "Редактировать позиции меню в «{name}»",
   "restaurantDetail.editCategoryItemsHint":
     "Отметьте позиции, которые нужно опубликовать в этой локации, и задайте цену для локации.",
   "restaurantDetail.editCategoryItemsEmptyCatalog":
@@ -420,7 +443,8 @@ export const ruMessages: Messages = {
     "Категорий пока нет. Сначала создайте их в общем меню.",
   "restaurantDetail.addCategorySaveFailed":
     "Не удалось обновить категории. Попробуйте ещё раз.",
-  "restaurantDetail.addCategoryAria": "Добавить категорию «{name}» в эту локацию",
+  "restaurantDetail.addCategoryAria":
+    "Добавить категорию «{name}» в эту локацию",
 
   "newItem.title": "Новая позиция меню",
   "newItem.subtitle":
@@ -429,7 +453,8 @@ export const ruMessages: Messages = {
   "newItem.breadcrumbNav": "Навигация по общему меню",
   "newItem.category": "Категория",
   "newItem.selectCategoryPlaceholder": "Выберите категорию",
-  "newItem.selectCategoryFirst": "Сначала выберите категорию, затем заполните остальные поля.",
+  "newItem.selectCategoryFirst":
+    "Сначала выберите категорию, затем заполните остальные поля.",
   "newItem.noCategories":
     "Нужна хотя бы одна категория, прежде чем добавлять позиции меню.",
   "newItem.manageCategoriesLink": "Управление категориями",
@@ -446,12 +471,16 @@ export const ruMessages: Messages = {
   "newItem.removePriceRow": "Удалить",
   "newItem.create": "Создать позицию",
   "newItem.creating": "Создание…",
-  "newItem.createFailed": "Не удалось создать позицию. Проверьте поля и попробуйте снова.",
+  "newItem.createFailed":
+    "Не удалось создать позицию. Проверьте поля и попробуйте снова.",
   "newItem.createFailedNetwork": "Сетевая ошибка при создании позиции.",
-  "newItem.imageUploadFailed": "Не удалось загрузить изображение перед сохранением позиции.",
-  "newItem.imageTooLarge": "Изображение слишком большое. Максимальный размер: {maxMb} МБ.",
+  "newItem.imageUploadFailed":
+    "Не удалось загрузить изображение перед сохранением позиции.",
+  "newItem.imageTooLarge":
+    "Изображение слишком большое. Максимальный размер: {maxMb} МБ.",
   "newItem.categoriesUnavailable": "Не удалось загрузить категории",
-  "newItem.loadErrorUnauthorized": "Войдите в аккаунт, чтобы загрузить категории.",
+  "newItem.loadErrorUnauthorized":
+    "Войдите в аккаунт, чтобы загрузить категории.",
   "newItem.retryLoadCategories": "Повторить",
   "newItem.reloadCategoriesFailed": "Не удалось обновить список категорий.",
 
@@ -465,7 +494,8 @@ export const ruMessages: Messages = {
   "newCategory.descriptionPlaceholder": "Короткое описание категории",
   "newCategory.coverPhoto": "Обложка",
   "newCategory.coverPhotoUrlLabel": "Использовать URL фото",
-  "newCategory.coverPhotoUrlPlaceholder": "/menu/category-cover.jpg or https://...",
+  "newCategory.coverPhotoUrlPlaceholder":
+    "/menu/category-cover.jpg or https://...",
   "newCategory.or": "или",
   "newCategory.coverPhotoUploadLabel": "Загрузить с устройства",
   "newCategory.coverPhotoUploading": "Загрузка обложки…",
@@ -475,10 +505,12 @@ export const ruMessages: Messages = {
   "newCategory.clearPhoto": "Очистить фото",
   "newCategory.save": "Сохранить категорию",
   "newCategory.saving": "Сохранение...",
-  "newCategory.createFailed": "Не удалось создать категорию. Попробуйте еще раз.",
+  "newCategory.createFailed":
+    "Не удалось создать категорию. Попробуйте еще раз.",
   "newCategory.saveFrontendOnly": "Сохранить категорию (только frontend)",
   "newCategory.livePreviewTitle": "Живой предпросмотр",
-  "newCategory.livePreviewSubtitle": "Предпросмотр обновляется сразу во время ввода.",
+  "newCategory.livePreviewSubtitle":
+    "Предпросмотр обновляется сразу во время ввода.",
   "newCategory.previewUntitled": "Категория без названия",
   "newCategory.previewNoDescription": "Без описания",
 };
