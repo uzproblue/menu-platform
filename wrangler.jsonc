@@ -5,7 +5,8 @@
 	//   Build:   pnpm run build   (OpenNext — emits `.open-next/`; plain `next build` is `pnpm run build:next`)
 	//   Deploy:  pnpm exec wrangler deploy   OR   pnpm run deploy
 	// If the Git repo root is above this app, set the Worker project root directory to `menu-platform`.
-	// Build should set NEXT_PUBLIC_R2_PUBLIC_BASE_URL (or R2_PUBLIC_BASE_URL) for the image loader.
+	// Build must set R2_PUBLIC_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_BASE_URL for the *build* step (dashboard:
+	// Workers Builds → build env / variables). Worker *runtime* vars are not enough — next/image loader inlines CDN base at compile time.
 	"main": ".open-next/worker.js",
 	"name": "menu-platform",
 	"compatibility_date": "2026-05-01",

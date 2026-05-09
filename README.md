@@ -10,6 +10,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 Set **`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** (and **`R2_PUBLIC_BASE_URL`** on the server) to your public object origin (no trailing slash). Scripts use **`next dev --webpack`**.
 
+**Cloudflare deploy:** The value must be present **during `next build`** (Workers Builds **build** environment variables, or your CI `env`), not only as **runtime** Worker vars. Runtime-only `R2_PUBLIC_BASE_URL` does not get inlined into the browser bundle; the custom image loader would then emit bare object keys and the browser would request wrong URLs on `*.workers.dev`.
+
 `data:` / `blob:` previews use per-component **`unoptimized`** (loader not used for those).
 
 ## Auth redirects (login / logout) on Cloudflare
