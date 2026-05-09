@@ -9,6 +9,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 `data:` / `blob:` previews use per-component `unoptimized` and bypass `/_next/image`.
 
+**Deployed Worker returns `400` on `/_next/image?url=…`:** the `url` host is not in the allowlist baked in at **build** time. Set **`R2_PUBLIC_BASE_URL` or `NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** to the same origin browsers use for stored image URLs (e.g. `https://cdn.loyaltering.online`), or add **`NEXT_PUBLIC_IMAGE_SOURCE_HOSTS`** (comma-separated hostnames), or **`LOCATION_EXPORT_PURGE_EXTRA_BASES`** (comma-separated `https://…` origins — those hosts are also added to image `remotePatterns`). Then **rebuild and redeploy**. Runtime-only Worker secrets do not update this list.
+
 ## Auth redirects (login / logout) on Cloudflare
 
 NextAuth builds redirect URLs from **`NEXTAUTH_URL`** unless **`AUTH_TRUST_HOST`** or **`VERCEL`** is set. On Workers, if `NEXTAUTH_URL` is missing or still `http://localhost:3000`, sign-in and sign-out send the browser to localhost.

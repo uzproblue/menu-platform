@@ -5,6 +5,8 @@
 	//   Build:   pnpm run build   (OpenNext — emits `.open-next/`; plain `next build` is `pnpm run build:next`)
 	//   Deploy:  pnpm exec wrangler deploy   OR   pnpm run deploy
 	// If the Git repo root is above this app, set the Worker project root directory to `menu-platform`.
+	// Build step must receive R2_PUBLIC_BASE_URL / NEXT_PUBLIC_* / LOCATION_EXPORT_PURGE_EXTRA_BASES
+	// so next/image remotePatterns include your public image host (see README — /_next/image 400).
 	"main": ".open-next/worker.js",
 	"name": "menu-platform",
 	"compatibility_date": "2026-05-01",
