@@ -1,8 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import {
+  type UploadTarget,
+  R2_UPLOAD_MAX_SIZE_BYTES,
+} from "@/lib/r2-upload-shared";
 
-export type UploadTarget = "menu-item" | "location-logo" | "category-cover";
+export type { UploadTarget } from "@/lib/r2-upload-shared";
 
 export type R2UploadConfig = {
   accountId: string;
@@ -26,16 +30,6 @@ const allowedMimeTypes = new Set([
   "image/gif",
   "image/svg+xml",
 ]);
-
-const maxSizeBytesByTarget: Record<UploadTarget, number> = {
-  "menu-item": 12 * 1024 * 1024,
-  "location-logo": 4 * 1024 * 1024,
-  "category-cover": 8 * 1024 * 1024,
-};
-
-export function getMaxUploadSizeBytes(target: UploadTarget): number {
-  return maxSizeBytesByTarget[target];
-}
 
 function readNonEmptyEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -94,8 +88,8 @@ export function validateUploadInput(input: {
   if (!Number.isFinite(fileSize) || fileSize <= 0) {
     return { ok: false, message: "invalid file size" };
   }
-  if (fileSize > maxSizeBytesByTarget[target]) {
-    const maxMb = Math.round(maxSizeBytesByTarget[target] / (1024 * 1024));
+  if (fileSize > R2_UPLOAD_MAX_SIZE_BYTES[target]) {
+    const maxMb = Math.round(R2_UPLOAD_MAX_SIZE_BYTES[target] / (1024 * 1024));
     return { ok: false, message: `file is too large (max ${maxMb}MB)` };
   }
 

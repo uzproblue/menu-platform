@@ -10,9 +10,7 @@ export const metadata: Metadata = {
 };
 
 type NewGlobalMenuItemPageProps = {
-  searchParams?:
-    | Record<string, string | string[] | undefined>
-    | Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalMenuItemPageProps) {
@@ -36,7 +34,7 @@ export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalM
     }
   }
 
-  const resolvedSearchParams = await Promise.resolve(searchParams);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const rawPreselected = resolvedSearchParams?.categoryId;
   const preselectedCategoryId = Array.isArray(rawPreselected)
     ? (rawPreselected[0] ?? "")

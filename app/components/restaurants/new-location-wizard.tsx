@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { CategoryNameModal } from "@/app/components/global-menu/category-name-modal";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
-import { getMaxUploadSizeBytes } from "@/lib/r2-upload";
+import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import type {
   Category,
   CategoriesResponse,

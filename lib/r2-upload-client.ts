@@ -1,4 +1,4 @@
-import type { UploadTarget } from "@/lib/r2-upload";
+import type { UploadTarget } from "@/lib/r2-upload-shared";
 
 export type { UploadTarget };
 

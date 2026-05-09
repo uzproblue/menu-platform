@@ -10,7 +10,7 @@ import {
   readLocationExportWarning,
 } from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
-import { getMaxUploadSizeBytes } from "@/lib/r2-upload";
+import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { useI18n } from "../i18n-provider";
 import { ItemThumbnail } from "./global-menu-item-row";
