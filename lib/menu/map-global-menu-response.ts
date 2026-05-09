@@ -25,6 +25,7 @@ export function mapGlobalMenuResponseToData(api: GlobalMenuResponse): GlobalMenu
       id: c.id,
       name: c.name,
       description: c.description ?? null,
+      coverPhoto: c.coverPhoto ?? null,
       translations: Array.isArray(c.translations) ? c.translations : [],
       items: c.items.map((i): MenuItem => mapGlobalMenuItemApiToMenuItem(i)),
     })),

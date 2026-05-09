@@ -91,6 +91,7 @@ export type GlobalMenuCategoryWithItemsApi = {
   id: string;
   name: string;
   description?: string;
+  coverPhoto?: string | null;
   sortOrder: number;
   translations: TranslationTextApi[];
   items: GlobalMenuItemApi[];

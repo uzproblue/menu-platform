@@ -26,6 +26,7 @@ export type MenuCategory = {
   name: string;
   /** Catalog description; guest copy may come from `translations` per locale. */
   description?: string | null;
+  coverPhoto?: string | null;
   translations?: TranslationTextApi[];
   items: MenuItem[];
 };

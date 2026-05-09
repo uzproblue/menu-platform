@@ -33,6 +33,8 @@ function expandMenuForExport(
 ): GlobalMenuResponse["categories"] {
   return menu.categories.map((cat) => ({
     ...cat,
+    coverPhoto:
+      expandR2AssetToPublicUrl(cat.coverPhoto, publicBaseUrl) ?? cat.coverPhoto,
     items: cat.items.map((item) => ({
       ...item,
       image:
