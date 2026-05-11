@@ -1,6 +1,9 @@
 import type { ImageLoaderProps } from "next/image";
 import { looksLikeR2ObjectKey } from "@/lib/r2-object-key";
 
+/** Single resize width for Cloudflare `/cdn-cgi/image/` (fewer variants, lower transform cost). */
+const FIXED_CDN_IMAGE_WIDTH = 1024;
+
 const CDN_BASE: string = (
   process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
   process.env.R2_PUBLIC_BASE_URL ||
@@ -19,7 +22,7 @@ function isAbsoluteHttpUrl(s: string): boolean {
 
 export default function cloudflareImageLoader({
   src,
-  width,
+  width: _nextRequestedWidth,
   quality,
 }: ImageLoaderProps): string {
   const t = trimSrc(src);
@@ -28,7 +31,7 @@ export default function cloudflareImageLoader({
   }
 
   const q = quality != null && quality > 0 ? quality : 75;
-  const params = `width=${width},quality=${q},format=auto`;
+  const params = `width=${FIXED_CDN_IMAGE_WIDTH},quality=${q},format=auto`;
 
   if (isAbsoluteHttpUrl(t)) {
     if (!CDN_BASE) return t;

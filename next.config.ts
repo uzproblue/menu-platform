@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
   images: {
     loader: "custom",
     loaderFile: "./lib/cloudflare-image-loader.ts",
+    /** Align with `FIXED_CDN_IMAGE_WIDTH` in cloudflare-image-loader (single CDN transform width). */
+    deviceSizes: [1024],
+    imageSizes: [1024],
   },
 };
 

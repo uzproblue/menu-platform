@@ -58,6 +58,32 @@ type CatalogState =
   | { status: "loaded"; data: GlobalMenuResponse }
   | { status: "error"; message: string };
 
+/** Normalize catalog/API `prices[0].price` for PUT merge (JSON may use string or number). */
+function menuPriceToPutString(price: unknown): string | null {
+  if (typeof price === "number") {
+    if (!Number.isFinite(price) || price < 0) return null;
+    return String(price);
+  }
+  if (typeof price === "string") {
+    const trimmed = price.trim();
+    if (!trimmed.length) return null;
+    const num = Number(trimmed.replace(",", "."));
+    if (!Number.isFinite(num) || num < 0) return null;
+    return trimmed.replace(",", ".");
+  }
+  return null;
+}
+
+function dedupeMenuItemsLastWins(
+  items: { menuItemId: string; price: string }[],
+): { menuItemId: string; price: string }[] {
+  const byId = new Map<string, { menuItemId: string; price: string }>();
+  for (const row of items) {
+    byId.set(row.menuItemId, row);
+  }
+  return [...byId.values()];
+}
+
 export function RestaurantDetailClient({
   restaurant,
   initialMenu,
@@ -227,9 +253,9 @@ export function RestaurantDetailClient({
     if (!fromMenu) return {};
     const out: Record<string, string> = {};
     for (const item of fromMenu.items) {
-      const price = item.prices[0]?.price;
-      if (typeof price === "string" && price.length > 0) {
-        out[item.id] = price;
+      const normalized = menuPriceToPutString(item.prices[0]?.price);
+      if (normalized !== null) {
+        out[item.id] = normalized;
       }
     }
     return out;
@@ -245,8 +271,8 @@ export function RestaurantDetailClient({
         for (const section of enabledSections) {
           if (section.id === editingCategoryId) continue;
           for (const item of section.items) {
-            const price = item.prices[0]?.price;
-            if (typeof price !== "string" || price.length === 0) continue;
+            const price = menuPriceToPutString(item.prices[0]?.price);
+            if (price === null) continue;
             mergedItems.push({ menuItemId: item.id, price });
           }
         }
@@ -254,7 +280,9 @@ export function RestaurantDetailClient({
           mergedItems.push({ menuItemId: row.menuItemId, price: row.price });
         }
 
-        if (mergedItems.length === 0) {
+        const payloadItems = dedupeMenuItemsLastWins(mergedItems);
+
+        if (payloadItems.length === 0) {
           setSaveError(t("restaurantDetail.editCategoryItemsRequireAtLeastOne"));
           return;
         }
@@ -265,15 +293,18 @@ export function RestaurantDetailClient({
             method: "PUT",
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: mergedItems }),
+            body: JSON.stringify({ items: payloadItems }),
           },
         );
 
         if (!res.ok) {
           let detail: string | undefined;
           try {
-            const body = (await res.json()) as { message?: string };
-            if (typeof body?.message === "string") detail = body.message;
+            const body = (await res.json()) as { message?: string; error?: string };
+            const parts = [body?.error, body?.message].filter(
+              (x): x is string => typeof x === "string" && x.trim().length > 0,
+            );
+            if (parts.length) detail = parts.join(" — ");
           } catch {
             /* ignore */
           }
