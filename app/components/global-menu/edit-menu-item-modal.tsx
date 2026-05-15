@@ -6,7 +6,10 @@ import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { useI18n } from "../i18n-provider";
 import { ItemThumbnail } from "./global-menu-item-row";
 
+export type MenuItemCategoryOption = { id: string; label: string };
+
 export type MenuItemEditSavePayload = {
+  categoryId: string;
   name: string;
   description: string;
   price: string;
@@ -19,6 +22,9 @@ export type MenuItemEditSavePayload = {
 type EditMenuItemModalProps = {
   open: boolean;
   item: MenuItem | null;
+  /** Category where the row was opened from (initial select value). */
+  initialCategoryId: string;
+  categoryOptions: MenuItemCategoryOption[];
   saving?: boolean;
   onClose: () => void;
   onSave: (payload: MenuItemEditSavePayload) => void;
@@ -27,18 +33,22 @@ type EditMenuItemModalProps = {
 export function EditMenuItemModal({
   open,
   item,
+  initialCategoryId,
+  categoryOptions,
   saving = false,
   onClose,
   onSave,
 }: EditMenuItemModalProps) {
   const { t } = useI18n();
   const titleId = useId();
+  const categoryIdField = useId();
   const nameId = useId();
   const descId = useId();
   const priceId = useId();
   const currencyId = useId();
   const imageId = useId();
 
+  const [categoryId, setCategoryId] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -49,6 +59,10 @@ export function EditMenuItemModal({
 
   useEffect(() => {
     if (!open || !item) return;
+    const ids = new Set(categoryOptions.map((o) => o.id));
+    setCategoryId(
+      ids.has(initialCategoryId) ? initialCategoryId : (categoryOptions[0]?.id ?? initialCategoryId),
+    );
     setName(item.name);
     setDescription(item.description ?? "");
     const p0 = item.prices[0];
@@ -57,7 +71,16 @@ export function EditMenuItemModal({
     setImage(item.image ?? "");
     setImageFile(null);
     setImagePreviewUrl(null);
-  }, [open, item?.id, item?.name, item?.description, item?.image, item?.prices]);
+  }, [
+    open,
+    item?.id,
+    item?.name,
+    item?.description,
+    item?.image,
+    item?.prices,
+    initialCategoryId,
+    categoryOptions,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -85,12 +108,15 @@ export function EditMenuItemModal({
   if (!item) return null;
 
   const previewSrc = imagePreviewUrl ?? image.trim();
-  const canSave = name.trim().length > 0 && price.trim().length > 0 && !saving;
+  const categoryOk =
+    categoryId.length > 0 && categoryOptions.some((o) => o.id === categoryId);
+  const canSave = name.trim().length > 0 && price.trim().length > 0 && categoryOk && !saving;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!canSave) return;
     onSave({
+      categoryId,
       name: name.trim(),
       description: description.trim(),
       price: price.trim(),
@@ -128,6 +154,28 @@ export function EditMenuItemModal({
           className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
         >
           <div className="grid flex-1 gap-4 pb-4">
+            <div className="space-y-2">
+              <label htmlFor={categoryIdField} className="text-sm font-medium text-foreground">
+                {t("newItem.category")}
+              </label>
+              <select
+                id={categoryIdField}
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={saving || categoryOptions.length === 0}
+                className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+              >
+                {categoryOptions.length === 0 ? (
+                  <option value="">{t("newItem.selectCategoryPlaceholder")}</option>
+                ) : null}
+                {categoryOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-2">
               <label htmlFor={nameId} className="text-sm font-medium text-foreground">
                 {t("common.name")}

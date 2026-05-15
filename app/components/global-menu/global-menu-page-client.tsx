@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CreatedMenuItemApi, TranslationTextApi } from "@/lib/auth-api";
-import { getMenuItemDisplayForLocale } from "@/lib/category-locale-display";
+import {
+  getCategoryDisplayForLocale,
+  getMenuItemDisplayForLocale,
+} from "@/lib/category-locale-display";
 import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
 import { mapGlobalMenuItemApiToMenuItem } from "@/lib/menu/map-global-menu-response";
 import { usePersistedGlobalMenu } from "@/hooks/use-persisted-global-menu";
@@ -21,7 +24,11 @@ import {
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
 import { AddMenuItemButton } from "./add-menu-item-button";
-import { EditMenuItemModal, type MenuItemEditSavePayload } from "./edit-menu-item-modal";
+import {
+  EditMenuItemModal,
+  type MenuItemCategoryOption,
+  type MenuItemEditSavePayload,
+} from "./edit-menu-item-modal";
 import { GlobalMenuCategorySection } from "./global-menu-category-section";
 import { GuestTranslationsBatchModal } from "./guest-translations-batch-modal";
 
@@ -36,6 +43,39 @@ function findItem(
 ): MenuItem | null {
   const cat = data.categories.find((c) => c.id === categoryId);
   return cat?.items.find((i) => i.id === itemId) ?? null;
+}
+
+function findItemInAnyCategory(data: GlobalMenuData, itemId: string): MenuItem | null {
+  for (const c of data.categories) {
+    const m = c.items.find((i) => i.id === itemId);
+    if (m) return m;
+  }
+  return null;
+}
+
+function findCategoryIdForItem(data: GlobalMenuData, itemId: string): string | null {
+  for (const c of data.categories) {
+    if (c.items.some((i) => i.id === itemId)) return c.id;
+  }
+  return null;
+}
+
+/** Remove `itemId` from every category, then attach `nextItem` under `targetCategoryId`. */
+function replaceItemInCatalog(
+  prev: GlobalMenuData,
+  targetCategoryId: string,
+  itemId: string,
+  nextItem: MenuItem,
+): GlobalMenuData {
+  return {
+    categories: prev.categories.map((c) => {
+      const filtered = c.items.filter((i) => i.id !== itemId);
+      if (c.id === targetCategoryId) {
+        return { ...c, items: [...filtered, nextItem] };
+      }
+      return { ...c, items: filtered };
+    }),
+  };
 }
 
 type GlobalMenuPageClientProps = {
@@ -92,25 +132,40 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
 
   const editingItem = useMemo(() => {
     if (!editor) return null;
-    return findItem(data, editor.categoryId, editor.itemId);
+    return findItemInAnyCategory(data, editor.itemId);
   }, [data, editor]);
   const isEditorSaving = editor ? isItemBusy(editor.itemId) : false;
 
+  const categoryOptions: MenuItemCategoryOption[] = useMemo(
+    () =>
+      data.categories.map((c) => ({
+        id: c.id,
+        label: getCategoryDisplayForLocale(
+          c.name,
+          c.description,
+          c.translations,
+          locale,
+        ).name,
+      })),
+    [data.categories, locale],
+  );
+
   const itemTranslationsModalItem = useMemo(() => {
     if (!translationsTarget) return null;
-    return findItem(data, translationsTarget.categoryId, translationsTarget.itemId);
+    return findItemInAnyCategory(data, translationsTarget.itemId);
   }, [data, translationsTarget]);
 
   useEffect(() => {
     if (!editor) return;
-    if (!findItem(data, editor.categoryId, editor.itemId)) {
+    const stillThere = data.categories.some((c) => c.items.some((i) => i.id === editor.itemId));
+    if (!stillThere) {
       setEditor(null);
     }
   }, [data, editor]);
 
   useEffect(() => {
     if (!translationsTarget) return;
-    if (!findItem(data, translationsTarget.categoryId, translationsTarget.itemId)) {
+    if (!findItemInAnyCategory(data, translationsTarget.itemId)) {
       setTranslationsTarget(null);
     }
   }, [data, translationsTarget]);
@@ -199,10 +254,11 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
   const handleSaveEdit = useCallback(
     (payload: MenuItemEditSavePayload) => {
       if (!editor) return;
-      const { categoryId, itemId } = editor;
+      const sourceCategoryId = editor.categoryId;
+      const { itemId } = editor;
       if (isSavingEdit) return;
       if (isItemBusy(itemId)) return;
-      const previous = findItem(data, categoryId, itemId);
+      const previous = findItemInAnyCategory(data, itemId);
       if (!previous) return;
       setRequestError(null);
       setExportWarning(null);
@@ -236,7 +292,11 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           }
 
           optimistic = buildOptimistic(resolvedImage);
-          patchItem(categoryId, itemId, () => optimistic!);
+          if (payload.categoryId === sourceCategoryId) {
+            patchItem(sourceCategoryId, itemId, () => optimistic!);
+          } else {
+            setData((prev) => replaceItemInCatalog(prev, payload.categoryId, itemId, optimistic!));
+          }
 
           const response = await fetch(`/api/settings/menu-items/${encodeURIComponent(itemId)}`, {
             method: "PATCH",
@@ -247,25 +307,70 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
               image: resolvedImage || null,
               price: payload.price,
               currency: payload.currency,
+              categoryId: payload.categoryId,
             }),
           });
           if (!response.ok) {
-            patchItem(categoryId, itemId, () => previous);
+            if (payload.categoryId === sourceCategoryId) {
+              patchItem(sourceCategoryId, itemId, () => previous);
+            } else {
+              setData((prev) => replaceItemInCatalog(prev, sourceCategoryId, itemId, previous));
+            }
             setRequestError(await readErrorMessage(response, t("global.errSaveItem")));
             return;
           }
-          appendMenuItemMutation({ kind: "upsert", categoryId, item: optimistic });
-          setExportWarning(readLocationExportWarning(await tryReadJson(response), t));
+
+          const json = await tryReadJson(response);
+          setExportWarning(readLocationExportWarning(json, t));
+
+          let itemForMutation = optimistic!;
+          let categoryForMutation = payload.categoryId;
+          const rawItem =
+            json && typeof json === "object" && "item" in json
+              ? (json as { item: unknown }).item
+              : null;
+          if (
+            rawItem &&
+            typeof rawItem === "object" &&
+            "id" in rawItem &&
+            typeof (rawItem as { id: unknown }).id === "string"
+          ) {
+            const apiItem = rawItem as CreatedMenuItemApi;
+            itemForMutation = mapGlobalMenuItemApiToMenuItem(apiItem);
+            if (typeof apiItem.categoryId === "string" && apiItem.categoryId.length > 0) {
+              categoryForMutation = apiItem.categoryId;
+            }
+            const inPlaceEdit =
+              categoryForMutation === sourceCategoryId &&
+              payload.categoryId === sourceCategoryId;
+            if (inPlaceEdit) {
+              patchItem(sourceCategoryId, itemId, () => itemForMutation);
+            } else {
+              setData((prev) =>
+                replaceItemInCatalog(prev, categoryForMutation, itemId, itemForMutation),
+              );
+            }
+          }
+
+          appendMenuItemMutation({
+            kind: "upsert",
+            categoryId: categoryForMutation,
+            item: itemForMutation,
+          });
           setEditor(null);
         } catch {
-          patchItem(categoryId, itemId, () => previous);
+          if (payload.categoryId === sourceCategoryId) {
+            patchItem(sourceCategoryId, itemId, () => previous);
+          } else {
+            setData((prev) => replaceItemInCatalog(prev, sourceCategoryId, itemId, previous));
+          }
           setRequestError(t("global.errSaveItemNetwork"));
         } finally {
           setIsSavingEdit(false);
         }
       });
     },
-    [data, editor, isItemBusy, isSavingEdit, patchItem, t, withItemLock],
+    [data, editor, isItemBusy, isSavingEdit, patchItem, setData, t, withItemLock],
   );
 
   const handleOpenItemTranslations = useCallback((categoryId: string, itemId: string) => {
@@ -277,7 +382,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
   const handleItemTranslationsSaved = useCallback(
     (payload: Record<string, unknown> | null) => {
       if (!translationsTarget) return;
-      const { categoryId, itemId } = translationsTarget;
+      const { itemId } = translationsTarget;
       setExportWarning(readLocationExportWarning(payload, t));
       const raw = payload?.item;
       if (
@@ -287,12 +392,14 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
         typeof (raw as { id: unknown }).id === "string"
       ) {
         const item = mapGlobalMenuItemApiToMenuItem(raw as CreatedMenuItemApi);
+        const categoryId =
+          findCategoryIdForItem(data, itemId) ?? translationsTarget.categoryId;
         appendMenuItemMutation({ kind: "upsert", categoryId, item });
         patchItem(categoryId, itemId, () => item);
       }
       setTranslationsTarget(null);
     },
-    [patchItem, t, translationsTarget],
+    [data, patchItem, t, translationsTarget],
   );
 
   const handleRequestDelete = useCallback(
@@ -435,16 +542,20 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
         ))}
       </div>
 
-      <EditMenuItemModal
-        open={editingItem != null}
-        item={editingItem}
-        saving={isEditorSaving}
-        onClose={() => {
-          if (isSavingEdit) return;
-          setEditor(null);
-        }}
-        onSave={handleSaveEdit}
-      />
+      {editor ? (
+        <EditMenuItemModal
+          open={editingItem != null}
+          item={editingItem}
+          initialCategoryId={editor.categoryId}
+          categoryOptions={categoryOptions}
+          saving={isEditorSaving}
+          onClose={() => {
+            if (isSavingEdit) return;
+            setEditor(null);
+          }}
+          onSave={handleSaveEdit}
+        />
+      ) : null}
 
       {itemTranslationsModalItem != null && translationsTarget != null ? (
         <GuestTranslationsBatchModal

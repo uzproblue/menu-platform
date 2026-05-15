@@ -62,11 +62,18 @@ export async function PATCH(
     image?: string | null;
     price: string | number;
     currency: string;
+    categoryId?: string;
   } = {
     name,
     price,
     currency,
   };
+  if (typeof o.categoryId === "string") {
+    const cid = o.categoryId.trim();
+    if (cid.length > 0) {
+      input.categoryId = cid;
+    }
+  }
   if (typeof o.description === "string") {
     input.description = o.description.trim() || null;
   } else if (o.description === null) {

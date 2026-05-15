@@ -139,6 +139,8 @@ export type UpdateMenuItemInput = {
   image?: string | null;
   price: string | number;
   currency: string;
+  /** When set, menu-server moves the item to this category (same restaurant). */
+  categoryId?: string;
 };
 
 export type UpdateMenuItemResponse = {
