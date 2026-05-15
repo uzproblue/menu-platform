@@ -329,6 +329,8 @@ export const ruMessages: Messages = {
   "global.shortDescriptionPlaceholder": "Короткое описание",
   "global.imagePlaceholder": "/menu/photo.jpg or https://...",
   "global.leaveEmptyNoPhoto": "Оставьте пустым, чтобы не показывать фото.",
+  "global.imagePasteHint":
+    "Вставьте скопированное изображение, когда в фокусе поле URL или эта область (Ctrl+V или ⌘V).",
   "global.imagePreviewAlt": "Предпросмотр изображения",
   "global.errUpdateItemActivation": "Не удалось обновить активность позиции.",
   "global.errUpdateItemActivationNetwork":

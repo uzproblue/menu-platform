@@ -313,6 +313,8 @@ export const uzMessages: Messages = {
   "global.shortDescriptionPlaceholder": "Qisqa tavsif",
   "global.imagePlaceholder": "/menu/photo.jpg or https://...",
   "global.leaveEmptyNoPhoto": "Bu element uchun rasm ko'rsatmaslik uchun bo'sh qoldiring.",
+  "global.imagePasteHint":
+    "URL maydoni yoki ushbu rasm bloki fokusda bo'lganda nusxalangan rasmni joylashtiring (Ctrl+V yoki ⌘V).",
   "global.imagePreviewAlt": "Rasm oldindan ko'rinishi",
   "global.errUpdateItemActivation": "Element faolligini yangilab bo'lmadi.",
   "global.errUpdateItemActivationNetwork":

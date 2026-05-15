@@ -317,6 +317,8 @@ export const enMessages: Messages = {
   "global.shortDescriptionPlaceholder": "Short description",
   "global.imagePlaceholder": "/menu/photo.jpg or https://...",
   "global.leaveEmptyNoPhoto": "Leave empty to show no photo for this item.",
+  "global.imagePasteHint":
+    "Paste a copied image when the URL field or this image area is focused (Ctrl+V or ⌘V).",
   "global.imagePreviewAlt": "Image preview",
   "global.errUpdateItemActivation": "Could not update item activation.",
   "global.errUpdateItemActivationNetwork": "Network error while updating item activation.",

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
 import type { TranslationTextApi } from "@/lib/auth-api";
+import { getImageFileFromClipboardEvent } from "@/lib/clipboard-paste-image";
 import { appendMenuItemMutation } from "@/lib/pending-mutations";
 import {
   persistPendingLocationExportWarning,
@@ -121,6 +122,44 @@ export function NewGlobalMenuItemClient({
     !submitting;
   const controlsDisabled = sortedCategories.length === 0 || submitting;
   const hasCategorySelected = categoryId.length > 0;
+
+  const applyImageFile = useCallback(
+    (file: File) => {
+      if (file.size > maxMenuImageSizeBytes) {
+        setImageFile(null);
+        setImagePreviewUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setImageError(
+          t("newItem.imageTooLarge", {
+            maxMb: String(Math.round(maxMenuImageSizeBytes / (1024 * 1024))),
+          }),
+        );
+        return;
+      }
+      setImageFile(file);
+      setImageError(null);
+      setSubmitError(null);
+      setImageUrlInput("");
+      setImagePreviewUrl((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
+    },
+    [maxMenuImageSizeBytes, t],
+  );
+
+  const onImagePaste = useCallback(
+    (e: ClipboardEvent<HTMLDivElement | HTMLInputElement>) => {
+      if (controlsDisabled) return;
+      const file = getImageFileFromClipboardEvent(e.nativeEvent);
+      if (!file) return;
+      e.preventDefault();
+      applyImageFile(file);
+    },
+    [applyImageFile, controlsDisabled],
+  );
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -450,7 +489,11 @@ export function NewGlobalMenuItemClient({
                 <label htmlFor={imageId} className="text-sm font-medium text-foreground">
                   {t("global.imageUrlOrPath")}
                 </label>
-                <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.03] p-3 ring-1 ring-foreground/5 sm:p-4">
+                <div
+                  className="rounded-2xl border border-foreground/12 bg-foreground/[0.03] p-3 ring-1 ring-foreground/5 sm:p-4 outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+                  tabIndex={controlsDisabled ? -1 : 0}
+                  onPaste={onImagePaste}
+                >
                   <div className="grid gap-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start">
                     <div className="space-y-2">
                       <p className="text-xs font-medium uppercase tracking-wide text-foreground/60">
@@ -483,6 +526,7 @@ export function NewGlobalMenuItemClient({
                             });
                           }
                         }}
+                        onPaste={onImagePaste}
                         disabled={controlsDisabled}
                         className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
                         placeholder={t("global.imagePlaceholder")}
@@ -500,29 +544,19 @@ export function NewGlobalMenuItemClient({
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0] ?? null;
-                          if (file && file.size > maxMenuImageSizeBytes) {
+                          if (!file) {
                             setImageFile(null);
+                            setImageError(null);
+                            setSubmitError(null);
                             setImagePreviewUrl((prev) => {
                               if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
                               return null;
                             });
-                            setImageError(
-                              t("newItem.imageTooLarge", {
-                                maxMb: String(Math.round(maxMenuImageSizeBytes / (1024 * 1024))),
-                              }),
-                            );
                             e.currentTarget.value = "";
                             return;
                           }
-                          setImageFile(file);
-                          setImageError(null);
-                          setSubmitError(null);
-                          if (file) setImageUrlInput("");
-                          setImagePreviewUrl((prev) => {
-                            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-                            if (!file) return null;
-                            return URL.createObjectURL(file);
-                          });
+                          applyImageFile(file);
+                          e.currentTarget.value = "";
                         }}
                         disabled={controlsDisabled}
                         className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground hover:file:bg-foreground/15 disabled:opacity-60"
@@ -534,6 +568,7 @@ export function NewGlobalMenuItemClient({
                   </div>
                 </div>
                 <p className="text-xs text-foreground/50">{t("global.leaveEmptyNoPhoto")}</p>
+                <p className="text-xs text-foreground/50">{t("global.imagePasteHint")}</p>
               </div>
 
               <div className="flex items-start gap-3 rounded-xl border border-foreground/10 bg-foreground/3 px-4 py-3">
