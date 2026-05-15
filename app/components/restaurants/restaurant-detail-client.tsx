@@ -20,6 +20,7 @@ import {
   EditLocationCategoryModal,
   type EditLocationCategoryRow,
 } from "./edit-location-category-modal";
+import { computeLocationCategoryItemDelta } from "./location-category-item-delta";
 import {
   AddLocationCategoriesModal,
   type AvailableCategory,
@@ -72,16 +73,6 @@ function menuPriceToPutString(price: unknown): string | null {
     return trimmed.replace(",", ".");
   }
   return null;
-}
-
-function dedupeMenuItemsLastWins(
-  items: { menuItemId: string; price: string }[],
-): { menuItemId: string; price: string }[] {
-  const byId = new Map<string, { menuItemId: string; price: string }>();
-  for (const row of items) {
-    byId.set(row.menuItemId, row);
-  }
-  return [...byId.values()];
 }
 
 export function RestaurantDetailClient({
@@ -267,33 +258,32 @@ export function RestaurantDetailClient({
       setSaving(true);
       setSaveError(null);
       try {
-        const mergedItems: { menuItemId: string; price: string }[] = [];
-        for (const section of enabledSections) {
-          if (section.id === editingCategoryId) continue;
-          for (const item of section.items) {
-            const price = menuPriceToPutString(item.prices[0]?.price);
-            if (price === null) continue;
-            mergedItems.push({ menuItemId: item.id, price });
-          }
-        }
-        for (const row of rows) {
-          mergedItems.push({ menuItemId: row.menuItemId, price: row.price });
-        }
+        const delta = computeLocationCategoryItemDelta(
+          editingInitiallyEnabled,
+          rows,
+          (price) => menuPriceToPutString(price),
+        );
 
-        const payloadItems = dedupeMenuItemsLastWins(mergedItems);
-
-        if (payloadItems.length === 0) {
-          setSaveError(t("restaurantDetail.editCategoryItemsRequireAtLeastOne"));
+        if (
+          delta.add.length === 0 &&
+          delta.update.length === 0 &&
+          delta.remove.length === 0
+        ) {
+          setEditingCategoryId(null);
           return;
         }
 
         const res = await fetch(
           `/api/settings/locations/${encodeURIComponent(restaurant.id)}/menu-items`,
           {
-            method: "PUT",
+            method: "PATCH",
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: payloadItems }),
+            body: JSON.stringify({
+              add: delta.add.length > 0 ? delta.add : undefined,
+              update: delta.update.length > 0 ? delta.update : undefined,
+              remove: delta.remove.length > 0 ? delta.remove : undefined,
+            }),
           },
         );
 
@@ -369,7 +359,7 @@ export function RestaurantDetailClient({
       editingCategoryId,
       editingCategoryName,
       editingCatalogItems,
-      enabledSections,
+      editingInitiallyEnabled,
       restaurant.id,
       restaurant.currency,
       t,

@@ -260,6 +260,20 @@ export type PutLocationMenuItemsResponse = {
   createdCatalogPrices: number;
 };
 
+export type PatchLocationMenuItemsInput = {
+  add?: PutLocationMenuItemInput[];
+  update?: PutLocationMenuItemInput[];
+  remove?: string[];
+};
+
+export type PatchLocationMenuItemsResponse = {
+  locationId: string;
+  added: number;
+  updated: number;
+  removed: number;
+  createdCatalogPrices: number;
+};
+
 type ApiErrorResponse = {
   error?: string;
   message?: string;
@@ -1825,6 +1839,68 @@ export async function publishLocationMenuItemsWithAuthServer(
     return {
       ok: true,
       data: (await res.json()) as PutLocationMenuItemsResponse,
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function patchLocationMenuItemsWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  input: PatchLocationMenuItemsInput,
+): Promise<
+  | { ok: true; data: PatchLocationMenuItemsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/locations/${encodeURIComponent(locationId)}/menu-items`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        signal: AbortSignal.timeout(60_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+
+    return {
+      ok: true,
+      data: (await res.json()) as PatchLocationMenuItemsResponse,
     };
   } catch {
     return {
