@@ -319,6 +319,8 @@ export const enMessages: Messages = {
   "global.leaveEmptyNoPhoto": "Leave empty to show no photo for this item.",
   "global.imagePasteHint":
     "Paste a copied image when the URL field or this image area is focused (Ctrl+V or ⌘V).",
+  "global.showAllItems": "Show all",
+  "global.showLessItems": "Show less",
   "global.imagePreviewAlt": "Image preview",
   "global.errUpdateItemActivation": "Could not update item activation.",
   "global.errUpdateItemActivationNetwork": "Network error while updating item activation.",
