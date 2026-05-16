@@ -26,6 +26,10 @@ export type TeammatesResponse = {
     name: string;
     role: "ADMIN" | "USER" | "CHEF";
     lastLoginAt: string | null;
+    telegramPhone?: string | null;
+    chefInviteStatus?: string | null;
+    telegramLinked?: boolean;
+    locationName?: string | null;
   }>;
 };
 

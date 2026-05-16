@@ -17,6 +17,10 @@ type Teammate = {
   name: string;
   role: RoleType;
   lastLoginAt: string | null;
+  telegramPhone?: string | null;
+  chefInviteStatus?: string | null;
+  telegramLinked?: boolean;
+  locationName?: string | null;
 };
 
 type LocationOption = {
@@ -112,13 +116,7 @@ export function SettingsPageClient({
         });
         const payload = (await res.json().catch(() => null)) as {
           currentUserRole?: RoleType;
-          teammates?: Array<{
-            id: string;
-            email: string;
-            name: string;
-            role: RoleType;
-            lastLoginAt: string | null;
-          }>;
+          teammates?: Teammate[];
           message?: string;
         } | null;
 
@@ -669,7 +667,25 @@ export function SettingsPageClient({
                       {teammate.name}
                     </td>
                     <td className="px-4 py-3.5 text-foreground/70">
-                      {teammate.email}
+                      {teammate.role === "CHEF" ? (
+                        <span className="block">
+                          <span>
+                            {teammate.telegramPhone ??
+                              t("settings.chefPhonePending")}
+                          </span>
+                          {teammate.telegramLinked ? (
+                            <span className="mt-0.5 block text-xs text-emerald-600 dark:text-emerald-400">
+                              {t("settings.chefTelegramLinked")}
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 block text-xs text-amber-600 dark:text-amber-400">
+                              {t("settings.chefTelegramNotLinked")}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        teammate.email
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-foreground/80">
                       {teammate.role === "ADMIN"
