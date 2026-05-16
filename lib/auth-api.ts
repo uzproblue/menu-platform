@@ -19,12 +19,12 @@ export type UpdateProfileNameResponse = {
 
 export type TeammatesResponse = {
   restaurantId: string;
-  currentUserRole: "ADMIN" | "USER";
+  currentUserRole: "ADMIN" | "USER" | "CHEF";
   teammates: Array<{
     id: string;
     email: string;
     name: string;
-    role: "ADMIN" | "USER";
+    role: "ADMIN" | "USER" | "CHEF";
     lastLoginAt: string | null;
   }>;
 };
@@ -34,11 +34,26 @@ export type CreateTeammateResponse = {
     id: string;
     email: string;
     name: string;
-    role: "ADMIN" | "USER";
+    role: "ADMIN" | "USER" | "CHEF";
     lastLoginAt: string | null;
   };
   temporaryPassword: string | null;
+  chefInvite?: {
+    inviteId: string;
+    oneTimeCode: string;
+    locationId: string;
+    locationName: string;
+  };
 };
+
+export type CreateTeammateInput =
+  | { email: string; name: string; role: "ADMIN" | "USER" }
+  | {
+      name: string;
+      role: "CHEF";
+      telegramPhone: string;
+      locationId: string;
+    };
 
 export type RevealTemporaryPasswordResponse = {
   temporaryPassword: string;
@@ -727,7 +742,7 @@ export async function getTeammatesWithAuthServer(
 
 export async function createTeammateWithAuthServer(
   accessToken: string,
-  input: { email: string; name: string; role: "ADMIN" | "USER" },
+  input: CreateTeammateInput,
 ): Promise<
   | { ok: true; data: CreateTeammateResponse }
   | { ok: false; status: number; error: string; message?: string }
