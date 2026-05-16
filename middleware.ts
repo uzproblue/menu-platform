@@ -20,6 +20,6 @@ export default withAuth({
 export const config = {
   matcher: [
     "/",
-    "/((?!api/|_next/|_static|_vercel/|favicon|login$|forgot-pass$|reset-password$|.*\\..*).*)",
+    "/((?!api/|_next/|_static|_vercel/|favicon|login$|forgot-pass$|reset-password$|rest-register|.*\\..*).*)",
   ],
 };

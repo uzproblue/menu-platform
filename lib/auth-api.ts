@@ -364,6 +364,109 @@ export async function loginWithAuthServer(
   }
 }
 
+export type ProvisionRestaurantResponse = {
+  restaurant: {
+    id: string;
+    name: string;
+    slug: string;
+    createdAt: string;
+    subscriptionStartsAt: string | null;
+    subscriptionEndsAt: string | null;
+  };
+  defaultLocation: {
+    id: string;
+    restaurantId: string;
+    name: string;
+    currency: string;
+    isDefault: boolean;
+  };
+  defaultCategories: Array<{
+    id: string;
+    name: string;
+    sortOrder: number;
+  }>;
+  admin: {
+    email: string;
+    temporaryPassword: string;
+  };
+};
+
+export type ProvisionRestaurantInput = {
+  adminApiKey: string;
+  name: string;
+  slug: string;
+  adminEmail: string;
+  adminName?: string | null;
+};
+
+export async function provisionRestaurantWithAuthServer(
+  input: ProvisionRestaurantInput,
+): Promise<
+  | { ok: true; data: ProvisionRestaurantResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  const body: Record<string, string> = {
+    name: input.name,
+    slug: input.slug,
+    adminEmail: input.adminEmail,
+  };
+  if (input.adminName?.trim().length) {
+    body.adminName = input.adminName.trim();
+  }
+
+  try {
+    const res = await authApiFetch(transport, "/api/restaurants", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Api-Key": input.adminApiKey,
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as ProvisionRestaurantResponse;
+      return { ok: true, data };
+    }
+    let message: string | undefined;
+    let error = "request_failed";
+    try {
+      const j = (await res.json()) as ApiErrorResponse;
+      if (typeof j.error === "string") error = j.error;
+      if (typeof j.message === "string") message = j.message;
+    } catch {
+      /* ignore */
+    }
+    if (res.status === 401) {
+      return {
+        ok: false,
+        status: 401,
+        error: "unauthorized",
+        message: "Invalid provision API key",
+      };
+    }
+    return { ok: false, status: res.status, error, message };
+  } catch {
+    return {
+      ok: false,
+      status: 503,
+      error: "network_error",
+      message: "Could not reach menu server",
+    };
+  }
+}
+
 export async function requestPasswordResetWithAuthServer(
   email: string,
 ): Promise<
