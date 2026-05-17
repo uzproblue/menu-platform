@@ -109,6 +109,8 @@ type GlobalMenuItemRowProps = {
   hideEditButton?: boolean;
   /** Load the thumbnail eagerly (first screen of a category grid). */
   thumbnailPriority?: boolean;
+  /** When set, badge and toggle reflect location menu publish state instead of global `active`. */
+  locationMenuEnabled?: boolean;
 };
 
 export function GlobalMenuItemRow({
@@ -121,10 +123,12 @@ export function GlobalMenuItemRow({
   isBusy = false,
   hideEditButton = false,
   thumbnailPriority = false,
+  locationMenuEnabled,
 }: GlobalMenuItemRowProps) {
   const { t, locale } = useI18n();
   const hasImage = Boolean(item.image?.trim());
-  const active = isActive(item);
+  const active =
+    locationMenuEnabled !== undefined ? locationMenuEnabled : isActive(item);
   const display = getMenuItemDisplayForLocale(
     item.name,
     item.description,

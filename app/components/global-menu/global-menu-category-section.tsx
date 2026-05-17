@@ -21,6 +21,8 @@ type GlobalMenuCategorySectionProps = {
   /** Optional message to render in place of the items grid when the category has no items. */
   emptyMessage?: ReactNode;
   onEditItemTranslations?: (categoryId: string, itemId: string) => void;
+  /** When true, item cards use `item.locationEnabled` for the on-menu toggle. */
+  useLocationMenuToggle?: boolean;
 };
 
 /** Matches grid: 1 col (≤639px), 2 cols (640–1023px), 3 cols (≥1024px) — one row each when collapsed. */
@@ -55,6 +57,7 @@ type CategoryItemsBodyProps = {
   isItemBusy?: (itemId: string) => boolean;
   hideEditButton: boolean;
   onEditItemTranslations?: (categoryId: string, itemId: string) => void;
+  useLocationMenuToggle: boolean;
 };
 
 function GlobalMenuCategoryItemsBody({
@@ -67,6 +70,7 @@ function GlobalMenuCategoryItemsBody({
   isItemBusy,
   hideEditButton,
   onEditItemTranslations,
+  useLocationMenuToggle,
 }: CategoryItemsBodyProps) {
   const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
@@ -97,6 +101,9 @@ function GlobalMenuCategoryItemsBody({
             isBusy={isItemBusy?.(item.id) ?? false}
             hideEditButton={hideEditButton}
             thumbnailPriority={index < 6}
+            locationMenuEnabled={
+              useLocationMenuToggle ? item.locationEnabled === true : undefined
+            }
           />
         ))}
       </ul>
@@ -156,6 +163,7 @@ export function GlobalMenuCategorySection({
   headerActions,
   emptyMessage,
   onEditItemTranslations,
+  useLocationMenuToggle = false,
 }: GlobalMenuCategorySectionProps) {
   const { t, locale } = useI18n();
   const count = category.items.length;
@@ -211,6 +219,7 @@ export function GlobalMenuCategorySection({
           isItemBusy={isItemBusy}
           hideEditButton={hideEditButton}
           onEditItemTranslations={onEditItemTranslations}
+          useLocationMenuToggle={useLocationMenuToggle}
         />
       )}
     </section>

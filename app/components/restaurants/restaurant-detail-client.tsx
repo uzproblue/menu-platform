@@ -36,7 +36,8 @@ export type CategoryCatalogEntry = {
 
 type RestaurantDetailClientProps = {
   restaurant: RestaurantDisplayInfo;
-  initialMenu: GlobalMenuData;
+  initialCatalog: GlobalMenuData;
+  initialGlobalMenu: GlobalMenuResponse | null;
   initialManageItems: LocationMenuItemRow[];
   enabledCategoryIds: string[];
   categoriesCatalog: CategoryCatalogEntry[];
@@ -77,17 +78,41 @@ function menuPriceToPutString(price: unknown): string | null {
   return null;
 }
 
+function buildLocationDisplayItem(
+  row: LocationMenuItemRow,
+  catalogItem: MenuItem | undefined,
+  currency: string,
+): MenuItem {
+  const price = menuPriceToPutString(row.price) ?? "0";
+  const item: MenuItem = {
+    id: row.menuItemId,
+    name: catalogItem?.name ?? row.menuItemId,
+    locationEnabled: row.enabled,
+    prices: [
+      {
+        id: `local-${row.menuItemId}`,
+        price,
+        currency,
+      },
+    ],
+  };
+  if (catalogItem?.active !== undefined) item.active = catalogItem.active;
+  if (catalogItem?.image) item.image = catalogItem.image;
+  if (catalogItem?.description) item.description = catalogItem.description;
+  if (catalogItem?.tags?.length) item.tags = catalogItem.tags;
+  return item;
+}
+
 export function RestaurantDetailClient({
   restaurant,
-  initialMenu,
+  initialCatalog,
+  initialGlobalMenu,
   initialManageItems,
   enabledCategoryIds: initialEnabledCategoryIds,
   categoriesCatalog,
 }: RestaurantDetailClientProps) {
   const { t } = useI18n();
-  const [menu, setMenu] = useState<GlobalMenuData>(() =>
-    structuredClone(initialMenu),
-  );
+  const [catalog] = useState<GlobalMenuData>(() => structuredClone(initialCatalog));
   const [manageItems, setManageItems] = useState<LocationMenuItemRow[]>(
     () => initialManageItems,
   );
@@ -97,7 +122,11 @@ export function RestaurantDetailClient({
     () => initialEnabledCategoryIds,
   );
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
-  const [catalogState, setCatalogState] = useState<CatalogState>({ status: "idle" });
+  const [catalogState, setCatalogState] = useState<CatalogState>(() =>
+    initialGlobalMenu
+      ? { status: "loaded", data: initialGlobalMenu }
+      : { status: "idle" },
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [addState, setAddState] = useState<AddCategoryState>({
@@ -120,11 +149,19 @@ export function RestaurantDetailClient({
     return m;
   }, [categoriesCatalog]);
 
-  const menuByCategoryId = useMemo(() => {
+  const catalogCategoriesById = useMemo(() => {
     const m = new Map<string, MenuCategory>();
-    for (const c of menu.categories) m.set(c.id, c);
+    for (const c of catalog.categories) m.set(c.id, c);
     return m;
-  }, [menu]);
+  }, [catalog]);
+
+  const catalogItemsById = useMemo(() => {
+    const m = new Map<string, MenuItem>();
+    for (const c of catalog.categories) {
+      for (const item of c.items) m.set(item.id, item);
+    }
+    return m;
+  }, [catalog]);
 
   const manageByItemId = useMemo(() => {
     const m = new Map<string, LocationMenuItemRow>();
@@ -135,26 +172,54 @@ export function RestaurantDetailClient({
   }, [manageItems]);
 
   const enabledSections: EnabledSection[] = useMemo(() => {
+    const currency = restaurant.currency ?? "";
     const sections: EnabledSection[] = [];
     for (const id of enabledCategoryIds) {
       const cat = catalogById.get(id);
-      const fromMenu = menuByCategoryId.get(id);
-      if (!cat && !fromMenu) continue;
+      const catalogCategory = catalogCategoriesById.get(id);
+      if (!cat && !catalogCategory) continue;
+
+      const catalogItemIdsInCategory = new Set(
+        catalogCategory?.items.map((i) => i.id) ?? [],
+      );
+      const rowsInCategory = manageItems.filter(
+        (row) =>
+          row.categoryId === id || catalogItemIdsInCategory.has(row.menuItemId),
+      );
+      const items = rowsInCategory
+        .map((row) =>
+          buildLocationDisplayItem(
+            row,
+            catalogItemsById.get(row.menuItemId),
+            currency,
+          ),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
+
       sections.push({
         id,
-        name: cat?.name ?? fromMenu?.name ?? id,
+        name: cat?.name ?? catalogCategory?.name ?? id,
         sortOrder: cat?.sortOrder ?? Number.MAX_SAFE_INTEGER,
-        items: fromMenu?.items ?? [],
+        items,
       });
     }
     sections.sort(
       (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
     );
     return sections;
-  }, [enabledCategoryIds, catalogById, menuByCategoryId]);
+  }, [
+    enabledCategoryIds,
+    catalogById,
+    catalogCategoriesById,
+    catalogItemsById,
+    manageItems,
+    restaurant.currency,
+  ]);
 
   const hasEnabledCategories = enabledSections.length > 0;
-  const hasPublishedMenu = enabledSections.some((s) => s.items.length > 0);
+  const hasPublishedMenu = enabledSections.some((s) =>
+    s.items.some((i) => i.locationEnabled === true),
+  );
 
   const availableToAdd: AvailableCategory[] = useMemo(() => {
     const enabledSet = new Set(enabledCategoryIds);
@@ -175,9 +240,6 @@ export function RestaurantDetailClient({
   const handleToggleActive = useCallback(
     (categoryId: string, itemId: string) => {
       if (toggleBusyIds.has(itemId)) return;
-      const cat = menu.categories.find((c) => c.id === categoryId);
-      const current = cat?.items.find((i) => i.id === itemId);
-      if (!current) return;
 
       const currentlyOn = manageByItemId.get(itemId)?.enabled === true;
       const nextEnabled = !currentlyOn;
@@ -234,58 +296,6 @@ export function RestaurantDetailClient({
             }
             return [...prev, row];
           });
-
-          setMenu((prev) => {
-            if (!body.enabled) {
-              return {
-                categories: prev.categories.map((c) =>
-                  c.id !== categoryId
-                    ? c
-                    : { ...c, items: c.items.filter((i) => i.id !== itemId) },
-                ),
-              };
-            }
-            const exists = prev.categories.some(
-              (c) => c.id === categoryId && c.items.some((i) => i.id === itemId),
-            );
-            if (exists) return prev;
-            const catalogItem = catalogState.status === "loaded"
-              ? catalogState.data.categories
-                  .find((c) => c.id === categoryId)
-                  ?.items.find((i) => i.id === itemId)
-              : undefined;
-            const item: MenuItem = {
-              id: itemId,
-              name: catalogItem?.name ?? current.name,
-              prices: [
-                {
-                  id: `local-${itemId}`,
-                  price: body.price,
-                  currency: restaurant.currency ?? "",
-                },
-              ],
-            };
-            if (catalogItem?.image) item.image = catalogItem.image;
-            if (catalogItem?.description) item.description = catalogItem.description;
-            const seen = prev.categories.some((c) => c.id === categoryId);
-            if (seen) {
-              return {
-                categories: prev.categories.map((c) =>
-                  c.id !== categoryId ? c : { ...c, items: [...c.items, item] },
-                ),
-              };
-            }
-            return {
-              categories: [
-                ...prev.categories,
-                {
-                  id: categoryId,
-                  name: catalogById.get(categoryId)?.name ?? categoryId,
-                  items: [item],
-                },
-              ],
-            };
-          });
         } catch {
           setToggleError(t("restaurantDetail.editCategoryItemsSaveFailed"));
         } finally {
@@ -297,16 +307,7 @@ export function RestaurantDetailClient({
         }
       })();
     },
-    [
-      catalogById,
-      catalogState,
-      manageByItemId,
-      menu.categories,
-      restaurant.currency,
-      restaurant.id,
-      t,
-      toggleBusyIds,
-    ],
+    [manageByItemId, restaurant.id, t, toggleBusyIds],
   );
 
   const noopEdit = useCallback((categoryId: string, itemId: string) => {
@@ -361,9 +362,9 @@ export function RestaurantDetailClient({
     if (!editingCategoryId) return "";
     const cat = catalogById.get(editingCategoryId);
     if (cat) return cat.name;
-    const fromMenu = menuByCategoryId.get(editingCategoryId);
-    return fromMenu?.name ?? editingCategoryId;
-  }, [editingCategoryId, catalogById, menuByCategoryId]);
+    const fromCatalog = catalogCategoriesById.get(editingCategoryId);
+    return fromCatalog?.name ?? editingCategoryId;
+  }, [editingCategoryId, catalogById, catalogCategoriesById]);
 
   const editingCatalogItems: GlobalMenuItemApi[] = useMemo(() => {
     if (!editingCategoryId) return [];
@@ -474,50 +475,6 @@ export function RestaurantDetailClient({
           return;
         }
 
-        const catalogItemById = new Map<string, GlobalMenuItemApi>();
-        for (const item of editingCatalogItems) catalogItemById.set(item.id, item);
-
-        const updatedItems: MenuItem[] = rows.map((row) => {
-          const catalogItem = catalogItemById.get(row.menuItemId);
-          const item: MenuItem = {
-            id: row.menuItemId,
-            name: catalogItem?.name ?? row.menuItemId,
-            prices: [
-              {
-                id: `local-${row.menuItemId}`,
-                price: row.price,
-                currency: restaurant.currency ?? "",
-              },
-            ],
-          };
-          if (catalogItem) {
-            if (typeof catalogItem.active === "boolean") {
-              item.active = catalogItem.active;
-            }
-            if (catalogItem.image) item.image = catalogItem.image;
-            if (catalogItem.description) item.description = catalogItem.description;
-            if (catalogItem.tags?.length) item.tags = catalogItem.tags;
-          }
-          return item;
-        });
-
-        setMenu((prev) => {
-          const seen = prev.categories.some((c) => c.id === editingCategoryId);
-          const nextCategories = seen
-            ? prev.categories.map((c) =>
-                c.id === editingCategoryId ? { ...c, items: updatedItems } : c,
-              )
-            : [
-                ...prev.categories,
-                {
-                  id: editingCategoryId,
-                  name: editingCategoryName,
-                  items: updatedItems,
-                },
-              ];
-          return { categories: nextCategories };
-        });
-
         setManageItems((prev) => {
           const map = new Map(prev.map((r) => [r.menuItemId, r]));
           for (const id of delta.remove) {
@@ -554,15 +511,7 @@ export function RestaurantDetailClient({
         setSaving(false);
       }
     },
-    [
-      editingCategoryId,
-      editingCategoryName,
-      editingCatalogItems,
-      editingInitiallyEnabled,
-      restaurant.id,
-      restaurant.currency,
-      t,
-    ],
+    [editingCategoryId, editingInitiallyEnabled, restaurant.id, t],
   );
 
   const handleOpenAdd = useCallback(() => {
@@ -771,6 +720,7 @@ export function RestaurantDetailClient({
               onDeleteItem={noopDelete}
               isItemBusy={(itemId) => toggleBusyIds.has(itemId)}
               hideEditButton
+              useLocationMenuToggle
               headerActions={renderEditButton(section.id, section.name)}
               emptyMessage={t("restaurantDetail.emptyCategoryHint")}
             />

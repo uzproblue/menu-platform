@@ -7,10 +7,11 @@ import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { authOptions } from "@/lib/auth-options";
 import {
   getCategoriesWithAuthServer,
+  getGlobalMenuWithAuthServer,
   getLocationMenuItemsWithAuthServer,
-  getLocationMenuWithAuthServer,
   getLocationWithAuthServer,
 } from "@/lib/auth-api";
+import type { GlobalMenuResponse } from "@/lib/auth-api";
 import type { LocationMenuItemRow } from "@/lib/auth-api";
 import { getServerT } from "@/lib/i18n/server";
 import { mapGlobalMenuResponseToData } from "@/lib/menu/map-global-menu-response";
@@ -70,10 +71,10 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const [locResult, menuResult, manageResult, categoriesResult] = await Promise.all([
+  const [locResult, manageResult, catalogResult, categoriesResult] = await Promise.all([
     getLocationWithAuthServer(token, decoded),
-    getLocationMenuWithAuthServer(token, decoded),
     getLocationMenuItemsWithAuthServer(token, decoded),
+    getGlobalMenuWithAuthServer(token),
     getCategoriesWithAuthServer(token),
   ]);
 
@@ -86,10 +87,13 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
   const restaurant = locationToDisplayInfo(locResult.data.location);
   const enabledCategoryIds = locResult.data.location.enabledCategoryIds ?? [];
 
-  let initialMenu: GlobalMenuData = { categories: [] };
-  if (menuResult.ok) {
-    initialMenu = mapGlobalMenuResponseToData(menuResult.data);
-  }
+  const initialGlobalMenu: GlobalMenuResponse | null = catalogResult.ok
+    ? catalogResult.data
+    : null;
+
+  const initialCatalog: GlobalMenuData = initialGlobalMenu
+    ? mapGlobalMenuResponseToData(initialGlobalMenu)
+    : { categories: [] };
 
   const initialManageItems: LocationMenuItemRow[] = manageResult.ok
     ? manageResult.data.items
@@ -108,7 +112,8 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     <div className="mx-auto max-w-7xl px-0 py-6 sm:py-8">
       <RestaurantDetailClient
         restaurant={restaurant}
-        initialMenu={initialMenu}
+        initialCatalog={initialCatalog}
+        initialGlobalMenu={initialGlobalMenu}
         initialManageItems={initialManageItems}
         enabledCategoryIds={enabledCategoryIds}
         categoriesCatalog={categoriesCatalog}

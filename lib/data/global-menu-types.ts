@@ -12,6 +12,8 @@ export type MenuItem = {
   name: string;
   /** When false, item is hidden from guest-facing menus until persisted via API. */
   active?: boolean;
+  /** Per-location publish toggle (restaurant detail); independent of global `active`. */
+  locationEnabled?: boolean;
   image?: string;
   /** Catalog prices; may include multiple currencies. */
   prices: CatalogPriceRow[];
