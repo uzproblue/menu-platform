@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { patchLocationMenuItemEnabledWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  syncAndPurgeLocationPublicExport,
+  scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 
@@ -77,7 +77,10 @@ export async function PATCH(
     );
   }
 
-  const exportResult = await syncAndPurgeLocationPublicExport(token, trimmedLocationId);
+  const exportResult = await scheduleOrAwaitLocationPublicExport(
+    token,
+    trimmedLocationId,
+  );
   if (!exportResult.ok) {
     console.error(
       "[PATCH location menu-item enabled] location public export failed",

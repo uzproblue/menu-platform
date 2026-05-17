@@ -10,7 +10,7 @@ import { validateTranslationLangsInput } from "@/lib/menu-translation-langs";
 import {
   isLocationExportStrict,
   purgeLocationPublicExportUrl,
-  syncAndPurgeLocationPublicExport,
+  scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 
@@ -178,7 +178,7 @@ export async function PATCH(
     );
   }
 
-  const exportResult = await syncAndPurgeLocationPublicExport(token, trimmedId);
+  const exportResult = await scheduleOrAwaitLocationPublicExport(token, trimmedId);
   if (!exportResult.ok) {
     console.error(
       "[PATCH location] location public export failed",

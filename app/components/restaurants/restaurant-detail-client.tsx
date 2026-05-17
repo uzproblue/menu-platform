@@ -20,6 +20,7 @@ import {
   ToastStack,
   type ToastEntry,
 } from "@/app/components/ui/toast-stack";
+import { useSerializedAsyncQueue } from "@/lib/use-serialized-async-queue";
 import { useI18n } from "../i18n-provider";
 import {
   EditLocationCategoryModal,
@@ -116,6 +117,7 @@ export function RestaurantDetailClient({
   categoriesCatalog,
 }: RestaurantDetailClientProps) {
   const { t } = useI18n();
+  const enqueueToggle = useSerializedAsyncQueue();
   const [catalog] = useState<GlobalMenuData>(() => structuredClone(initialCatalog));
   const [manageItems, setManageItems] = useState<LocationMenuItemRow[]>(
     () => initialManageItems,
@@ -278,7 +280,7 @@ export function RestaurantDetailClient({
           : t("restaurantDetail.itemToggleDisabling", { name: itemName }),
       });
 
-      void (async () => {
+      void enqueueToggle(async () => {
         try {
           const res = await fetch(
             `/api/settings/locations/${encodeURIComponent(restaurant.id)}/menu-items/${encodeURIComponent(itemId)}`,
@@ -355,9 +357,10 @@ export function RestaurantDetailClient({
             return next;
           });
         }
-      })();
+      });
     },
     [
+      enqueueToggle,
       manageByItemId,
       resolveItemName,
       restaurant.id,

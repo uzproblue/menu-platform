@@ -22,6 +22,7 @@ import {
   tryReadJson,
 } from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
+import { useSerializedAsyncQueue } from "@/lib/use-serialized-async-queue";
 import { useI18n } from "../i18n-provider";
 import { AddMenuItemButton } from "./add-menu-item-button";
 import {
@@ -97,6 +98,7 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 
 export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageClientProps) {
   const { t, locale } = useI18n();
+  const enqueueToggle = useSerializedAsyncQueue();
   const { data, setData } = usePersistedGlobalMenu(initialData, { persistDraft: false });
   const [editor, setEditor] = useState<{
     categoryId: string;
@@ -256,7 +258,8 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           : t("global.itemToggleDisabling", { name: itemName }),
       });
 
-      void withItemLock(itemId, async () => {
+      void enqueueToggle(async () => {
+        await withItemLock(itemId, async () => {
         try {
           const response = await fetch(
             `/api/settings/menu-items/${encodeURIComponent(itemId)}/activation`,
@@ -299,9 +302,20 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
             durationMs: 6000,
           });
         }
+        });
       });
     },
-    [data, isItemBusy, isSavingEdit, locale, patchItem, t, upsertToast, withItemLock],
+    [
+      data,
+      enqueueToggle,
+      isItemBusy,
+      isSavingEdit,
+      locale,
+      patchItem,
+      t,
+      upsertToast,
+      withItemLock,
+    ],
   );
 
   const handleSaveEdit = useCallback(

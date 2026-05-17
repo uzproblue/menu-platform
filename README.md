@@ -49,6 +49,8 @@ After location/menu changes, the platform writes `location-public/v1/{locationId
 
 API responses that sync a location now include **`locationExport.purge`** (`urls`, `purgeOk`, `skipped`, `message`) so you can confirm purge behavior from the admin network tab.
 
+**Rapid toggles (enable/disable many items):** By default, location exports run in the background via `ctx.waitUntil` and are **coalesced** (one R2 write per location per burst). The admin UI serializes toggle PATCH requests so Workers are less likely to hit CPU/subrequest limits (Cloudflare Error 1102). Set **`LOCATION_EXPORT_STRICT=true`** only if you need the HTTP response to wait for export completion (not recommended on production Workers).
+
 ## Getting Started
 
 First, run the development server:

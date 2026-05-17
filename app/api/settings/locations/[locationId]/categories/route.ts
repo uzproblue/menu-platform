@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { updateLocationCategoriesWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  syncAndPurgeLocationPublicExport,
+  scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 
@@ -73,7 +73,7 @@ export async function PATCH(
     );
   }
 
-  const exportResult = await syncAndPurgeLocationPublicExport(token, trimmedId);
+  const exportResult = await scheduleOrAwaitLocationPublicExport(token, trimmedId);
   if (!exportResult.ok) {
     console.error(
       "[PATCH location categories] location public export failed",

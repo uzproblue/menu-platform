@@ -7,7 +7,7 @@ import {
 } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  syncAndPurgeLocationPublicExport,
+  scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 
@@ -118,7 +118,7 @@ export async function PUT(
     );
   }
 
-  const exportResult = await syncAndPurgeLocationPublicExport(token, trimmedId);
+  const exportResult = await scheduleOrAwaitLocationPublicExport(token, trimmedId);
   if (!exportResult.ok) {
     console.error(
       "[PUT menu-items] location public export failed",
@@ -314,7 +314,7 @@ export async function PATCH(
     );
   }
 
-  const exportResult = await syncAndPurgeLocationPublicExport(token, trimmedId);
+  const exportResult = await scheduleOrAwaitLocationPublicExport(token, trimmedId);
   if (!exportResult.ok) {
     console.error(
       "[PATCH menu-items] location public export failed",

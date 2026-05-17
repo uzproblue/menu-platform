@@ -24,8 +24,23 @@ export type LocationSnapshotPurgeDetail = {
 };
 
 export type LocationExportResult =
-  | { ok: true; publicUrl: string; objectKey: string; purge: LocationSnapshotPurgeDetail }
+  | {
+      ok: true;
+      publicUrl: string;
+      objectKey: string;
+      purge: LocationSnapshotPurgeDetail;
+      /** Set when export runs on `ctx.waitUntil` and outcome is not yet known. */
+      deferred?: boolean;
+    }
   | { ok: false; message: string };
+
+/** Single-flight export per location within a Worker isolate. */
+const locationExportInFlight = new Map<string, Promise<LocationExportResult>>();
+
+/** Single-flight batch export per access token within a Worker isolate. */
+let restaurantBatchInFlight: Promise<SyncAndPurgeAllLocationExportsResult> | null =
+  null;
+let restaurantBatchToken: string | null = null;
 
 /** Comma-separated origins (no path), same object key appended — e.g. guest `MENU_PUBLIC_BASE_URL` if it differs from `R2_PUBLIC_BASE_URL`. */
 function parseLocationExportPurgeExtraBases(): string[] {
@@ -86,6 +101,81 @@ export type SyncAndPurgeAllLocationExportsResult = {
  * HTTP handler can return before the batch finishes — avoids Worker wall-clock timeouts that
  * surface in the browser as "Failed to fetch" / generic network errors.
  */
+function makeDeferredLocationExportResult(
+  locationId: string,
+): Extract<LocationExportResult, { ok: true }> {
+  const config = getR2UploadConfig();
+  const objectKey = makeLocationPublicExportObjectKey(locationId);
+  const publicUrl = `${config.publicBaseUrl}/${objectKey}`;
+  return {
+    ok: true,
+    publicUrl,
+    objectKey,
+    deferred: true,
+    purge: {
+      urls: buildLocationSnapshotPurgeUrls(publicUrl, objectKey),
+      purgeOk: false,
+      skipped: true,
+    },
+  };
+}
+
+/**
+ * One export+purge per `locationId` at a time; concurrent callers share the same promise.
+ */
+function coalescedSyncAndPurgeLocationPublicExport(
+  accessToken: string,
+  locationId: string,
+): Promise<LocationExportResult> {
+  const key = locationId.trim();
+  const existing = locationExportInFlight.get(key);
+  if (existing) return existing;
+
+  const work = syncAndPurgeLocationPublicExport(accessToken, key).finally(() => {
+    locationExportInFlight.delete(key);
+  });
+  locationExportInFlight.set(key, work);
+  return work;
+}
+
+/**
+ * Refreshes one location's public R2 export after a menu change.
+ * Default: `ctx.waitUntil` + single-flight coalescing so rapid toggles do not run N parallel exports.
+ */
+export async function scheduleOrAwaitLocationPublicExport(
+  accessToken: string,
+  locationId: string,
+): Promise<LocationExportResult> {
+  if (isLocationExportStrict()) {
+    return coalescedSyncAndPurgeLocationPublicExport(accessToken, locationId);
+  }
+
+  const exportWork = coalescedSyncAndPurgeLocationPublicExport(
+    accessToken,
+    locationId,
+  ).catch((err) => {
+    console.error(
+      "[scheduleOrAwaitLocationPublicExport] background sync failed",
+      locationId,
+      err,
+    );
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "location_export_failed",
+    } satisfies LocationExportResult;
+  });
+
+  try {
+    const { ctx } = getCloudflareContext();
+    ctx.waitUntil(exportWork);
+    return makeDeferredLocationExportResult(locationId);
+  } catch {
+    /* `next dev` or non-Workers: no execution context */
+  }
+
+  return exportWork;
+}
+
 export async function scheduleOrAwaitAllRestaurantLocationExports(
   accessToken: string,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
@@ -93,10 +183,28 @@ export async function scheduleOrAwaitAllRestaurantLocationExports(
     return syncAndPurgeAllRestaurantLocationExports(accessToken);
   }
 
+  if (restaurantBatchInFlight && restaurantBatchToken === accessToken) {
+    return {
+      ok: true,
+      total: 0,
+      succeeded: 0,
+      failed: 0,
+      failures: [],
+      deferred: true,
+    };
+  }
+
+  const run = syncAndPurgeAllRestaurantLocationExports(accessToken).finally(() => {
+    restaurantBatchInFlight = null;
+    restaurantBatchToken = null;
+  });
+  restaurantBatchInFlight = run;
+  restaurantBatchToken = accessToken;
+
   try {
     const { ctx } = getCloudflareContext();
     ctx.waitUntil(
-      syncAndPurgeAllRestaurantLocationExports(accessToken).catch((err) => {
+      run.catch((err) => {
         console.error(
           "[scheduleOrAwaitAllRestaurantLocationExports] background sync failed",
           err,
@@ -115,7 +223,7 @@ export async function scheduleOrAwaitAllRestaurantLocationExports(
     /* `next dev` or non-Workers: no execution context */
   }
 
-  return syncAndPurgeAllRestaurantLocationExports(accessToken);
+  return run;
 }
 
 /**
@@ -273,7 +381,7 @@ export async function syncAndPurgeAllRestaurantLocationExports(
       if (current >= total) return;
 
       const locationId = locationIds[current];
-      const result = await syncAndPurgeLocationPublicExport(
+      const result = await coalescedSyncAndPurgeLocationPublicExport(
         accessToken,
         locationId,
       );

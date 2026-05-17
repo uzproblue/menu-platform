@@ -24,6 +24,7 @@ type LocationExportShape = {
   ok?: unknown;
   message?: unknown;
   purge?: unknown;
+  deferred?: unknown;
 };
 
 type LocationExportPurgeShape = {
@@ -73,6 +74,7 @@ export function readLocationExportWarning(
 
   // Single-location result (location publish, location category PATCH).
   if (single) {
+    if (single.deferred === true) return null;
     if (single.ok === false) {
       const msg =
         typeof single.message === "string" && single.message.trim().length > 0
