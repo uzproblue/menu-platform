@@ -298,7 +298,7 @@ export function SettingsPageClient({
       const payload = (await res.json().catch(() => null)) as {
         teammate?: Teammate;
         temporaryPassword?: string | null;
-        chefInvite?: { oneTimeCode: string };
+        chefInvite?: { pinCode: string };
         message?: string;
       } | null;
       if (!res.ok) {
@@ -311,9 +311,9 @@ export function SettingsPageClient({
       setTeammateRole("USER");
       setTeammateTelegramPhone("");
       setTeammateLocationId("");
-      if (payload?.chefInvite?.oneTimeCode) {
+      if (payload?.chefInvite?.pinCode) {
         setTeammateSaved(
-          t("settings.chefAddedCode", { code: payload.chefInvite.oneTimeCode }),
+          t("settings.chefAddedCode", { code: payload.chefInvite.pinCode }),
         );
       } else if (payload?.temporaryPassword) {
         setTeammateSaved(

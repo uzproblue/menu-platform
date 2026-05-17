@@ -44,7 +44,7 @@ export type CreateTeammateResponse = {
   temporaryPassword: string | null;
   chefInvite?: {
     inviteId: string;
-    oneTimeCode: string;
+    pinCode: string;
     locationId: string;
     locationName: string;
   };

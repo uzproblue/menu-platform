@@ -100,7 +100,7 @@ export const enMessages: Messages = {
   "settings.branchLocation": "Branch / location",
   "settings.selectLocation": "Select a location",
   "settings.loadingLocations": "Loading locations...",
-  "settings.chefAddedCode": "Chef added. One-time app code: {code} — they must open the Telegram bot, send /start, share their phone, then enter this code in the Mini App.",
+  "settings.chefAddedCode": "Chef added. 4-digit PIN: {code} — they open the Telegram bot, send /start, share their phone, then enter this PIN in the Mini App (same PIN after session expires).",
   "settings.chefPhonePending": "Phone not set",
   "settings.chefTelegramLinked": "Telegram linked",
   "settings.chefTelegramNotLinked": "Waiting for phone share in bot",

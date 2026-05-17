@@ -95,7 +95,7 @@ export const uzMessages: Messages = {
   "settings.branchLocation": "Filial / joy",
   "settings.selectLocation": "Joyni tanlang",
   "settings.loadingLocations": "Joylar yuklanmoqda...",
-  "settings.chefAddedCode": "Oshpaz qo'shildi. Bir martalik kod: {code} — Telegram botda /start, kontakt ulashish, Mini Appda kodni kiriting.",
+  "settings.chefAddedCode": "Oshpaz qo'shildi. 4 xonali PIN: {code} — Telegram bot, /start, kontakt, Mini Appda PIN (sessiya tugagach ham shu PIN).",
   "settings.chefPhonePending": "Telefon kiritilmagan",
   "settings.chefTelegramLinked": "Telegram bog'langan",
   "settings.chefTelegramNotLinked": "Botda kontakt kutilmoqda",

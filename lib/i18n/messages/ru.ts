@@ -96,7 +96,7 @@ export const ruMessages: Messages = {
   "settings.branchLocation": "Филиал / локация",
   "settings.selectLocation": "Выберите локацию",
   "settings.loadingLocations": "Загрузка локаций...",
-  "settings.chefAddedCode": "Шеф добавлен. Одноразовый код: {code} — откройте бота в Telegram, /start, поделитесь контактом, введите код в Mini App.",
+  "settings.chefAddedCode": "Шеф добавлен. PIN из 4 цифр: {code} — бот Telegram, /start, контакт, затем PIN в Mini App (тот же PIN после истечения сессии).",
   "settings.chefPhonePending": "Телефон не указан",
   "settings.chefTelegramLinked": "Telegram привязан",
   "settings.chefTelegramNotLinked": "Ожидается контакт в боте",
