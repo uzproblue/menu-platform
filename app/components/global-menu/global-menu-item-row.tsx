@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Spinner } from "@/app/components/ui/spinner";
 import type { MenuItem } from "@/lib/data/global-menu-types";
 import { getMenuItemDisplayForLocale } from "@/lib/category-locale-display";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
@@ -36,6 +37,7 @@ function ItemActiveToggle({
   active,
   onToggle,
   disabled,
+  busy = false,
   disableLabel,
   enableLabel,
   prominentOff = false,
@@ -43,6 +45,7 @@ function ItemActiveToggle({
   active: boolean;
   onToggle: () => void;
   disabled: boolean;
+  busy?: boolean;
   disableLabel: string;
   enableLabel: string;
   prominentOff?: boolean;
@@ -53,22 +56,31 @@ function ItemActiveToggle({
         type="button"
         role="switch"
         aria-checked={active}
-        aria-label={active ? disableLabel : enableLabel}
+        aria-busy={busy}
+        aria-label={busy ? disableLabel : active ? disableLabel : enableLabel}
         disabled={disabled}
         onClick={onToggle}
-        className={`flex h-8 w-[3.35rem] shrink-0 cursor-pointer items-center rounded-full border px-1 transition-colors disabled:cursor-not-allowed disabled:opacity-55 ${
-          active
-            ? "justify-end border-foreground/15 bg-foreground/25"
-            : prominentOff
-              ? "justify-start border-red-500/60 bg-red-500/25 shadow-sm shadow-red-500/20"
-              : "justify-start border-foreground/15 bg-foreground/8"
+        className={`flex h-8 w-[3.35rem] shrink-0 cursor-pointer items-center rounded-full border px-1 transition-colors disabled:cursor-not-allowed ${
+          busy
+            ? "justify-center border-foreground/20 bg-foreground/10 opacity-100"
+            : `disabled:opacity-55 ${
+                active
+                  ? "justify-end border-foreground/15 bg-foreground/25"
+                  : prominentOff
+                    ? "justify-start border-red-500/60 bg-red-500/25 shadow-sm shadow-red-500/20"
+                    : "justify-start border-foreground/15 bg-foreground/8"
+              }`
         }`}
       >
-        <span
-          className={`pointer-events-none block size-6 rounded-full bg-background shadow-sm ring-1 ${
-            !active && prominentOff ? "ring-red-500/50" : "ring-foreground/10"
-          }`}
-        />
+        {busy ? (
+          <Spinner className="size-5 text-foreground/75" />
+        ) : (
+          <span
+            className={`pointer-events-none block size-6 rounded-full bg-background shadow-sm ring-1 ${
+              !active && prominentOff ? "ring-red-500/50" : "ring-foreground/10"
+            }`}
+          />
+        )}
       </button>
     </div>
   );
@@ -148,7 +160,7 @@ export function GlobalMenuItemRow({
   return (
     <li className="h-full min-w-0 list-none">
       <article
-        className={`group flex h-full flex-col overflow-hidden rounded-2xl border bg-background/70 shadow-lg backdrop-blur-md transition-[box-shadow,ring-color] ${
+        className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-background/70 shadow-lg backdrop-blur-md transition-[box-shadow,ring-color] ${
           locationDisabledUi
             ? "border-red-500/45 shadow-red-500/10 ring-2 ring-red-500/35 hover:ring-red-500/50"
             : active
@@ -305,12 +317,29 @@ export function GlobalMenuItemRow({
               active={active}
               onToggle={() => onToggleActive(categoryId, item.id)}
               disabled={isBusy}
+              busy={isBusy}
               prominentOff={locationDisabledUi}
-              disableLabel={t("global.disableItem")}
+              disableLabel={
+                isBusy && locationMenuEnabled !== undefined
+                  ? t("restaurantDetail.itemToggleUpdating")
+                  : t("global.disableItem")
+              }
               enableLabel={t("global.enableItem")}
             />
           </div>
         </div>
+
+        {isBusy && locationMenuEnabled !== undefined ? (
+          <div
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2.5 rounded-2xl bg-background/80 backdrop-blur-[2px]"
+            aria-hidden
+          >
+            <Spinner className="size-9 text-foreground/70" label={t("restaurantDetail.itemToggleUpdating")} />
+            <p className="max-w-[85%] text-center text-sm font-semibold tracking-tight text-foreground">
+              {t("restaurantDetail.itemToggleUpdating")}
+            </p>
+          </div>
+        ) : null}
       </article>
     </li>
   );

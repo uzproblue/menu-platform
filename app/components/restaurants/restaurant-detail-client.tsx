@@ -16,6 +16,10 @@ import type {
 } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { GlobalMenuCategorySection } from "@/app/components/global-menu/global-menu-category-section";
+import {
+  ToastStack,
+  type ToastEntry,
+} from "@/app/components/ui/toast-stack";
 import { useI18n } from "../i18n-provider";
 import {
   EditLocationCategoryModal,
@@ -117,7 +121,7 @@ export function RestaurantDetailClient({
     () => initialManageItems,
   );
   const [toggleBusyIds, setToggleBusyIds] = useState<Set<string>>(() => new Set());
-  const [toggleError, setToggleError] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastEntry[]>([]);
   const [enabledCategoryIds, setEnabledCategoryIds] = useState<string[]>(
     () => initialEnabledCategoryIds,
   );
@@ -237,15 +241,42 @@ export function RestaurantDetailClient({
   const canShowAddButton = categoriesCatalog.length > 0;
   const addButtonDisabled = availableToAdd.length === 0;
 
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
+  const upsertToast = useCallback((entry: ToastEntry) => {
+    setToasts((prev) => {
+      const idx = prev.findIndex((toast) => toast.id === entry.id);
+      if (idx < 0) return [...prev, entry];
+      const next = [...prev];
+      next[idx] = entry;
+      return next;
+    });
+  }, []);
+
+  const resolveItemName = useCallback(
+    (itemId: string) => catalogItemsById.get(itemId)?.name ?? itemId,
+    [catalogItemsById],
+  );
+
   const handleToggleActive = useCallback(
     (categoryId: string, itemId: string) => {
       if (toggleBusyIds.has(itemId)) return;
 
       const currentlyOn = manageByItemId.get(itemId)?.enabled === true;
       const nextEnabled = !currentlyOn;
+      const itemName = resolveItemName(itemId);
+      const toastId = `toggle-${itemId}`;
 
-      setToggleError(null);
       setToggleBusyIds((prev) => new Set(prev).add(itemId));
+      upsertToast({
+        id: toastId,
+        variant: "loading",
+        message: nextEnabled
+          ? t("restaurantDetail.itemToggleEnabling", { name: itemName })
+          : t("restaurantDetail.itemToggleDisabling", { name: itemName }),
+      });
 
       void (async () => {
         try {
@@ -269,9 +300,14 @@ export function RestaurantDetailClient({
             } catch {
               /* ignore */
             }
-            setToggleError(
-              detail ?? t("restaurantDetail.editCategoryItemsSaveFailed"),
-            );
+            upsertToast({
+              id: toastId,
+              variant: "error",
+              message:
+                detail ??
+                t("restaurantDetail.itemToggleFailed", { name: itemName }),
+              durationMs: 6000,
+            });
             return;
           }
 
@@ -296,8 +332,22 @@ export function RestaurantDetailClient({
             }
             return [...prev, row];
           });
+
+          upsertToast({
+            id: toastId,
+            variant: "success",
+            message: body.enabled
+              ? t("restaurantDetail.itemToggleEnabled", { name: itemName })
+              : t("restaurantDetail.itemToggleDisabled", { name: itemName }),
+            durationMs: 3500,
+          });
         } catch {
-          setToggleError(t("restaurantDetail.editCategoryItemsSaveFailed"));
+          upsertToast({
+            id: toastId,
+            variant: "error",
+            message: t("restaurantDetail.itemToggleFailed", { name: itemName }),
+            durationMs: 6000,
+          });
         } finally {
           setToggleBusyIds((prev) => {
             const next = new Set(prev);
@@ -307,7 +357,14 @@ export function RestaurantDetailClient({
         }
       })();
     },
-    [manageByItemId, restaurant.id, t, toggleBusyIds],
+    [
+      manageByItemId,
+      resolveItemName,
+      restaurant.id,
+      t,
+      toggleBusyIds,
+      upsertToast,
+    ],
   );
 
   const noopEdit = useCallback((categoryId: string, itemId: string) => {
@@ -701,11 +758,6 @@ export function RestaurantDetailClient({
             </button>
           ) : null}
         </div>
-        {toggleError ? (
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-            {toggleError}
-          </p>
-        ) : null}
         {hasEnabledCategories ? (
           enabledSections.map((section) => (
             <GlobalMenuCategorySection
@@ -756,6 +808,8 @@ export function RestaurantDetailClient({
         onClose={handleCloseAdd}
         onSave={handleSaveAddCategories}
       />
+
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

@@ -461,6 +461,12 @@ export const ruMessages: Messages = {
     "Не удалось обновить категории. Попробуйте ещё раз.",
   "restaurantDetail.addCategoryAria":
     "Добавить категорию «{name}» в эту локацию",
+  "restaurantDetail.itemToggleUpdating": "Обновляем меню…",
+  "restaurantDetail.itemToggleEnabling": "Добавляем «{name}» в меню для гостей…",
+  "restaurantDetail.itemToggleDisabling": "Убираем «{name}» из меню для гостей…",
+  "restaurantDetail.itemToggleEnabled": "«{name}» снова виден гостям",
+  "restaurantDetail.itemToggleDisabled": "«{name}» скрыт из меню для гостей",
+  "restaurantDetail.itemToggleFailed": "Не удалось обновить «{name}». Попробуйте снова.",
 
   "newItem.title": "Новая позиция меню",
   "newItem.subtitle":

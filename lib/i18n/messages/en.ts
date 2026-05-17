@@ -446,6 +446,12 @@ export const enMessages: Messages = {
   "restaurantDetail.addCategorySaveFailed":
     "Could not update categories. Try again.",
   "restaurantDetail.addCategoryAria": "Add category {name} to this location",
+  "restaurantDetail.itemToggleUpdating": "Updating menu…",
+  "restaurantDetail.itemToggleEnabling": "Adding «{name}» to the guest menu…",
+  "restaurantDetail.itemToggleDisabling": "Removing «{name}» from the guest menu…",
+  "restaurantDetail.itemToggleEnabled": "«{name}» is now visible to guests",
+  "restaurantDetail.itemToggleDisabled": "«{name}» is hidden from the guest menu",
+  "restaurantDetail.itemToggleFailed": "Could not update «{name}». Try again.",
 
   "newItem.title": "New menu item",
   "newItem.subtitle":

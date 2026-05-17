@@ -441,6 +441,12 @@ export const uzMessages: Messages = {
     "Bo'limlarni yangilab bo'lmadi. Qayta urinib ko'ring.",
   "restaurantDetail.addCategoryAria":
     "«{name}» bo'limini ushbu lokatsiyaga qo'shish",
+  "restaurantDetail.itemToggleUpdating": "Menyu yangilanmoqda…",
+  "restaurantDetail.itemToggleEnabling": "«{name}» mehmon menyusiga qo'shilmoqda…",
+  "restaurantDetail.itemToggleDisabling": "«{name}» mehmon menyusidan olib tashlanmoqda…",
+  "restaurantDetail.itemToggleEnabled": "«{name}» endi mehmonlar uchun ko'rinadi",
+  "restaurantDetail.itemToggleDisabled": "«{name}» mehmon menyusidan yashirildi",
+  "restaurantDetail.itemToggleFailed": "«{name}» yangilanmadi. Qayta urinib ko'ring.",
 
   "newItem.title": "Yangi menyu elementi",
   "newItem.subtitle":
