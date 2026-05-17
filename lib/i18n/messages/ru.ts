@@ -311,6 +311,14 @@ export const ruMessages: Messages = {
   "global.noDescription": "Нет описания",
   "global.enableItem": "Включить позицию",
   "global.disableItem": "Выключить позицию",
+  "global.itemToggleUpdating": "Обновляем каталог…",
+  "global.itemToggleEnabling": "Включаем «{name}» в каталоге…",
+  "global.itemToggleDisabling": "Отключаем «{name}» в каталоге…",
+  "global.itemToggleEnabled":
+    "«{name}» включена — меню для гостей обновлено там, где была опубликована",
+  "global.itemToggleDisabled":
+    "«{name}» отключена во всех опубликованных локациях",
+  "global.itemToggleFailed": "Не удалось обновить «{name}». Попробуйте снова.",
   "global.editItemAria": "Редактировать {name}",
   "global.editItemTranslationsAria": "Редактировать тексты для гостей: {name}",
   "global.deleteItemAria": "Удалить {name}",

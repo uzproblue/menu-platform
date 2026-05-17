@@ -147,9 +147,12 @@ export function GlobalMenuItemRow({
 }: GlobalMenuItemRowProps) {
   const { t, locale } = useI18n();
   const hasImage = Boolean(item.image?.trim());
-  const active =
-    locationMenuEnabled !== undefined ? locationMenuEnabled : isActive(item);
-  const locationDisabledUi = locationMenuEnabled !== undefined && !active;
+  const isLocationToggle = locationMenuEnabled !== undefined;
+  const active = isLocationToggle ? locationMenuEnabled : isActive(item);
+  const disabledUi = !active;
+  const busyUpdatingLabel = isLocationToggle
+    ? t("restaurantDetail.itemToggleUpdating")
+    : t("global.itemToggleUpdating");
   const display = getMenuItemDisplayForLocale(
     item.name,
     item.description,
@@ -161,11 +164,9 @@ export function GlobalMenuItemRow({
     <li className="h-full min-w-0 list-none">
       <article
         className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-background/70 shadow-lg backdrop-blur-md transition-[box-shadow,ring-color] ${
-          locationDisabledUi
+          disabledUi
             ? "border-red-500/45 shadow-red-500/10 ring-2 ring-red-500/35 hover:ring-red-500/50"
-            : active
-              ? "border-foreground/10 shadow-foreground/5 ring-1 ring-foreground/5 hover:ring-foreground/15"
-              : "border-foreground/10 opacity-90 shadow-foreground/5 ring-1 ring-foreground/5 hover:ring-foreground/15"
+            : "border-foreground/10 shadow-foreground/5 ring-1 ring-foreground/5 hover:ring-foreground/15"
         }`}
       >
         <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden bg-foreground/5">
@@ -180,7 +181,7 @@ export function GlobalMenuItemRow({
           )}
 
           <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent opacity-90" />
-          {locationDisabledUi ? (
+          {disabledUi ? (
             <div
               className="pointer-events-none absolute inset-0 bg-red-600/12 ring-1 ring-inset ring-red-500/25"
               aria-hidden
@@ -192,9 +193,7 @@ export function GlobalMenuItemRow({
               className={`pointer-events-auto rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1 backdrop-blur-sm ${
                 active
                   ? "bg-emerald-500/20 text-emerald-800 ring-emerald-500/30 dark:text-emerald-200"
-                  : locationDisabledUi
-                    ? "bg-red-600/90 text-white ring-red-700/50 shadow-sm shadow-red-500/30"
-                    : "bg-foreground/15 text-foreground/75 ring-foreground/20"
+                  : "bg-red-600/90 text-white ring-red-700/50 shadow-sm shadow-red-500/30"
               }`}
             >
               {active ? t("global.enabled") : t("global.disabled")}
@@ -282,11 +281,9 @@ export function GlobalMenuItemRow({
         <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
           <h3
             className={`text-lg font-semibold leading-snug tracking-tight sm:text-xl ${
-              locationDisabledUi
+              disabledUi
                 ? "text-red-700 line-through decoration-red-500 decoration-2 dark:text-red-300"
-                : active
-                  ? "text-foreground"
-                  : "text-foreground line-through decoration-foreground/35"
+                : "text-foreground"
             }`}
           >
             {display.name}
@@ -303,7 +300,7 @@ export function GlobalMenuItemRow({
 
           <div
             className={`mt-auto flex flex-wrap items-end justify-between gap-3 border-t pt-3 ${
-              locationDisabledUi ? "border-red-500/35" : "border-foreground/10"
+              disabledUi ? "border-red-500/35" : "border-foreground/10"
             }`}
           >
             {item.prices.length > 0 ? (
@@ -318,25 +315,23 @@ export function GlobalMenuItemRow({
               onToggle={() => onToggleActive(categoryId, item.id)}
               disabled={isBusy}
               busy={isBusy}
-              prominentOff={locationDisabledUi}
-              disableLabel={
-                isBusy && locationMenuEnabled !== undefined
-                  ? t("restaurantDetail.itemToggleUpdating")
-                  : t("global.disableItem")
-              }
+              prominentOff={disabledUi}
+              disableLabel={isBusy ? busyUpdatingLabel : t("global.disableItem")}
               enableLabel={t("global.enableItem")}
             />
           </div>
         </div>
 
-        {isBusy && locationMenuEnabled !== undefined ? (
+        {isBusy ? (
           <div
             className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2.5 rounded-2xl bg-background/80 backdrop-blur-[2px]"
-            aria-hidden
+            role="status"
+            aria-live="polite"
+            aria-label={busyUpdatingLabel}
           >
-            <Spinner className="size-9 text-foreground/70" label={t("restaurantDetail.itemToggleUpdating")} />
+            <Spinner className="size-9 text-foreground/70" label={busyUpdatingLabel} />
             <p className="max-w-[85%] text-center text-sm font-semibold tracking-tight text-foreground">
-              {t("restaurantDetail.itemToggleUpdating")}
+              {busyUpdatingLabel}
             </p>
           </div>
         ) : null}

@@ -295,6 +295,14 @@ export const uzMessages: Messages = {
   "global.noDescription": "Tavsif yo'q",
   "global.enableItem": "Elementni yoqish",
   "global.disableItem": "Elementni o'chirish",
+  "global.itemToggleUpdating": "Katalog yangilanmoqda…",
+  "global.itemToggleEnabling": "«{name}» katalogda yoqilmoqda…",
+  "global.itemToggleDisabling": "«{name}» katalogda o'chirilmoqda…",
+  "global.itemToggleEnabled":
+    "«{name}» yoqildi — nashr qilingan joylarda mehmon menyusi yangilandi",
+  "global.itemToggleDisabled":
+    "«{name}» barcha nashr qilingan lokatsiyalarda o'chirildi",
+  "global.itemToggleFailed": "«{name}» yangilanmadi. Qayta urinib ko'ring.",
   "global.editItemAria": "{name} ni tahrirlash",
   "global.editItemTranslationsAria": "{name} uchun mehmon tili matnlarini tahrirlash",
   "global.deleteItemAria": "{name} ni o'chirish",

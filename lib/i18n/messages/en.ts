@@ -300,6 +300,14 @@ export const enMessages: Messages = {
   "global.noDescription": "No description",
   "global.enableItem": "Enable item",
   "global.disableItem": "Disable item",
+  "global.itemToggleUpdating": "Updating catalog…",
+  "global.itemToggleEnabling": "Enabling «{name}» in the catalog…",
+  "global.itemToggleDisabling": "Disabling «{name}» in the catalog…",
+  "global.itemToggleEnabled":
+    "«{name}» is enabled — guest menus updated where it was published",
+  "global.itemToggleDisabled":
+    "«{name}» is disabled at all published locations",
+  "global.itemToggleFailed": "Could not update «{name}». Try again.",
   "global.editItemAria": "Edit {name}",
   "global.editItemTranslationsAria": "Edit guest-language text for {name}",
   "global.deleteItemAria": "Delete {name}",

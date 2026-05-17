@@ -31,6 +31,10 @@ import {
 } from "./edit-menu-item-modal";
 import { GlobalMenuCategorySection } from "./global-menu-category-section";
 import { GuestTranslationsBatchModal } from "./guest-translations-batch-modal";
+import {
+  ToastStack,
+  type ToastEntry,
+} from "@/app/components/ui/toast-stack";
 
 const EMPTY_ITEM_TRANSLATIONS: TranslationTextApi[] = [];
 const ITEM_TRANSLATION_NAME_MAX = 200;
@@ -111,6 +115,21 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
     categoryId: string;
     itemId: string;
   } | null>(null);
+  const [toasts, setToasts] = useState<ToastEntry[]>([]);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
+  const upsertToast = useCallback((entry: ToastEntry) => {
+    setToasts((prev) => {
+      const idx = prev.findIndex((toast) => toast.id === entry.id);
+      if (idx < 0) return [...prev, entry];
+      const next = [...prev];
+      next[idx] = entry;
+      return next;
+    });
+  }, []);
 
   const withItemLock = useCallback(async (itemId: string, fn: () => Promise<void>) => {
     setPendingItems((prev) => ({ ...prev, [itemId]: true }));
@@ -220,8 +239,22 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       const currentlyOn = current.active !== false;
       const nextActive = !currentlyOn;
       const optimistic: MenuItem = { ...current, active: nextActive };
+      const itemName = getMenuItemDisplayForLocale(
+        current.name,
+        current.description,
+        current.translations,
+        locale,
+      ).name;
+      const toastId = `toggle-${itemId}`;
 
       patchItem(categoryId, itemId, () => optimistic);
+      upsertToast({
+        id: toastId,
+        variant: "loading",
+        message: nextActive
+          ? t("global.itemToggleEnabling", { name: itemName })
+          : t("global.itemToggleDisabling", { name: itemName }),
+      });
 
       void withItemLock(itemId, async () => {
         try {
@@ -235,20 +268,40 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           );
           if (!response.ok) {
             patchItem(categoryId, itemId, (i) => ({ ...i, active: currentlyOn }));
-            setRequestError(
-              await readErrorMessage(response, t("global.errUpdateItemActivation")),
+            const detail = await readErrorMessage(
+              response,
+              t("global.itemToggleFailed", { name: itemName }),
             );
+            upsertToast({
+              id: toastId,
+              variant: "error",
+              message: detail,
+              durationMs: 6000,
+            });
             return;
           }
           appendMenuItemMutation({ kind: "upsert", categoryId, item: optimistic });
           setExportWarning(readLocationExportWarning(await tryReadJson(response), t));
+          upsertToast({
+            id: toastId,
+            variant: "success",
+            message: nextActive
+              ? t("global.itemToggleEnabled", { name: itemName })
+              : t("global.itemToggleDisabled", { name: itemName }),
+            durationMs: 3500,
+          });
         } catch {
           patchItem(categoryId, itemId, (i) => ({ ...i, active: currentlyOn }));
-          setRequestError(t("global.errUpdateItemActivationNetwork"));
+          upsertToast({
+            id: toastId,
+            variant: "error",
+            message: t("global.itemToggleFailed", { name: itemName }),
+            durationMs: 6000,
+          });
         }
       });
     },
-    [data, isItemBusy, isSavingEdit, patchItem, t, withItemLock],
+    [data, isItemBusy, isSavingEdit, locale, patchItem, t, upsertToast, withItemLock],
   );
 
   const handleSaveEdit = useCallback(
@@ -621,6 +674,8 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           </div>
         </div>
       ) : null}
+
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
