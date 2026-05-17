@@ -7,9 +7,11 @@ import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { authOptions } from "@/lib/auth-options";
 import {
   getCategoriesWithAuthServer,
+  getLocationMenuItemsWithAuthServer,
   getLocationMenuWithAuthServer,
   getLocationWithAuthServer,
 } from "@/lib/auth-api";
+import type { LocationMenuItemRow } from "@/lib/auth-api";
 import { getServerT } from "@/lib/i18n/server";
 import { mapGlobalMenuResponseToData } from "@/lib/menu/map-global-menu-response";
 
@@ -68,9 +70,10 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const [locResult, menuResult, categoriesResult] = await Promise.all([
+  const [locResult, menuResult, manageResult, categoriesResult] = await Promise.all([
     getLocationWithAuthServer(token, decoded),
     getLocationMenuWithAuthServer(token, decoded),
+    getLocationMenuItemsWithAuthServer(token, decoded),
     getCategoriesWithAuthServer(token),
   ]);
 
@@ -88,6 +91,10 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     initialMenu = mapGlobalMenuResponseToData(menuResult.data);
   }
 
+  const initialManageItems: LocationMenuItemRow[] = manageResult.ok
+    ? manageResult.data.items
+    : [];
+
   const categoriesCatalog: CategoryCatalogEntry[] = categoriesResult.ok
     ? categoriesResult.data.categories.map((c) => ({
         id: c.id,
@@ -102,6 +109,7 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
       <RestaurantDetailClient
         restaurant={restaurant}
         initialMenu={initialMenu}
+        initialManageItems={initialManageItems}
         enabledCategoryIds={enabledCategoryIds}
         categoriesCatalog={categoriesCatalog}
       />

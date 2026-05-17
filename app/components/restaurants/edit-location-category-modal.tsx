@@ -31,8 +31,10 @@ type EditLocationCategoryModalProps = {
   currency: string;
   /** Catalog items belonging to the edited category (already filtered by parent). */
   catalogItems: GlobalMenuItemApi[];
-  /** Map of menu item id -> current per-location price for the items already published in this category. */
+  /** Map of menu item id -> current per-location price for enabled items in this category. */
   initiallyEnabledByItemId: Record<string, string>;
+  /** All published rows at this location in the category (including disabled), for price + checked state. */
+  publishedByItemId?: Record<string, { price: string; enabled: boolean }>;
   /** True while the catalog is being fetched on first open. */
   catalogLoading: boolean;
   /** Non-null when catalog fetch failed. */
@@ -59,6 +61,7 @@ export function EditLocationCategoryModal({
   currency,
   catalogItems,
   initiallyEnabledByItemId,
+  publishedByItemId,
   catalogLoading,
   catalogError,
   saving,
@@ -79,12 +82,24 @@ export function EditLocationCategoryModal({
         .map(([k, v]) => `${k}:${v}`)
         .sort()
         .join(","),
+      Object.entries(publishedByItemId ?? {})
+        .map(([k, v]) => `${k}:${v.enabled}:${v.price}`)
+        .sort()
+        .join(","),
     ].join("|");
-  }, [open, categoryId, catalogItems, initiallyEnabledByItemId]);
+  }, [open, categoryId, catalogItems, initiallyEnabledByItemId, publishedByItemId]);
 
   const buildInitialRows = useCallback((): Record<string, RowState> => {
     const next: Record<string, RowState> = {};
     for (const item of catalogItems) {
+      const published = publishedByItemId?.[item.id];
+      if (published) {
+        next[item.id] = {
+          checked: published.enabled,
+          price: published.price,
+        };
+        continue;
+      }
       const existing = initiallyEnabledByItemId[item.id];
       if (typeof existing === "string") {
         next[item.id] = { checked: true, price: existing };
@@ -97,7 +112,7 @@ export function EditLocationCategoryModal({
       };
     }
     return next;
-  }, [catalogItems, currency, initiallyEnabledByItemId]);
+  }, [catalogItems, currency, initiallyEnabledByItemId, publishedByItemId]);
 
   const [rowsKey, setRowsKey] = useState<string>(initialRowsKey);
   const [rows, setRows] = useState<Record<string, RowState>>(() =>

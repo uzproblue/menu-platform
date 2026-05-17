@@ -7,6 +7,7 @@ import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import type {
   GlobalMenuItemApi,
   GlobalMenuResponse,
+  LocationMenuItemRow,
 } from "@/lib/auth-api";
 import type {
   GlobalMenuData,
@@ -36,6 +37,7 @@ export type CategoryCatalogEntry = {
 type RestaurantDetailClientProps = {
   restaurant: RestaurantDisplayInfo;
   initialMenu: GlobalMenuData;
+  initialManageItems: LocationMenuItemRow[];
   enabledCategoryIds: string[];
   categoriesCatalog: CategoryCatalogEntry[];
 };
@@ -78,6 +80,7 @@ function menuPriceToPutString(price: unknown): string | null {
 export function RestaurantDetailClient({
   restaurant,
   initialMenu,
+  initialManageItems,
   enabledCategoryIds: initialEnabledCategoryIds,
   categoriesCatalog,
 }: RestaurantDetailClientProps) {
@@ -85,6 +88,11 @@ export function RestaurantDetailClient({
   const [menu, setMenu] = useState<GlobalMenuData>(() =>
     structuredClone(initialMenu),
   );
+  const [manageItems, setManageItems] = useState<LocationMenuItemRow[]>(
+    () => initialManageItems,
+  );
+  const [toggleBusyIds, setToggleBusyIds] = useState<Set<string>>(() => new Set());
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const [enabledCategoryIds, setEnabledCategoryIds] = useState<string[]>(
     () => initialEnabledCategoryIds,
   );
@@ -117,6 +125,14 @@ export function RestaurantDetailClient({
     for (const c of menu.categories) m.set(c.id, c);
     return m;
   }, [menu]);
+
+  const manageByItemId = useMemo(() => {
+    const m = new Map<string, LocationMenuItemRow>();
+    for (const row of manageItems) {
+      m.set(row.menuItemId, row);
+    }
+    return m;
+  }, [manageItems]);
 
   const enabledSections: EnabledSection[] = useMemo(() => {
     const sections: EnabledSection[] = [];
@@ -156,22 +172,142 @@ export function RestaurantDetailClient({
   const canShowAddButton = categoriesCatalog.length > 0;
   const addButtonDisabled = availableToAdd.length === 0;
 
-  const handleToggleActive = useCallback((categoryId: string, itemId: string) => {
-    setMenu((prev) => ({
-      categories: prev.categories.map((c) =>
-        c.id !== categoryId
-          ? c
-          : {
-              ...c,
-              items: c.items.map((i) => {
-                if (i.id !== itemId) return i;
-                const on = i.active !== false;
-                return { ...i, active: !on };
-              }),
+  const handleToggleActive = useCallback(
+    (categoryId: string, itemId: string) => {
+      if (toggleBusyIds.has(itemId)) return;
+      const cat = menu.categories.find((c) => c.id === categoryId);
+      const current = cat?.items.find((i) => i.id === itemId);
+      if (!current) return;
+
+      const currentlyOn = manageByItemId.get(itemId)?.enabled === true;
+      const nextEnabled = !currentlyOn;
+
+      setToggleError(null);
+      setToggleBusyIds((prev) => new Set(prev).add(itemId));
+
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/api/settings/locations/${encodeURIComponent(restaurant.id)}/menu-items/${encodeURIComponent(itemId)}`,
+            {
+              method: "PATCH",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ enabled: nextEnabled }),
             },
-      ),
-    }));
-  }, []);
+          );
+          if (!res.ok) {
+            let detail: string | undefined;
+            try {
+              const body = (await res.json()) as { message?: string; error?: string };
+              const parts = [body?.error, body?.message].filter(
+                (x): x is string => typeof x === "string" && x.trim().length > 0,
+              );
+              if (parts.length) detail = parts.join(" — ");
+            } catch {
+              /* ignore */
+            }
+            setToggleError(
+              detail ?? t("restaurantDetail.editCategoryItemsSaveFailed"),
+            );
+            return;
+          }
+
+          const body = (await res.json()) as {
+            menuItemId: string;
+            enabled: boolean;
+            price: string;
+          };
+
+          setManageItems((prev) => {
+            const idx = prev.findIndex((r) => r.menuItemId === itemId);
+            const row: LocationMenuItemRow = {
+              menuItemId: itemId,
+              categoryId,
+              price: body.price,
+              enabled: body.enabled,
+            };
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = row;
+              return next;
+            }
+            return [...prev, row];
+          });
+
+          setMenu((prev) => {
+            if (!body.enabled) {
+              return {
+                categories: prev.categories.map((c) =>
+                  c.id !== categoryId
+                    ? c
+                    : { ...c, items: c.items.filter((i) => i.id !== itemId) },
+                ),
+              };
+            }
+            const exists = prev.categories.some(
+              (c) => c.id === categoryId && c.items.some((i) => i.id === itemId),
+            );
+            if (exists) return prev;
+            const catalogItem = catalogState.status === "loaded"
+              ? catalogState.data.categories
+                  .find((c) => c.id === categoryId)
+                  ?.items.find((i) => i.id === itemId)
+              : undefined;
+            const item: MenuItem = {
+              id: itemId,
+              name: catalogItem?.name ?? current.name,
+              prices: [
+                {
+                  id: `local-${itemId}`,
+                  price: body.price,
+                  currency: restaurant.currency ?? "",
+                },
+              ],
+            };
+            if (catalogItem?.image) item.image = catalogItem.image;
+            if (catalogItem?.description) item.description = catalogItem.description;
+            const seen = prev.categories.some((c) => c.id === categoryId);
+            if (seen) {
+              return {
+                categories: prev.categories.map((c) =>
+                  c.id !== categoryId ? c : { ...c, items: [...c.items, item] },
+                ),
+              };
+            }
+            return {
+              categories: [
+                ...prev.categories,
+                {
+                  id: categoryId,
+                  name: catalogById.get(categoryId)?.name ?? categoryId,
+                  items: [item],
+                },
+              ],
+            };
+          });
+        } catch {
+          setToggleError(t("restaurantDetail.editCategoryItemsSaveFailed"));
+        } finally {
+          setToggleBusyIds((prev) => {
+            const next = new Set(prev);
+            next.delete(itemId);
+            return next;
+          });
+        }
+      })();
+    },
+    [
+      catalogById,
+      catalogState,
+      manageByItemId,
+      menu.categories,
+      restaurant.currency,
+      restaurant.id,
+      t,
+      toggleBusyIds,
+    ],
+  );
 
   const noopEdit = useCallback((categoryId: string, itemId: string) => {
     void categoryId;
@@ -240,17 +376,51 @@ export function RestaurantDetailClient({
 
   const editingInitiallyEnabled: Record<string, string> = useMemo(() => {
     if (!editingCategoryId) return {};
-    const fromMenu = menuByCategoryId.get(editingCategoryId);
-    if (!fromMenu) return {};
+    const catalogIds =
+      catalogState.status === "loaded"
+        ? new Set(
+            catalogState.data.categories
+              .find((c) => c.id === editingCategoryId)
+              ?.items.map((i) => i.id) ?? [],
+          )
+        : null;
     const out: Record<string, string> = {};
-    for (const item of fromMenu.items) {
-      const normalized = menuPriceToPutString(item.prices[0]?.price);
+    for (const row of manageItems) {
+      const inCategory =
+        row.categoryId === editingCategoryId ||
+        (catalogIds?.has(row.menuItemId) ?? false);
+      if (!inCategory || !row.enabled) continue;
+      const normalized = menuPriceToPutString(row.price);
       if (normalized !== null) {
-        out[item.id] = normalized;
+        out[row.menuItemId] = normalized;
       }
     }
     return out;
-  }, [editingCategoryId, menuByCategoryId]);
+  }, [editingCategoryId, manageItems, catalogState]);
+
+  const editingPublishedByItemId = useMemo(() => {
+    if (!editingCategoryId) return {};
+    const catalogIds =
+      catalogState.status === "loaded"
+        ? new Set(
+            catalogState.data.categories
+              .find((c) => c.id === editingCategoryId)
+              ?.items.map((i) => i.id) ?? [],
+          )
+        : null;
+    const out: Record<string, { price: string; enabled: boolean }> = {};
+    for (const row of manageItems) {
+      const inCategory =
+        row.categoryId === editingCategoryId ||
+        (catalogIds?.has(row.menuItemId) ?? false);
+      if (!inCategory) continue;
+      const normalized = menuPriceToPutString(row.price);
+      if (normalized !== null) {
+        out[row.menuItemId] = { price: normalized, enabled: row.enabled };
+      }
+    }
+    return out;
+  }, [editingCategoryId, manageItems, catalogState]);
 
   const handleSaveCategoryItems = useCallback(
     async (rows: EditLocationCategoryRow[]) => {
@@ -346,6 +516,35 @@ export function RestaurantDetailClient({
                 },
               ];
           return { categories: nextCategories };
+        });
+
+        setManageItems((prev) => {
+          const map = new Map(prev.map((r) => [r.menuItemId, r]));
+          for (const id of delta.remove) {
+            const row = map.get(id);
+            if (row) {
+              map.set(id, { ...row, enabled: false });
+            }
+          }
+          for (const row of delta.update) {
+            const existing = map.get(row.menuItemId);
+            map.set(row.menuItemId, {
+              ...existing,
+              menuItemId: row.menuItemId,
+              categoryId: editingCategoryId,
+              price: row.price,
+              enabled: true,
+            });
+          }
+          for (const row of delta.add) {
+            map.set(row.menuItemId, {
+              menuItemId: row.menuItemId,
+              categoryId: editingCategoryId,
+              price: row.price,
+              enabled: true,
+            });
+          }
+          return Array.from(map.values());
         });
 
         setEditingCategoryId(null);
@@ -553,6 +752,11 @@ export function RestaurantDetailClient({
             </button>
           ) : null}
         </div>
+        {toggleError ? (
+          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+            {toggleError}
+          </p>
+        ) : null}
         {hasEnabledCategories ? (
           enabledSections.map((section) => (
             <GlobalMenuCategorySection
@@ -565,6 +769,7 @@ export function RestaurantDetailClient({
               onEditItem={noopEdit}
               onToggleActive={handleToggleActive}
               onDeleteItem={noopDelete}
+              isItemBusy={(itemId) => toggleBusyIds.has(itemId)}
               hideEditButton
               headerActions={renderEditButton(section.id, section.name)}
               emptyMessage={t("restaurantDetail.emptyCategoryHint")}
@@ -582,6 +787,7 @@ export function RestaurantDetailClient({
         currency={restaurant.currency ?? ""}
         catalogItems={editingCatalogItems}
         initiallyEnabledByItemId={editingInitiallyEnabled}
+        publishedByItemId={editingPublishedByItemId}
         catalogLoading={catalogState.status === "loading"}
         catalogError={
           catalogState.status === "error" ? catalogState.message : null

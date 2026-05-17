@@ -288,9 +288,36 @@ export type PatchLocationMenuItemsInput = {
 export type PatchLocationMenuItemsResponse = {
   locationId: string;
   added: number;
+  reenabled?: number;
   updated: number;
-  removed: number;
+  disabled?: number;
+  /** @deprecated use `disabled` — server soft-disables instead of deleting */
+  removed?: number;
   createdCatalogPrices: number;
+};
+
+export type LocationMenuItemRow = {
+  menuItemId: string;
+  categoryId?: string;
+  price: string;
+  enabled: boolean;
+};
+
+export type LocationMenuItemsResponse = {
+  locationId: string;
+  items: LocationMenuItemRow[];
+};
+
+export type PatchLocationMenuItemEnabledInput = {
+  enabled: boolean;
+  price?: string;
+};
+
+export type PatchLocationMenuItemEnabledResponse = {
+  locationId: string;
+  menuItemId: string;
+  enabled: boolean;
+  price: string;
 };
 
 type ApiErrorResponse = {
@@ -1680,6 +1707,125 @@ export async function getLocationMenuWithAuthServer(
     }
 
     return { ok: true, data: (await res.json()) as GlobalMenuResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function getLocationMenuItemsWithAuthServer(
+  accessToken: string,
+  locationId: string,
+): Promise<
+  | { ok: true; data: LocationMenuItemsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/locations/${encodeURIComponent(locationId)}/menu-items`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+
+    return { ok: true, data: (await res.json()) as LocationMenuItemsResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function patchLocationMenuItemEnabledWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  menuItemId: string,
+  input: PatchLocationMenuItemEnabledInput,
+): Promise<
+  | { ok: true; data: PatchLocationMenuItemEnabledResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/locations/${encodeURIComponent(locationId)}/menu-items/${encodeURIComponent(menuItemId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+
+    return {
+      ok: true,
+      data: (await res.json()) as PatchLocationMenuItemEnabledResponse,
+    };
   } catch {
     return {
       ok: false,
