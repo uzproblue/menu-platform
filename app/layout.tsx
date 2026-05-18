@@ -4,6 +4,10 @@ import { Providers } from "./providers";
 import "./globals.css";
 import { detectRequestLocale } from "@/lib/i18n/detect-locale";
 import { getMessagesForLocale } from "@/lib/i18n/get-messages";
+import {
+  MENU_PUBLIC_BASE_URL_DATA_ATTR,
+  resolveMenuPublicBaseUrl,
+} from "@/lib/location-menu-url.server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,13 +31,19 @@ export default async function RootLayout({
 }>) {
   const locale = await detectRequestLocale();
   const messages = getMessagesForLocale(locale);
+  const menuPublicBaseUrl = resolveMenuPublicBaseUrl();
 
   return (
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body
+        className="min-h-full flex flex-col"
+        {...(menuPublicBaseUrl.length > 0
+          ? { [MENU_PUBLIC_BASE_URL_DATA_ATTR]: menuPublicBaseUrl }
+          : {})}
+      >
         <Providers locale={locale} messages={messages}>
           {children}
         </Providers>

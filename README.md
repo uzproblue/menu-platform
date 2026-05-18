@@ -24,7 +24,13 @@ Optionally set **`NEXTAUTH_URL=https://your-domain.com`** (no trailing slash) as
 
 ## Location menu QR (`MENU_URL`)
 
-Set **`MENU_URL`** (and the same value as **`NEXT_PUBLIC_MENU_URL`** at build, or rely on `next.config.ts` to copy `MENU_URL` into the client bundle) to the **menu-customer** origin with no trailing slash, e.g. `https://menu.example.com`. Location QR codes and copy-link fields encode `{MENU_URL}/{locationId}/menu`. Without it, the app falls back to `window.location.origin` (useful only when the guest menu is served from the same host).
+Set **`MENU_URL`** on the **menu-platform** Worker (Wrangler vars / dashboard) to the **menu-customer** origin with no trailing slash, e.g. `https://menu.example.com`. Each request injects it on `<body data-menu-public-base-url="…">` so QR modals use the guest app URL **without rebuilding** when you only change runtime config.
+
+Location QR codes encode `{MENU_URL}/{locationId}/menu`.
+
+For local `pnpm dev`, set `MENU_URL` or `NEXT_PUBLIC_MENU_URL` in `.env`. For production you can also add the same value to **Workers Builds → build environment** (or `.env.production`) so it is inlined into the client bundle; runtime `MENU_URL` alone is enough for QR after deploy.
+
+If neither build nor runtime `MENU_URL` is set, QR falls back to `window.location.origin` (the platform host).
 
 ## menu-server (API backend)
 
