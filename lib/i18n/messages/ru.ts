@@ -336,6 +336,9 @@ export const ruMessages: Messages = {
     "Пока нет категорий или позиций. Добавьте категории в разделе управления, затем добавьте позиции.",
   "global.description": "Описание",
   "global.price": "Цена",
+  "global.gramm": "Граммовка",
+  "global.grammPlaceholder": "напр. 350 г, 0.5 л",
+  "global.grammOptionalHint": "Необязательно. Показывается в гостевом меню, если указано.",
   "global.currency": "Валюта",
   "global.editFirstCatalogPriceHint":
     "Редактируется первая строка каталога; остальные валюты не меняются, пока нет полного API.",
@@ -449,6 +452,11 @@ export const ruMessages: Messages = {
     "Выберите хотя бы одну позицию или удалите категорию через «Редактировать локацию».",
   "restaurantDetail.editCategoryItemsPriceInvalid":
     "Каждой выбранной позиции нужна корректная цена для локации.",
+  "restaurantDetail.grammUseDefault": "Использовать значение по умолчанию",
+  "restaurantDetail.grammCustom": "Своё значение",
+  "restaurantDetail.grammDefaultHint": "По умолчанию: {value}",
+  "restaurantDetail.grammDefaultEmpty": "По умолчанию: —",
+  "restaurantDetail.grammCustomPlaceholder": "напр. 350 г",
   "restaurantDetail.editCategoryItemsLoadingCatalog": "Загружаем каталог…",
   "restaurantDetail.editCategoryItemsCatalogLoadFailed":
     "Не удалось загрузить общее меню. Повторите попытку.",

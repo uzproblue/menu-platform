@@ -303,13 +303,20 @@ export function GlobalMenuItemRow({
               disabledUi ? "border-red-500/35" : "border-foreground/10"
             }`}
           >
-            {item.prices.length > 0 ? (
-              <p className="text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
-                {formatCatalogPrices(item.prices)}
-              </p>
-            ) : (
-              <span className="text-sm text-foreground/45">—</span>
-            )}
+            <div className="min-w-0">
+              {item.prices.length > 0 ? (
+                <p className="text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
+                  {formatCatalogPrices(item.prices)}
+                </p>
+              ) : (
+                <span className="text-sm text-foreground/45">—</span>
+              )}
+              {(item.resolvedGramm ?? item.gramm)?.trim() ? (
+                <p className="mt-0.5 text-xs text-foreground/55">
+                  {item.resolvedGramm ?? item.gramm}
+                </p>
+              ) : null}
+            </div>
             <ItemActiveToggle
               active={active}
               onToggle={() => onToggleActive(categoryId, item.id)}

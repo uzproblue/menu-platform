@@ -62,7 +62,12 @@ export async function PUT(
     );
   }
 
-  const items: { menuItemId: string; price: string | number }[] = [];
+  const items: {
+    menuItemId: string;
+    price: string | number;
+    grammUseDefault?: boolean;
+    gramm?: string | null;
+  }[] = [];
   const seen = new Set<string>();
 
   for (const el of rawItems) {
@@ -105,7 +110,23 @@ export async function PUT(
       );
     }
 
-    items.push({ menuItemId, price });
+    const item: {
+      menuItemId: string;
+      price: string | number;
+      grammUseDefault?: boolean;
+      gramm?: string | null;
+    } = { menuItemId, price };
+    if (typeof o.grammUseDefault === "boolean") {
+      item.grammUseDefault = o.grammUseDefault;
+    }
+    if (Object.prototype.hasOwnProperty.call(o, "gramm")) {
+      if (typeof o.gramm === "string") {
+        item.gramm = o.gramm.trim() || null;
+      } else if (o.gramm === null) {
+        item.gramm = null;
+      }
+    }
+    items.push(item);
   }
 
   const result = await publishLocationMenuItemsWithAuthServer(token, trimmedId, {
@@ -152,7 +173,17 @@ const PATCH_MAX_PER_ARRAY = 500;
 function parsePatchPriceRows(
   raw: unknown,
   fieldName: string,
-): { ok: true; rows: { menuItemId: string; price: string | number }[] } | { ok: false; message: string } {
+):
+  | {
+      ok: true;
+      rows: {
+        menuItemId: string;
+        price: string | number;
+        grammUseDefault?: boolean;
+        gramm?: string | null;
+      }[];
+    }
+  | { ok: false; message: string } {
   if (raw === undefined) {
     return { ok: true, rows: [] };
   }
@@ -165,7 +196,12 @@ function parsePatchPriceRows(
       message: `at most ${PATCH_MAX_PER_ARRAY} entries in ${fieldName}`,
     };
   }
-  const rows: { menuItemId: string; price: string | number }[] = [];
+  const rows: {
+    menuItemId: string;
+    price: string | number;
+    grammUseDefault?: boolean;
+    gramm?: string | null;
+  }[] = [];
   const seen = new Set<string>();
   for (const el of raw) {
     if (typeof el !== "object" || el === null) {
@@ -193,7 +229,23 @@ function parsePatchPriceRows(
         message: `each ${fieldName} entry.price must be a string or number`,
       };
     }
-    rows.push({ menuItemId, price });
+    const row: {
+      menuItemId: string;
+      price: string | number;
+      grammUseDefault?: boolean;
+      gramm?: string | null;
+    } = { menuItemId, price };
+    if (typeof o.grammUseDefault === "boolean") {
+      row.grammUseDefault = o.grammUseDefault;
+    }
+    if (Object.prototype.hasOwnProperty.call(o, "gramm")) {
+      if (typeof o.gramm === "string") {
+        row.gramm = o.gramm.trim() || null;
+      } else if (o.gramm === null) {
+        row.gramm = null;
+      }
+    }
+    rows.push(row);
   }
   return { ok: true, rows };
 }

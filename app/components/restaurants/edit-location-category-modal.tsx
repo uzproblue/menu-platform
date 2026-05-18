@@ -16,11 +16,22 @@ import { getMatchingCatalogPrices } from "./location-wizard/pricing";
 export type EditLocationCategoryRow = {
   menuItemId: string;
   price: string;
+  grammUseDefault: boolean;
+  gramm?: string;
+};
+
+export type PublishedLocationItemState = {
+  price: string;
+  enabled: boolean;
+  grammUseDefault?: boolean;
+  gramm?: string;
 };
 
 type RowState = {
   checked: boolean;
   price: string;
+  grammUseDefault: boolean;
+  gramm: string;
 };
 
 type EditLocationCategoryModalProps = {
@@ -34,7 +45,7 @@ type EditLocationCategoryModalProps = {
   /** Map of menu item id -> current per-location price for enabled items in this category. */
   initiallyEnabledByItemId: Record<string, string>;
   /** All published rows at this location in the category (including disabled), for price + checked state. */
-  publishedByItemId?: Record<string, { price: string; enabled: boolean }>;
+  publishedByItemId?: Record<string, PublishedLocationItemState>;
   /** True while the catalog is being fetched on first open. */
   catalogLoading: boolean;
   /** Non-null when catalog fetch failed. */
@@ -52,6 +63,16 @@ function isValidPrice(value: string): boolean {
   if (!trimmed.length) return false;
   const num = Number(trimmed.replace(",", "."));
   return Number.isFinite(num) && num >= 0;
+}
+
+function defaultGrammHint(
+  item: GlobalMenuItemApi,
+  t: (key: string, vars?: Record<string, string>) => string,
+): string {
+  const globalGramm = item.gramm?.trim();
+  return globalGramm
+    ? t("restaurantDetail.grammDefaultHint", { value: globalGramm })
+    : t("restaurantDetail.grammDefaultEmpty");
 }
 
 export function EditLocationCategoryModal({
@@ -83,7 +104,10 @@ export function EditLocationCategoryModal({
         .sort()
         .join(","),
       Object.entries(publishedByItemId ?? {})
-        .map(([k, v]) => `${k}:${v.enabled}:${v.price}`)
+        .map(
+          ([k, v]) =>
+            `${k}:${v.enabled}:${v.price}:${v.grammUseDefault ?? true}:${v.gramm ?? ""}`,
+        )
         .sort()
         .join(","),
     ].join("|");
@@ -97,18 +121,27 @@ export function EditLocationCategoryModal({
         next[item.id] = {
           checked: published.enabled,
           price: published.price,
+          grammUseDefault: published.grammUseDefault !== false,
+          gramm: published.gramm ?? "",
         };
         continue;
       }
       const existing = initiallyEnabledByItemId[item.id];
       if (typeof existing === "string") {
-        next[item.id] = { checked: true, price: existing };
+        next[item.id] = {
+          checked: true,
+          price: existing,
+          grammUseDefault: true,
+          gramm: "",
+        };
         continue;
       }
       const matching = getMatchingCatalogPrices(item, currency);
       next[item.id] = {
         checked: false,
         price: matching[0]?.price ?? "",
+        grammUseDefault: true,
+        gramm: "",
       };
     }
     return next;
@@ -168,6 +201,8 @@ export function EditLocationCategoryModal({
       ([menuItemId, r]) => ({
         menuItemId,
         price: r.price.trim(),
+        grammUseDefault: r.grammUseDefault,
+        ...(r.grammUseDefault ? {} : { gramm: r.gramm.trim() || undefined }),
       }),
     );
     onSave(payload);
@@ -184,12 +219,24 @@ export function EditLocationCategoryModal({
           current.price.trim().length > 0
             ? current.price
             : (getMatchingCatalogPrices(item, currency)[0]?.price ?? "");
-        return { ...prev, [itemId]: { checked: true, price: fallback } };
+        return {
+          ...prev,
+          [itemId]: {
+            ...current,
+            checked: true,
+            price: fallback,
+          },
+        };
       }
       const matching = getMatchingCatalogPrices(item, currency);
       return {
         ...prev,
-        [itemId]: { checked: true, price: matching[0]?.price ?? "" },
+        [itemId]: {
+          checked: true,
+          price: matching[0]?.price ?? "",
+          grammUseDefault: true,
+          gramm: "",
+        },
       };
     });
   }
@@ -199,6 +246,22 @@ export function EditLocationCategoryModal({
       const current = prev[itemId];
       if (!current) return prev;
       return { ...prev, [itemId]: { ...current, price: value } };
+    });
+  }
+
+  function setRowGrammUseDefault(itemId: string, useDefault: boolean) {
+    setRows((prev) => {
+      const current = prev[itemId];
+      if (!current) return prev;
+      return { ...prev, [itemId]: { ...current, grammUseDefault: useDefault } };
+    });
+  }
+
+  function setRowGramm(itemId: string, value: string) {
+    setRows((prev) => {
+      const current = prev[itemId];
+      if (!current) return prev;
+      return { ...prev, [itemId]: { ...current, gramm: value } };
     });
   }
 
@@ -245,7 +308,12 @@ export function EditLocationCategoryModal({
           ) : (
             <ul className="grid grid-cols-1 gap-3">
               {catalogItems.map((item) => {
-                const row = rows[item.id] ?? { checked: false, price: "" };
+                const row = rows[item.id] ?? {
+                  checked: false,
+                  price: "",
+                  grammUseDefault: true,
+                  gramm: "",
+                };
                 const showPriceInvalid =
                   row.checked && row.price.trim().length > 0 && !isValidPrice(row.price);
                 return (
@@ -284,6 +352,9 @@ export function EditLocationCategoryModal({
                               {item.description}
                             </span>
                           ) : null}
+                          <span className="mt-1 block text-xs text-foreground/45">
+                            {defaultGrammHint(item, t)}
+                          </span>
                         </span>
                       </label>
                       <div className="flex shrink-0 items-center gap-2">
@@ -302,6 +373,47 @@ export function EditLocationCategoryModal({
                         </span>
                       </div>
                     </div>
+                    {row.checked ? (
+                      <div className="mt-3 space-y-2 border-t border-foreground/8 pt-3 pl-7">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => setRowGrammUseDefault(item.id, true)}
+                            className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                              row.grammUseDefault
+                                ? "border-foreground/25 bg-foreground/10 text-foreground"
+                                : "border-foreground/15 text-foreground/60 hover:bg-foreground/5"
+                            }`}
+                          >
+                            {t("restaurantDetail.grammUseDefault")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => setRowGrammUseDefault(item.id, false)}
+                            className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                              !row.grammUseDefault
+                                ? "border-foreground/25 bg-foreground/10 text-foreground"
+                                : "border-foreground/15 text-foreground/60 hover:bg-foreground/5"
+                            }`}
+                          >
+                            {t("restaurantDetail.grammCustom")}
+                          </button>
+                        </div>
+                        {!row.grammUseDefault ? (
+                          <input
+                            type="text"
+                            maxLength={64}
+                            disabled={saving}
+                            value={row.gramm}
+                            onChange={(e) => setRowGramm(item.id, e.target.value)}
+                            placeholder={t("restaurantDetail.grammCustomPlaceholder")}
+                            className="w-full max-w-xs rounded-lg border border-foreground/15 bg-background/80 px-2.5 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
                     {showPriceInvalid ? (
                       <p className="mt-2 pl-7 text-xs text-rose-700 dark:text-rose-300">
                         {t("restaurantDetail.editCategoryItemsPriceInvalid")}

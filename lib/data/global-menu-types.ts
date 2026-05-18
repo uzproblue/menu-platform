@@ -19,6 +19,12 @@ export type MenuItem = {
   prices: CatalogPriceRow[];
   description?: string;
   tags?: string[];
+  /** Global default portion size (free text, e.g. "350 g"). */
+  gramm?: string;
+  /** Resolved gramm for location detail view (when published). */
+  resolvedGramm?: string;
+  /** Per-location: inherit global gramm vs custom override. */
+  grammUseDefault?: boolean;
   /** Guest-language rows from menu-server; optional on older optimistic snapshots. */
   translations?: TranslationTextApi[];
 };

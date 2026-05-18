@@ -64,11 +64,29 @@ export async function PATCH(
       ? rawPrice.trim()
       : undefined;
 
+  const o = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const patchInput: {
+    enabled: boolean;
+    price?: string;
+    grammUseDefault?: boolean;
+    gramm?: string | null;
+  } = { enabled: rawEnabled, price };
+  if (typeof o.grammUseDefault === "boolean") {
+    patchInput.grammUseDefault = o.grammUseDefault;
+  }
+  if (Object.prototype.hasOwnProperty.call(o, "gramm")) {
+    if (typeof o.gramm === "string") {
+      patchInput.gramm = o.gramm.trim() || null;
+    } else if (o.gramm === null) {
+      patchInput.gramm = null;
+    }
+  }
+
   const result = await patchLocationMenuItemEnabledWithAuthServer(
     token,
     trimmedLocationId,
     trimmedMenuItemId,
-    { enabled: rawEnabled, price },
+    patchInput,
   );
   if (!result.ok) {
     return NextResponse.json(

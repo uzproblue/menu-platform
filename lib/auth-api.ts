@@ -103,6 +103,7 @@ export type GlobalMenuItemApi = {
   tags: string[];
   description?: string;
   image?: string;
+  gramm?: string;
   translations: TranslationTextApi[];
 };
 
@@ -134,6 +135,7 @@ export type CreateMenuItemInput = {
   prices?: CatalogPriceInput[];
   active?: boolean;
   tags?: string[];
+  gramm?: string;
 };
 
 export type CreatedMenuItemApi = {
@@ -145,6 +147,7 @@ export type CreatedMenuItemApi = {
   tags: string[];
   description?: string;
   image?: string;
+  gramm?: string;
   translations: TranslationTextApi[];
 };
 
@@ -160,6 +163,7 @@ export type UpdateMenuItemInput = {
   currency: string;
   /** When set, menu-server moves the item to this category (same restaurant). */
   categoryId?: string;
+  gramm?: string | null;
 };
 
 export type UpdateMenuItemResponse = {
@@ -267,6 +271,8 @@ export type UpdateLocationDetailsResponse = {
 export type PutLocationMenuItemInput = {
   menuItemId: string;
   price: string | number;
+  grammUseDefault?: boolean;
+  gramm?: string | null;
 };
 
 export type PutLocationMenuItemsInput = {
@@ -301,6 +307,10 @@ export type LocationMenuItemRow = {
   categoryId?: string;
   price: string;
   enabled: boolean;
+  grammUseDefault?: boolean;
+  globalGramm?: string;
+  gramm?: string;
+  resolvedGramm?: string;
 };
 
 export type LocationMenuItemsResponse = {
@@ -311,6 +321,8 @@ export type LocationMenuItemsResponse = {
 export type PatchLocationMenuItemEnabledInput = {
   enabled: boolean;
   price?: string;
+  grammUseDefault?: boolean;
+  gramm?: string | null;
 };
 
 export type PatchLocationMenuItemEnabledResponse = {
@@ -318,6 +330,9 @@ export type PatchLocationMenuItemEnabledResponse = {
   menuItemId: string;
   enabled: boolean;
   price: string;
+  grammUseDefault?: boolean;
+  gramm?: string;
+  resolvedGramm?: string;
 };
 
 type ApiErrorResponse = {

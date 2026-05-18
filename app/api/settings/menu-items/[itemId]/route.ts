@@ -63,6 +63,7 @@ export async function PATCH(
     price: string | number;
     currency: string;
     categoryId?: string;
+    gramm?: string | null;
   } = {
     name,
     price,
@@ -83,6 +84,13 @@ export async function PATCH(
     input.image = o.image.trim() || null;
   } else if (o.image === null) {
     input.image = null;
+  }
+  if (Object.prototype.hasOwnProperty.call(o, "gramm")) {
+    if (typeof o.gramm === "string") {
+      input.gramm = o.gramm.trim() || null;
+    } else if (o.gramm === null) {
+      input.gramm = null;
+    }
   }
 
   const result = await updateMenuItemWithAuthServer(token, trimmedItemId, input);

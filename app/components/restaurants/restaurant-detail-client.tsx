@@ -105,6 +105,14 @@ function buildLocationDisplayItem(
   if (catalogItem?.image) item.image = catalogItem.image;
   if (catalogItem?.description) item.description = catalogItem.description;
   if (catalogItem?.tags?.length) item.tags = catalogItem.tags;
+  if (catalogItem?.gramm) item.gramm = catalogItem.gramm;
+  const resolved =
+    row.resolvedGramm ??
+    (row.grammUseDefault !== false
+      ? catalogItem?.gramm
+      : row.gramm);
+  if (resolved?.trim()) item.resolvedGramm = resolved.trim();
+  if (row.grammUseDefault !== undefined) item.grammUseDefault = row.grammUseDefault;
   return item;
 }
 
@@ -469,7 +477,10 @@ export function RestaurantDetailClient({
               ?.items.map((i) => i.id) ?? [],
           )
         : null;
-    const out: Record<string, { price: string; enabled: boolean }> = {};
+    const out: Record<
+      string,
+      { price: string; enabled: boolean; grammUseDefault?: boolean; gramm?: string }
+    > = {};
     for (const row of manageItems) {
       const inCategory =
         row.categoryId === editingCategoryId ||
@@ -477,11 +488,28 @@ export function RestaurantDetailClient({
       if (!inCategory) continue;
       const normalized = menuPriceToPutString(row.price);
       if (normalized !== null) {
-        out[row.menuItemId] = { price: normalized, enabled: row.enabled };
+        out[row.menuItemId] = {
+          price: normalized,
+          enabled: row.enabled,
+          grammUseDefault: row.grammUseDefault,
+          gramm: row.gramm,
+        };
       }
     }
     return out;
   }, [editingCategoryId, manageItems, catalogState]);
+
+  const editingPublishedGrammByItemId = useMemo(() => {
+    const out: Record<string, { grammUseDefault: boolean; gramm?: string }> = {};
+    for (const [id, row] of Object.entries(editingPublishedByItemId)) {
+      if (!row.enabled) continue;
+      out[id] = {
+        grammUseDefault: row.grammUseDefault !== false,
+        gramm: row.gramm,
+      };
+    }
+    return out;
+  }, [editingPublishedByItemId]);
 
   const handleSaveCategoryItems = useCallback(
     async (rows: EditLocationCategoryRow[]) => {
@@ -491,6 +519,7 @@ export function RestaurantDetailClient({
       try {
         const delta = computeLocationCategoryItemDelta(
           editingInitiallyEnabled,
+          editingPublishedGrammByItemId,
           rows,
           (price) => menuPriceToPutString(price),
         );
@@ -551,6 +580,8 @@ export function RestaurantDetailClient({
               categoryId: editingCategoryId,
               price: row.price,
               enabled: true,
+              grammUseDefault: row.grammUseDefault,
+              gramm: row.grammUseDefault ? undefined : row.gramm,
             });
           }
           for (const row of delta.add) {
@@ -559,6 +590,8 @@ export function RestaurantDetailClient({
               categoryId: editingCategoryId,
               price: row.price,
               enabled: true,
+              grammUseDefault: row.grammUseDefault,
+              gramm: row.grammUseDefault ? undefined : row.gramm,
             });
           }
           return Array.from(map.values());
@@ -571,7 +604,13 @@ export function RestaurantDetailClient({
         setSaving(false);
       }
     },
-    [editingCategoryId, editingInitiallyEnabled, restaurant.id, t],
+    [
+      editingCategoryId,
+      editingInitiallyEnabled,
+      editingPublishedGrammByItemId,
+      restaurant.id,
+      t,
+    ],
   );
 
   const handleOpenAdd = useCallback(() => {

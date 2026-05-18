@@ -43,6 +43,7 @@ export function NewGlobalMenuItemClient({
   const categoryIdField = useId();
   const nameId = useId();
   const descId = useId();
+  const grammId = useId();
   const imageId = useId();
   const activeId = useId();
 
@@ -54,6 +55,7 @@ export function NewGlobalMenuItemClient({
   });
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [gramm, setGramm] = useState("");
   const [catalogPrices, setCatalogPrices] = useState<CatalogPriceFormRow[]>([
     { price: "", currency: "UZS" },
   ]);
@@ -199,6 +201,7 @@ export function NewGlobalMenuItemClient({
           categoryId,
           name: name.trim(),
           description: description.trim() || undefined,
+          gramm: gramm.trim() || undefined,
           image: imageUrl,
           prices: catalogPrices
             .filter((r) => r.price.trim().length > 0)
@@ -222,6 +225,7 @@ export function NewGlobalMenuItemClient({
               active?: unknown;
               image?: unknown;
               description?: unknown;
+              gramm?: unknown;
               tags?: unknown;
               prices?: unknown;
               translations?: unknown;
@@ -263,6 +267,7 @@ export function NewGlobalMenuItemClient({
             image: typeof created.image === "string" ? created.image : undefined,
             description:
               typeof created.description === "string" ? created.description : undefined,
+            gramm: typeof created.gramm === "string" ? created.gramm : undefined,
             tags,
             prices,
             ...(translations !== undefined ? { translations } : {}),
@@ -404,6 +409,23 @@ export function NewGlobalMenuItemClient({
                   className="w-full resize-y rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
                   placeholder={t("global.shortDescriptionPlaceholder")}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor={grammId} className="text-sm font-medium text-foreground">
+                  {t("global.gramm")}{" "}
+                  <span className="text-foreground/50">{t("newCategory.optionalSuffix")}</span>
+                </label>
+                <input
+                  id={grammId}
+                  value={gramm}
+                  onChange={(e) => setGramm(e.target.value)}
+                  maxLength={64}
+                  disabled={controlsDisabled}
+                  className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
+                  placeholder={t("global.grammPlaceholder")}
+                />
+                <p className="text-xs text-foreground/50">{t("global.grammOptionalHint")}</p>
               </div>
 
               <div className="space-y-3">

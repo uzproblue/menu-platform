@@ -320,6 +320,9 @@ export const uzMessages: Messages = {
     "Hozircha kategoriya yoki element yo'q. Kategoriyalarni boshqarish orqali qo'shing, keyin elementlar qo'shing.",
   "global.description": "Tavsif",
   "global.price": "Narx",
+  "global.gramm": "Gramm",
+  "global.grammPlaceholder": "masalan, 350 g, 0.5 L",
+  "global.grammOptionalHint": "Ixtiyoriy. Belgilansa mehmon menyusida ko'rsatiladi.",
   "global.currency": "Valyuta",
   "global.editFirstCatalogPriceHint":
     "Birinchi katalog narxi tahrirlanadi; boshqa valyutalar to'liq API ulanguncha o'zgarmaydi.",
@@ -429,6 +432,11 @@ export const uzMessages: Messages = {
     "Kamida bitta taomni tanlang yoki «Lokatsiyani tahrirlash» orqali bo'limni o'chirib qo'ying.",
   "restaurantDetail.editCategoryItemsPriceInvalid":
     "Har bir tanlangan taom uchun to'g'ri lokatsiya narxi kerak.",
+  "restaurantDetail.grammUseDefault": "Umumiy qiymatdan foydalanish",
+  "restaurantDetail.grammCustom": "O'z qiymati",
+  "restaurantDetail.grammDefaultHint": "Standart: {value}",
+  "restaurantDetail.grammDefaultEmpty": "Standart: —",
+  "restaurantDetail.grammCustomPlaceholder": "masalan, 350 g",
   "restaurantDetail.editCategoryItemsLoadingCatalog": "Katalog yuklanmoqda…",
   "restaurantDetail.editCategoryItemsCatalogLoadFailed":
     "Umumiy menyuni yuklab bo'lmadi. Qayta urinib ko'ring.",

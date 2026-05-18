@@ -324,6 +324,9 @@ export const enMessages: Messages = {
   "global.emptyMenu": "No categories or items yet. Add categories under Manage categories, then add items.",
   "global.description": "Description",
   "global.price": "Price",
+  "global.gramm": "Portion size",
+  "global.grammPlaceholder": "e.g. 350 g, 0.5 L",
+  "global.grammOptionalHint": "Optional. Shown on the guest menu when set.",
   "global.currency": "Currency",
   "global.editFirstCatalogPriceHint":
     "Edits the first catalog price row. Other currencies stay unchanged until full edit is wired to the API.",
@@ -435,6 +438,11 @@ export const enMessages: Messages = {
     "Select at least one item or use Edit location to remove the category.",
   "restaurantDetail.editCategoryItemsPriceInvalid":
     "Every selected item needs a valid location price.",
+  "restaurantDetail.grammUseDefault": "Use global default",
+  "restaurantDetail.grammCustom": "Custom",
+  "restaurantDetail.grammDefaultHint": "Default: {value}",
+  "restaurantDetail.grammDefaultEmpty": "Default: —",
+  "restaurantDetail.grammCustomPlaceholder": "e.g. 350 g",
   "restaurantDetail.editCategoryItemsLoadingCatalog": "Loading catalog…",
   "restaurantDetail.editCategoryItemsCatalogLoadFailed":
     "Could not load global menu. Try again.",

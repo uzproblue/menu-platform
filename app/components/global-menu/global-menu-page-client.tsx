@@ -343,6 +343,9 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           prices: [newFirst, ...rest],
           translations: previous.translations,
         };
+        const grammVal = payload.gramm.trim();
+        if (grammVal) next.gramm = grammVal;
+        else delete next.gramm;
         const img = imageValue.trim();
         if (img) next.image = img;
         else delete next.image;
@@ -371,6 +374,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
             body: JSON.stringify({
               name: payload.name,
               description: payload.description,
+              gramm: payload.gramm.trim() || null,
               image: resolvedImage || null,
               price: payload.price,
               currency: payload.currency,

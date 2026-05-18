@@ -99,6 +99,9 @@ export async function POST(req: Request) {
   if (Array.isArray(o.tags)) {
     input.tags = o.tags.filter((t): t is string => typeof t === "string");
   }
+  if (typeof o.gramm === "string" && o.gramm.trim()) {
+    input.gramm = o.gramm.trim();
+  }
 
   const result = await createMenuItemWithAuthServer(token, input);
   if (!result.ok) {

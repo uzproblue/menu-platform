@@ -14,6 +14,7 @@ export type MenuItemEditSavePayload = {
   categoryId: string;
   name: string;
   description: string;
+  gramm: string;
   price: string;
   currency: string;
   /** Trimmed URL/path, or empty string to remove image */
@@ -46,6 +47,7 @@ export function EditMenuItemModal({
   const categoryIdField = useId();
   const nameId = useId();
   const descId = useId();
+  const grammId = useId();
   const priceId = useId();
   const currencyId = useId();
   const imageId = useId();
@@ -53,6 +55,7 @@ export function EditMenuItemModal({
   const [categoryId, setCategoryId] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [gramm, setGramm] = useState("");
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("UZS");
   const [image, setImage] = useState("");
@@ -70,6 +73,7 @@ export function EditMenuItemModal({
     );
     setName(item.name);
     setDescription(item.description ?? "");
+    setGramm(item.gramm ?? "");
     const p0 = item.prices[0];
     setPrice(p0?.price ?? "");
     setCurrency(p0?.currency ?? "UZS");
@@ -82,6 +86,7 @@ export function EditMenuItemModal({
     item?.id,
     item?.name,
     item?.description,
+    item?.gramm,
     item?.image,
     item?.prices,
     initialCategoryId,
@@ -157,6 +162,7 @@ export function EditMenuItemModal({
       categoryId,
       name: name.trim(),
       description: description.trim(),
+      gramm: gramm.trim(),
       price: price.trim(),
       currency: currency.trim().toUpperCase() || "UZS",
       image: image.trim(),
@@ -242,6 +248,23 @@ export function EditMenuItemModal({
                 className="w-full resize-y rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
                 placeholder={t("global.shortDescriptionPlaceholder")}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor={grammId} className="text-sm font-medium text-foreground">
+                {t("global.gramm")}{" "}
+                <span className="text-foreground/50">{t("newCategory.optionalSuffix")}</span>
+              </label>
+              <input
+                id={grammId}
+                value={gramm}
+                onChange={(e) => setGramm(e.target.value)}
+                maxLength={64}
+                disabled={saving}
+                className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+                placeholder={t("global.grammPlaceholder")}
+              />
+              <p className="text-xs text-foreground/50">{t("global.grammOptionalHint")}</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
