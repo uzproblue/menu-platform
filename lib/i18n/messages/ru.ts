@@ -457,6 +457,15 @@ export const ruMessages: Messages = {
   "restaurantDetail.grammDefaultHint": "По умолчанию: {value}",
   "restaurantDetail.grammDefaultEmpty": "По умолчанию: —",
   "restaurantDetail.grammCustomPlaceholder": "напр. 350 г",
+  "restaurantDetail.imageSectionLabel": "Изображение",
+  "restaurantDetail.imageUseDefault": "Использовать из общего меню",
+  "restaurantDetail.imageCustom": "Своё",
+  "restaurantDetail.imageDefaultHasGlobal": "В общем меню для этой позиции есть изображение.",
+  "restaurantDetail.imageDefaultEmpty": "В общем меню нет изображения для этой позиции.",
+  "restaurantDetail.imageUrlPlaceholder": "/menu/photo.jpg или https://...",
+  "restaurantDetail.imageUploadFromDevice": "Загрузить с устройства",
+  "restaurantDetail.imageUploadHint":
+    "Загрузка сохраняется сразу; нажмите «Сохранить», чтобы применить изображение для этой локации.",
   "restaurantDetail.editCategoryItemsLoadingCatalog": "Загружаем каталог…",
   "restaurantDetail.editCategoryItemsCatalogLoadFailed":
     "Не удалось загрузить общее меню. Повторите попытку.",

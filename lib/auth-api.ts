@@ -273,6 +273,8 @@ export type PutLocationMenuItemInput = {
   price: string | number;
   grammUseDefault?: boolean;
   gramm?: string | null;
+  imageUseDefault?: boolean;
+  image?: string | null;
 };
 
 export type PutLocationMenuItemsInput = {
@@ -311,6 +313,10 @@ export type LocationMenuItemRow = {
   globalGramm?: string;
   gramm?: string;
   resolvedGramm?: string;
+  imageUseDefault?: boolean;
+  globalImage?: string;
+  image?: string;
+  resolvedImage?: string;
 };
 
 export type LocationMenuItemsResponse = {
@@ -323,6 +329,8 @@ export type PatchLocationMenuItemEnabledInput = {
   price?: string;
   grammUseDefault?: boolean;
   gramm?: string | null;
+  imageUseDefault?: boolean;
+  image?: string | null;
 };
 
 export type PatchLocationMenuItemEnabledResponse = {

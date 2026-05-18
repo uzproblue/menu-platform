@@ -5,11 +5,14 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
 import type { GlobalMenuItemApi } from "@/lib/auth-api";
 import { ItemThumbnail } from "@/app/components/global-menu/global-menu-item-row";
+import { uploadFileToR2 } from "@/lib/r2-upload-client";
+import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import { useI18n } from "../i18n-provider";
 import { getMatchingCatalogPrices } from "./location-wizard/pricing";
 
@@ -18,6 +21,8 @@ export type EditLocationCategoryRow = {
   price: string;
   grammUseDefault: boolean;
   gramm?: string;
+  imageUseDefault: boolean;
+  image?: string;
 };
 
 export type PublishedLocationItemState = {
@@ -25,6 +30,8 @@ export type PublishedLocationItemState = {
   enabled: boolean;
   grammUseDefault?: boolean;
   gramm?: string;
+  imageUseDefault?: boolean;
+  image?: string;
 };
 
 type RowState = {
@@ -32,6 +39,8 @@ type RowState = {
   price: string;
   grammUseDefault: boolean;
   gramm: string;
+  imageUseDefault: boolean;
+  image: string;
 };
 
 type EditLocationCategoryModalProps = {
@@ -75,6 +84,15 @@ function defaultGrammHint(
     : t("restaurantDetail.grammDefaultEmpty");
 }
 
+function resolveRowThumbnail(
+  item: GlobalMenuItemApi,
+  row: RowState,
+): string | undefined {
+  const src = row.imageUseDefault ? item.image : row.image;
+  const trimmed = src?.trim();
+  return trimmed?.length ? trimmed : undefined;
+}
+
 export function EditLocationCategoryModal({
   open,
   categoryId,
@@ -93,6 +111,13 @@ export function EditLocationCategoryModal({
   const { t } = useI18n();
   const titleId = useId();
   const hintId = useId();
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImageUploadItemId, setPendingImageUploadItemId] = useState<string | null>(
+    null,
+  );
+  const [imageUploadingItemId, setImageUploadingItemId] = useState<string | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const maxMenuImageSizeBytes = getMaxUploadSizeBytes("menu-item");
 
   const initialRowsKey = useMemo(() => {
     if (!open) return "closed";
@@ -106,7 +131,7 @@ export function EditLocationCategoryModal({
       Object.entries(publishedByItemId ?? {})
         .map(
           ([k, v]) =>
-            `${k}:${v.enabled}:${v.price}:${v.grammUseDefault ?? true}:${v.gramm ?? ""}`,
+            `${k}:${v.enabled}:${v.price}:${v.grammUseDefault ?? true}:${v.gramm ?? ""}:${v.imageUseDefault ?? true}:${v.image ?? ""}`,
         )
         .sort()
         .join(","),
@@ -123,6 +148,8 @@ export function EditLocationCategoryModal({
           price: published.price,
           grammUseDefault: published.grammUseDefault !== false,
           gramm: published.gramm ?? "",
+          imageUseDefault: published.imageUseDefault !== false,
+          image: published.image ?? "",
         };
         continue;
       }
@@ -133,6 +160,8 @@ export function EditLocationCategoryModal({
           price: existing,
           grammUseDefault: true,
           gramm: "",
+          imageUseDefault: true,
+          image: "",
         };
         continue;
       }
@@ -142,6 +171,8 @@ export function EditLocationCategoryModal({
         price: matching[0]?.price ?? "",
         grammUseDefault: true,
         gramm: "",
+        imageUseDefault: true,
+        image: "",
       };
     }
     return next;
@@ -203,6 +234,8 @@ export function EditLocationCategoryModal({
         price: r.price.trim(),
         grammUseDefault: r.grammUseDefault,
         ...(r.grammUseDefault ? {} : { gramm: r.gramm.trim() || undefined }),
+        imageUseDefault: r.imageUseDefault,
+        ...(r.imageUseDefault ? {} : { image: r.image.trim() || undefined }),
       }),
     );
     onSave(payload);
@@ -236,6 +269,8 @@ export function EditLocationCategoryModal({
           price: matching[0]?.price ?? "",
           grammUseDefault: true,
           gramm: "",
+          imageUseDefault: true,
+          image: "",
         },
       };
     });
@@ -263,6 +298,60 @@ export function EditLocationCategoryModal({
       if (!current) return prev;
       return { ...prev, [itemId]: { ...current, gramm: value } };
     });
+  }
+
+  function setRowImageUseDefault(itemId: string, useDefault: boolean) {
+    setRows((prev) => {
+      const current = prev[itemId];
+      if (!current) return prev;
+      return { ...prev, [itemId]: { ...current, imageUseDefault: useDefault } };
+    });
+  }
+
+  function setRowImage(itemId: string, value: string) {
+    setRows((prev) => {
+      const current = prev[itemId];
+      if (!current) return prev;
+      return { ...prev, [itemId]: { ...current, image: value } };
+    });
+  }
+
+  function triggerImageUpload(itemId: string) {
+    setPendingImageUploadItemId(itemId);
+    setImageUploadError(null);
+    imageFileInputRef.current?.click();
+  }
+
+  async function handleImageFileSelected(file: File, itemId: string) {
+    if (file.size > maxMenuImageSizeBytes) {
+      setImageUploadError(
+        t("newItem.imageTooLarge", {
+          maxMb: String(Math.round(maxMenuImageSizeBytes / (1024 * 1024))),
+        }),
+      );
+      return;
+    }
+    setImageUploadingItemId(itemId);
+    setImageUploadError(null);
+    try {
+      const url = await uploadFileToR2(file, "menu-item");
+      setRows((prev) => {
+        const current = prev[itemId];
+        if (!current) return prev;
+        return {
+          ...prev,
+          [itemId]: {
+            ...current,
+            imageUseDefault: false,
+            image: url,
+          },
+        };
+      });
+    } catch {
+      setImageUploadError(t("global.imageUploadFailed"));
+    } finally {
+      setImageUploadingItemId(null);
+    }
   }
 
   return (
@@ -293,6 +382,22 @@ export function EditLocationCategoryModal({
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
         >
+          <input
+            ref={imageFileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              const itemId = pendingImageUploadItemId;
+              e.currentTarget.value = "";
+              setPendingImageUploadItemId(null);
+              if (!file || !itemId) return;
+              void handleImageFileSelected(file, itemId);
+            }}
+          />
           {catalogLoading ? (
             <p className="py-8 text-center text-sm text-foreground/55">
               {t("restaurantDetail.editCategoryItemsLoadingCatalog")}
@@ -313,9 +418,13 @@ export function EditLocationCategoryModal({
                   price: "",
                   grammUseDefault: true,
                   gramm: "",
+                  imageUseDefault: true,
+                  image: "",
                 };
+                const thumbnailSrc = resolveRowThumbnail(item, row);
                 const showPriceInvalid =
                   row.checked && row.price.trim().length > 0 && !isValidPrice(row.price);
+                const isImageUploading = imageUploadingItemId === item.id;
                 return (
                   <li
                     key={item.id}
@@ -331,9 +440,9 @@ export function EditLocationCategoryModal({
                           onChange={() => toggleRow(item.id, item)}
                         />
                         <span className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5 ring-1 ring-foreground/5">
-                          {item.image ? (
+                          {thumbnailSrc ? (
                             <ItemThumbnail
-                              src={item.image}
+                              src={thumbnailSrc}
                               alt={item.name}
                               sizes="56px"
                             />
@@ -412,6 +521,67 @@ export function EditLocationCategoryModal({
                             className="w-full max-w-xs rounded-lg border border-foreground/15 bg-background/80 px-2.5 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
                           />
                         ) : null}
+                        <div className="space-y-2 pt-1">
+                          <p className="text-xs font-medium text-foreground/70">
+                            {t("restaurantDetail.imageSectionLabel")}
+                          </p>
+                          <p className="text-xs text-foreground/45">
+                            {item.image?.trim()
+                              ? t("restaurantDetail.imageDefaultHasGlobal")
+                              : t("restaurantDetail.imageDefaultEmpty")}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={saving || isImageUploading}
+                              onClick={() => setRowImageUseDefault(item.id, true)}
+                              className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                row.imageUseDefault
+                                  ? "border-foreground/25 bg-foreground/10 text-foreground"
+                                  : "border-foreground/15 text-foreground/60 hover:bg-foreground/5"
+                              }`}
+                            >
+                              {t("restaurantDetail.imageUseDefault")}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={saving || isImageUploading}
+                              onClick={() => setRowImageUseDefault(item.id, false)}
+                              className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                !row.imageUseDefault
+                                  ? "border-foreground/25 bg-foreground/10 text-foreground"
+                                  : "border-foreground/15 text-foreground/60 hover:bg-foreground/5"
+                              }`}
+                            >
+                              {t("restaurantDetail.imageCustom")}
+                            </button>
+                          </div>
+                          {!row.imageUseDefault ? (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                disabled={saving || isImageUploading}
+                                value={row.image}
+                                onChange={(e) => setRowImage(item.id, e.target.value)}
+                                placeholder={t("restaurantDetail.imageUrlPlaceholder")}
+                                className="w-full rounded-lg border border-foreground/15 bg-background/80 px-2.5 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+                              />
+                              <button
+                                type="button"
+                                disabled={saving || isImageUploading}
+                                onClick={() => triggerImageUpload(item.id)}
+                                className="rounded-lg border border-foreground/15 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                              >
+                                {isImageUploading
+                                  ? t("global.imageUploading")
+                                  : t("restaurantDetail.imageUploadFromDevice")}
+                              </button>
+                              <p className="text-[11px] text-foreground/45">
+                                {t("restaurantDetail.imageUploadHint")}
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     ) : null}
                     {showPriceInvalid ? (
@@ -425,6 +595,9 @@ export function EditLocationCategoryModal({
             </ul>
           )}
 
+          {imageUploadError ? (
+            <p className="mt-3 text-sm text-rose-700 dark:text-rose-300">{imageUploadError}</p>
+          ) : null}
           {validationError || saveError ? (
             <p className="mt-3 text-sm text-rose-700 dark:text-rose-300">
               {saveError ?? validationError}

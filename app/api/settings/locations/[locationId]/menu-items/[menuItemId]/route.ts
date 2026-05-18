@@ -70,6 +70,8 @@ export async function PATCH(
     price?: string;
     grammUseDefault?: boolean;
     gramm?: string | null;
+    imageUseDefault?: boolean;
+    image?: string | null;
   } = { enabled: rawEnabled, price };
   if (typeof o.grammUseDefault === "boolean") {
     patchInput.grammUseDefault = o.grammUseDefault;
@@ -79,6 +81,16 @@ export async function PATCH(
       patchInput.gramm = o.gramm.trim() || null;
     } else if (o.gramm === null) {
       patchInput.gramm = null;
+    }
+  }
+  if (typeof o.imageUseDefault === "boolean") {
+    patchInput.imageUseDefault = o.imageUseDefault;
+  }
+  if (Object.prototype.hasOwnProperty.call(o, "image")) {
+    if (typeof o.image === "string") {
+      patchInput.image = o.image.trim() || null;
+    } else if (o.image === null) {
+      patchInput.image = null;
     }
   }
 

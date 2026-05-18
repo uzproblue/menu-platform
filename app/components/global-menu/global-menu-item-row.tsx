@@ -146,7 +146,8 @@ export function GlobalMenuItemRow({
   locationMenuEnabled,
 }: GlobalMenuItemRowProps) {
   const { t, locale } = useI18n();
-  const hasImage = Boolean(item.image?.trim());
+  const displayImage = (item.resolvedImage ?? item.image)?.trim();
+  const hasImage = Boolean(displayImage);
   const isLocationToggle = locationMenuEnabled !== undefined;
   const active = isLocationToggle ? locationMenuEnabled : isActive(item);
   const disabledUi = !active;
@@ -172,7 +173,7 @@ export function GlobalMenuItemRow({
         <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden bg-foreground/5">
           {hasImage ? (
             <ItemThumbnail
-              src={item.image!}
+              src={displayImage!}
               alt={display.name}
               priority={thumbnailPriority}
             />

@@ -437,6 +437,15 @@ export const uzMessages: Messages = {
   "restaurantDetail.grammDefaultHint": "Standart: {value}",
   "restaurantDetail.grammDefaultEmpty": "Standart: —",
   "restaurantDetail.grammCustomPlaceholder": "masalan, 350 g",
+  "restaurantDetail.imageSectionLabel": "Rasm",
+  "restaurantDetail.imageUseDefault": "Umumiy menyudan foydalanish",
+  "restaurantDetail.imageCustom": "O'z rasmi",
+  "restaurantDetail.imageDefaultHasGlobal": "Umumiy menyuda bu taom uchun rasm bor.",
+  "restaurantDetail.imageDefaultEmpty": "Umumiy menyuda bu taom uchun rasm yo'q.",
+  "restaurantDetail.imageUrlPlaceholder": "/menu/photo.jpg yoki https://...",
+  "restaurantDetail.imageUploadFromDevice": "Qurilmadan yuklash",
+  "restaurantDetail.imageUploadHint":
+    "Yuklash darhol saqlanadi; lokatsiya uchun qo'llash uchun Saqlashni bosing.",
   "restaurantDetail.editCategoryItemsLoadingCatalog": "Katalog yuklanmoqda…",
   "restaurantDetail.editCategoryItemsCatalogLoadFailed":
     "Umumiy menyuni yuklab bo'lmadi. Qayta urinib ko'ring.",

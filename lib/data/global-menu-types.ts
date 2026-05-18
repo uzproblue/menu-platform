@@ -25,6 +25,10 @@ export type MenuItem = {
   resolvedGramm?: string;
   /** Per-location: inherit global gramm vs custom override. */
   grammUseDefault?: boolean;
+  /** Resolved image for location detail view (when published). */
+  resolvedImage?: string;
+  /** Per-location: inherit global image vs custom override. */
+  imageUseDefault?: boolean;
   /** Guest-language rows from menu-server; optional on older optimistic snapshots. */
   translations?: TranslationTextApi[];
 };

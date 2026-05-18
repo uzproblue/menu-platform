@@ -67,6 +67,8 @@ export async function PUT(
     price: string | number;
     grammUseDefault?: boolean;
     gramm?: string | null;
+    imageUseDefault?: boolean;
+    image?: string | null;
   }[] = [];
   const seen = new Set<string>();
 
@@ -115,6 +117,8 @@ export async function PUT(
       price: string | number;
       grammUseDefault?: boolean;
       gramm?: string | null;
+      imageUseDefault?: boolean;
+      image?: string | null;
     } = { menuItemId, price };
     if (typeof o.grammUseDefault === "boolean") {
       item.grammUseDefault = o.grammUseDefault;
@@ -124,6 +128,16 @@ export async function PUT(
         item.gramm = o.gramm.trim() || null;
       } else if (o.gramm === null) {
         item.gramm = null;
+      }
+    }
+    if (typeof o.imageUseDefault === "boolean") {
+      item.imageUseDefault = o.imageUseDefault;
+    }
+    if (Object.prototype.hasOwnProperty.call(o, "image")) {
+      if (typeof o.image === "string") {
+        item.image = o.image.trim() || null;
+      } else if (o.image === null) {
+        item.image = null;
       }
     }
     items.push(item);
@@ -181,6 +195,8 @@ function parsePatchPriceRows(
         price: string | number;
         grammUseDefault?: boolean;
         gramm?: string | null;
+        imageUseDefault?: boolean;
+        image?: string | null;
       }[];
     }
   | { ok: false; message: string } {
@@ -201,6 +217,8 @@ function parsePatchPriceRows(
     price: string | number;
     grammUseDefault?: boolean;
     gramm?: string | null;
+    imageUseDefault?: boolean;
+    image?: string | null;
   }[] = [];
   const seen = new Set<string>();
   for (const el of raw) {
@@ -234,6 +252,8 @@ function parsePatchPriceRows(
       price: string | number;
       grammUseDefault?: boolean;
       gramm?: string | null;
+      imageUseDefault?: boolean;
+      image?: string | null;
     } = { menuItemId, price };
     if (typeof o.grammUseDefault === "boolean") {
       row.grammUseDefault = o.grammUseDefault;
@@ -243,6 +263,16 @@ function parsePatchPriceRows(
         row.gramm = o.gramm.trim() || null;
       } else if (o.gramm === null) {
         row.gramm = null;
+      }
+    }
+    if (typeof o.imageUseDefault === "boolean") {
+      row.imageUseDefault = o.imageUseDefault;
+    }
+    if (Object.prototype.hasOwnProperty.call(o, "image")) {
+      if (typeof o.image === "string") {
+        row.image = o.image.trim() || null;
+      } else if (o.image === null) {
+        row.image = null;
       }
     }
     rows.push(row);

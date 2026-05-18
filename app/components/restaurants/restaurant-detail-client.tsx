@@ -106,13 +106,20 @@ function buildLocationDisplayItem(
   if (catalogItem?.description) item.description = catalogItem.description;
   if (catalogItem?.tags?.length) item.tags = catalogItem.tags;
   if (catalogItem?.gramm) item.gramm = catalogItem.gramm;
-  const resolved =
+  const resolvedGramm =
     row.resolvedGramm ??
     (row.grammUseDefault !== false
       ? catalogItem?.gramm
       : row.gramm);
-  if (resolved?.trim()) item.resolvedGramm = resolved.trim();
+  if (resolvedGramm?.trim()) item.resolvedGramm = resolvedGramm.trim();
   if (row.grammUseDefault !== undefined) item.grammUseDefault = row.grammUseDefault;
+  const resolvedImage =
+    row.resolvedImage ??
+    (row.imageUseDefault !== false
+      ? row.globalImage ?? catalogItem?.image
+      : row.image);
+  if (resolvedImage?.trim()) item.resolvedImage = resolvedImage.trim();
+  if (row.imageUseDefault !== undefined) item.imageUseDefault = row.imageUseDefault;
   return item;
 }
 
@@ -479,7 +486,14 @@ export function RestaurantDetailClient({
         : null;
     const out: Record<
       string,
-      { price: string; enabled: boolean; grammUseDefault?: boolean; gramm?: string }
+      {
+        price: string;
+        enabled: boolean;
+        grammUseDefault?: boolean;
+        gramm?: string;
+        imageUseDefault?: boolean;
+        image?: string;
+      }
     > = {};
     for (const row of manageItems) {
       const inCategory =
@@ -493,6 +507,8 @@ export function RestaurantDetailClient({
           enabled: row.enabled,
           grammUseDefault: row.grammUseDefault,
           gramm: row.gramm,
+          imageUseDefault: row.imageUseDefault,
+          image: row.image,
         };
       }
     }
@@ -511,6 +527,18 @@ export function RestaurantDetailClient({
     return out;
   }, [editingPublishedByItemId]);
 
+  const editingPublishedImageByItemId = useMemo(() => {
+    const out: Record<string, { imageUseDefault: boolean; image?: string }> = {};
+    for (const [id, row] of Object.entries(editingPublishedByItemId)) {
+      if (!row.enabled) continue;
+      out[id] = {
+        imageUseDefault: row.imageUseDefault !== false,
+        image: row.image,
+      };
+    }
+    return out;
+  }, [editingPublishedByItemId]);
+
   const handleSaveCategoryItems = useCallback(
     async (rows: EditLocationCategoryRow[]) => {
       if (!editingCategoryId) return;
@@ -520,6 +548,7 @@ export function RestaurantDetailClient({
         const delta = computeLocationCategoryItemDelta(
           editingInitiallyEnabled,
           editingPublishedGrammByItemId,
+          editingPublishedImageByItemId,
           rows,
           (price) => menuPriceToPutString(price),
         );
@@ -582,6 +611,8 @@ export function RestaurantDetailClient({
               enabled: true,
               grammUseDefault: row.grammUseDefault,
               gramm: row.grammUseDefault ? undefined : row.gramm,
+              imageUseDefault: row.imageUseDefault,
+              image: row.imageUseDefault ? undefined : row.image,
             });
           }
           for (const row of delta.add) {
@@ -592,6 +623,8 @@ export function RestaurantDetailClient({
               enabled: true,
               grammUseDefault: row.grammUseDefault,
               gramm: row.grammUseDefault ? undefined : row.gramm,
+              imageUseDefault: row.imageUseDefault,
+              image: row.imageUseDefault ? undefined : row.image,
             });
           }
           return Array.from(map.values());
@@ -608,6 +641,7 @@ export function RestaurantDetailClient({
       editingCategoryId,
       editingInitiallyEnabled,
       editingPublishedGrammByItemId,
+      editingPublishedImageByItemId,
       restaurant.id,
       t,
     ],

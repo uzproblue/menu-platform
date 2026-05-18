@@ -443,6 +443,15 @@ export const enMessages: Messages = {
   "restaurantDetail.grammDefaultHint": "Default: {value}",
   "restaurantDetail.grammDefaultEmpty": "Default: —",
   "restaurantDetail.grammCustomPlaceholder": "e.g. 350 g",
+  "restaurantDetail.imageSectionLabel": "Image",
+  "restaurantDetail.imageUseDefault": "Use global default",
+  "restaurantDetail.imageCustom": "Custom",
+  "restaurantDetail.imageDefaultHasGlobal": "Global menu has an image for this item.",
+  "restaurantDetail.imageDefaultEmpty": "No global image for this item.",
+  "restaurantDetail.imageUrlPlaceholder": "/menu/photo.jpg or https://...",
+  "restaurantDetail.imageUploadFromDevice": "Upload from device",
+  "restaurantDetail.imageUploadHint":
+    "Upload saves immediately; click Save to apply the image for this location.",
   "restaurantDetail.editCategoryItemsLoadingCatalog": "Loading catalog…",
   "restaurantDetail.editCategoryItemsCatalogLoadFailed":
     "Could not load global menu. Try again.",

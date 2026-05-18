@@ -11,14 +11,24 @@ type PublishedGrammState = {
   gramm?: string;
 };
 
+type PublishedImageState = {
+  imageUseDefault: boolean;
+  image?: string;
+};
+
 function grammStateKey(row: PublishedGrammState): string {
   return `${row.grammUseDefault}:${row.gramm ?? ""}`;
+}
+
+function imageStateKey(row: PublishedImageState): string {
+  return `${row.imageUseDefault}:${row.image ?? ""}`;
 }
 
 /** Diff published location items vs modal selection for one category edit. */
 export function computeLocationCategoryItemDelta(
   initiallyEnabledByItemId: Record<string, string>,
   initialPublishedGrammByItemId: Record<string, PublishedGrammState>,
+  initialPublishedImageByItemId: Record<string, PublishedImageState>,
   rows: EditLocationCategoryRow[],
   normalizePrice: (price: string) => string | null,
 ): LocationCategoryItemDelta {
@@ -40,13 +50,18 @@ export function computeLocationCategoryItemDelta(
     const prevGramm = initialPublishedGrammByItemId[menuItemId] ?? {
       grammUseDefault: true,
     };
+    const prevImage = initialPublishedImageByItemId[menuItemId] ?? {
+      imageUseDefault: true,
+    };
     const priceChanged = wasEnabled && prevPrice !== row.price;
     const grammChanged =
       wasEnabled && grammStateKey(prevGramm) !== grammStateKey(row);
+    const imageChanged =
+      wasEnabled && imageStateKey(prevImage) !== imageStateKey(row);
 
     if (!wasEnabled) {
       add.push(row);
-    } else if (priceChanged || grammChanged) {
+    } else if (priceChanged || grammChanged || imageChanged) {
       update.push(row);
     }
   }
