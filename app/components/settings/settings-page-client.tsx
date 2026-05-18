@@ -316,8 +316,13 @@ export function SettingsPageClient({
           t("settings.chefAddedCode", { code: payload.chefInvite.pinCode }),
         );
       } else if (payload?.temporaryPassword) {
+        const invitedEmail = payload.teammate?.email?.trim();
         setTeammateSaved(
-          t("settings.teammateAddedTempPassword", { password: payload.temporaryPassword }),
+          invitedEmail
+            ? t("settings.teammateAddedEmailed", { email: invitedEmail })
+            : t("settings.teammateAddedTempPassword", {
+                password: payload.temporaryPassword,
+              }),
         );
       } else {
         setTeammateSaved(t("settings.teammateAdded"));

@@ -22,6 +22,10 @@ NextAuth builds redirect URLs from **`NEXTAUTH_URL`** unless **`AUTH_TRUST_HOST`
 
 Optionally set **`NEXTAUTH_URL=https://your-domain.com`** (no trailing slash) as a canonical fallback. Do **not** ship production with `NEXTAUTH_URL` pointing at localhost.
 
+## Location menu QR (`MENU_URL`)
+
+Set **`MENU_URL`** (and the same value as **`NEXT_PUBLIC_MENU_URL`** at build, or rely on `next.config.ts` to copy `MENU_URL` into the client bundle) to the **menu-customer** origin with no trailing slash, e.g. `https://menu.example.com`. Location QR codes and copy-link fields encode `{MENU_URL}/{locationId}/menu`. Without it, the app falls back to `window.location.origin` (useful only when the guest menu is served from the same host).
+
 ## menu-server (API backend)
 
 Server-side code calls **menu-server** via the Cloudflare **`MENU_SERVER` service binding** when running on Workers (see [`wrangler.jsonc`](wrangler.jsonc)). If the binding is missing (for example during plain `next dev`), it falls back to **`AUTH_API_BASE_URL`** over HTTP.

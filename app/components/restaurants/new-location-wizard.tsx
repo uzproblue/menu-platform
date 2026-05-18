@@ -32,6 +32,7 @@ import { WizardStepBasics } from "./location-wizard/wizard-step-basics";
 import { WizardStepCategories } from "./location-wizard/wizard-step-categories";
 import { WizardStepDone } from "./location-wizard/wizard-step-done";
 import { WizardStepMenu } from "./location-wizard/wizard-step-menu";
+import { buildLocationMenuPublicUrl } from "@/lib/location-menu-url";
 import { WizardStepsNav } from "./location-wizard/wizard-steps-nav";
 
 export type { NewLocationWizardProps };
@@ -588,11 +589,9 @@ export function NewLocationWizard({
       setQrDataUrl(null);
       return;
     }
-    if (typeof window !== "undefined") {
-      setPublicMenuUrl(`${window.location.origin}/l/${publishedLocationId}`);
-    }
+    const menuUrl = buildLocationMenuPublicUrl(publishedLocationId);
+    setPublicMenuUrl(menuUrl);
     let cancelled = false;
-    const menuUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/l/${publishedLocationId}`;
     import("qrcode")
       .then((QR) =>
         QR.toDataURL(menuUrl, {

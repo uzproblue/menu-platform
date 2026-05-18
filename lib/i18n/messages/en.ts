@@ -141,6 +141,8 @@ export const enMessages: Messages = {
   "settings.errAddTeammateNetwork": "Network error while adding teammate.",
   "settings.teammateAdded": "Teammate added successfully.",
   "settings.teammateAddedTempPassword": "Teammate added. Temporary password: {password}",
+  "settings.teammateAddedEmailed":
+    "Teammate added. Login details were emailed to {email}.",
   "settings.errRevealTemp": "Unable to reveal temporary password.",
   "settings.errRevealTempNetwork": "Network error while revealing temporary password.",
   "settings.errCopy": "Could not copy password to clipboard.",

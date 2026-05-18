@@ -138,6 +138,8 @@ export const ruMessages: Messages = {
   "settings.teammateAdded": "Сотрудник успешно добавлен.",
   "settings.teammateAddedTempPassword":
     "Сотрудник добавлен. Временный пароль: {password}",
+  "settings.teammateAddedEmailed":
+    "Сотрудник добавлен. Данные для входа отправлены на {email}.",
   "settings.errRevealTemp": "Не удалось показать временный пароль.",
   "settings.errRevealTempNetwork":
     "Ошибка сети при получении временного пароля.",

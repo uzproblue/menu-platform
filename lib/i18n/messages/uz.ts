@@ -135,6 +135,8 @@ export const uzMessages: Messages = {
   "settings.errAddTeammateNetwork": "A'zo qo'shishda tarmoq xatosi.",
   "settings.teammateAdded": "A'zo muvaffaqiyatli qo'shildi.",
   "settings.teammateAddedTempPassword": "A'zo qo'shildi. Vaqtinchalik parol: {password}",
+  "settings.teammateAddedEmailed":
+    "A'zo qo'shildi. Kirish ma'lumotlari {email} manziliga yuborildi.",
   "settings.errRevealTemp": "Vaqtinchalik parolni ko'rsatib bo'lmadi.",
   "settings.errRevealTempNetwork": "Vaqtinchalik parolni olishda tarmoq xatosi.",
   "settings.errCopy": "Parolni nusxalab bo'lmadi.",

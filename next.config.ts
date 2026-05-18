@@ -7,6 +7,11 @@ const resolvedR2PublicBaseUrl =
   process.env.R2_PUBLIC_BASE_URL?.trim() ||
   "";
 
+const resolvedMenuUrl =
+  process.env.NEXT_PUBLIC_MENU_URL?.trim() ||
+  process.env.MENU_URL?.trim() ||
+  "";
+
 if (
   process.env.NODE_ENV === "production" &&
   !resolvedR2PublicBaseUrl
@@ -19,8 +24,15 @@ if (
 }
 
 const nextConfig: NextConfig = {
-  ...(resolvedR2PublicBaseUrl
-    ? { env: { NEXT_PUBLIC_R2_PUBLIC_BASE_URL: resolvedR2PublicBaseUrl } }
+  ...(resolvedR2PublicBaseUrl || resolvedMenuUrl
+    ? {
+        env: {
+          ...(resolvedR2PublicBaseUrl
+            ? { NEXT_PUBLIC_R2_PUBLIC_BASE_URL: resolvedR2PublicBaseUrl }
+            : {}),
+          ...(resolvedMenuUrl ? { NEXT_PUBLIC_MENU_URL: resolvedMenuUrl } : {}),
+        },
+      }
     : {}),
   images: {
     loader: "custom",

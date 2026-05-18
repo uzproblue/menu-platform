@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
+import { buildLocationMenuPublicUrl } from "@/lib/location-menu-url";
 
 export type QrLocationRef = { id: string; name: string };
 
@@ -13,8 +14,13 @@ type QrLocationModalProps = {
 
 export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
   const { t } = useI18n();
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [qrMenuUrl, setQrMenuUrl] = useState("");
+  const qrMenuUrl = buildLocationMenuPublicUrl(location.id);
+  const [qrForLocation, setQrForLocation] = useState<{
+    locationId: string;
+    dataUrl: string | null;
+  }>({ locationId: "", dataUrl: null });
+  const qrDataUrl =
+    qrForLocation.locationId === location.id ? qrForLocation.dataUrl : null;
   const [qrLinkCopied, setQrLinkCopied] = useState(false);
   const [qrCopyFailed, setQrCopyFailed] = useState(false);
 
@@ -27,9 +33,8 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
   }, [onClose]);
 
   useEffect(() => {
-    const menuUrl = `${window.location.origin}/l/${location.id}`;
-    setQrMenuUrl(menuUrl);
-    setQrDataUrl(null);
+    const locationId = location.id;
+    const menuUrl = qrMenuUrl;
     let cancelled = false;
     void import("qrcode")
       .then((QR) =>
@@ -40,15 +45,15 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
         }),
       )
       .then((dataUrl) => {
-        if (!cancelled) setQrDataUrl(dataUrl);
+        if (!cancelled) setQrForLocation({ locationId, dataUrl });
       })
       .catch(() => {
-        if (!cancelled) setQrDataUrl(null);
+        if (!cancelled) setQrForLocation({ locationId, dataUrl: null });
       });
     return () => {
       cancelled = true;
     };
-  }, [location.id]);
+  }, [location.id, qrMenuUrl]);
 
   const downloadQrPng = useCallback(() => {
     if (!qrDataUrl) return;

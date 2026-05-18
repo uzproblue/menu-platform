@@ -14,6 +14,8 @@ declare namespace Cloudflare {
 		R2_BUCKET: string;
 		R2_PUBLIC_BASE_URL: string;
 		NEXT_PUBLIC_R2_PUBLIC_BASE_URL: string;
+		MENU_URL: string;
+		NEXT_PUBLIC_MENU_URL: string;
 		R2_SIGNED_URL_TTL_SECONDS: string;
 		CLOUDFLARE_ZONE_ID: string;
 		CLOUDFLARE_API_TOKEN: string;
@@ -25,7 +27,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "AUTH_SECRET" | "JWT_SECRET" | "AUTH_TRUST_HOST" | "AUTH_API_BASE_URL" | "R2_ACCOUNT_ID" | "R2_ACCESS_KEY_ID" | "R2_SECRET_ACCESS_KEY" | "R2_BUCKET" | "R2_PUBLIC_BASE_URL" | "NEXT_PUBLIC_R2_PUBLIC_BASE_URL" | "R2_SIGNED_URL_TTL_SECONDS" | "CLOUDFLARE_ZONE_ID" | "CLOUDFLARE_API_TOKEN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "AUTH_SECRET" | "JWT_SECRET" | "AUTH_TRUST_HOST" | "AUTH_API_BASE_URL" | "R2_ACCOUNT_ID" | "R2_ACCESS_KEY_ID" | "R2_SECRET_ACCESS_KEY" | "R2_BUCKET" | "R2_PUBLIC_BASE_URL" | "NEXT_PUBLIC_R2_PUBLIC_BASE_URL" | "MENU_URL" | "NEXT_PUBLIC_MENU_URL" | "R2_SIGNED_URL_TTL_SECONDS" | "CLOUDFLARE_ZONE_ID" | "CLOUDFLARE_API_TOKEN">> {}
 }
 
 // Begin runtime types
