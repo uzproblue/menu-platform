@@ -6,6 +6,7 @@ import type { CreatedMenuItemApi, TranslationTextApi } from "@/lib/auth-api";
 import {
   getCategoryDisplayForLocale,
   getMenuItemDisplayForLocale,
+  withMenuItemDisplayTranslationsSynced,
 } from "@/lib/category-locale-display";
 import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
 import { mapGlobalMenuItemApiToMenuItem } from "@/lib/menu/map-global-menu-response";
@@ -330,13 +331,17 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       setRequestError(null);
       setExportWarning(null);
 
+      const textFieldsChanged =
+        previous.name !== payload.name.trim() ||
+        (previous.description?.trim() || "") !== payload.description.trim();
+
       const buildOptimistic = (imageValue: string): MenuItem => {
         const first = previous.prices[0];
         const rest = previous.prices.slice(1);
         const newFirst = first
           ? { ...first, price: payload.price, currency: payload.currency }
           : { id: `local-${itemId}`, price: payload.price, currency: payload.currency };
-        const next: MenuItem = {
+        let next: MenuItem = {
           ...previous,
           name: payload.name,
           description: payload.description,
@@ -349,6 +354,13 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
         const img = imageValue.trim();
         if (img) next.image = img;
         else delete next.image;
+        if (textFieldsChanged) {
+          next = withMenuItemDisplayTranslationsSynced(
+            next,
+            payload.name,
+            payload.description,
+          );
+        }
         return next;
       };
 
@@ -394,6 +406,14 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           const json = await tryReadJson(response);
           setExportWarning(readLocationExportWarning(json, t));
 
+          const apiTextFieldsChanged =
+            json &&
+            typeof json === "object" &&
+            "meta" in json &&
+            typeof (json as { meta?: unknown }).meta === "object" &&
+            (json as { meta: { textFieldsChanged?: unknown } }).meta?.textFieldsChanged ===
+              true;
+
           let itemForMutation = optimistic!;
           let categoryForMutation = payload.categoryId;
           const rawItem =
@@ -408,6 +428,13 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           ) {
             const apiItem = rawItem as CreatedMenuItemApi;
             itemForMutation = mapGlobalMenuItemApiToMenuItem(apiItem);
+            if (apiTextFieldsChanged || textFieldsChanged) {
+              itemForMutation = withMenuItemDisplayTranslationsSynced(
+                itemForMutation,
+                payload.name,
+                payload.description,
+              );
+            }
             if (typeof apiItem.categoryId === "string" && apiItem.categoryId.length > 0) {
               categoryForMutation = apiItem.categoryId;
             }

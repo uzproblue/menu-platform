@@ -1,4 +1,5 @@
 import type { TranslationTextApi } from "@/lib/auth-api";
+import type { MenuItem } from "@/lib/data/global-menu-types";
 import type { Locale } from "@/lib/i18n/types";
 
 const LOCALE_TO_MENU_LANG: Record<Locale, string> = {
@@ -57,3 +58,63 @@ export function getCategoryDisplayForLocale(
 
 /** Same resolution rules as categories; catalog fields are menu item defaults. */
 export const getMenuItemDisplayForLocale = getCategoryDisplayForLocale;
+
+function normalizeCatalogDescription(
+  description: string | null | undefined,
+): string | null {
+  if (description == null || typeof description !== "string") return null;
+  const trimmed = description.trim();
+  return trimmed.length ? trimmed : null;
+}
+
+function syncTranslationRowsForDisplay(
+  translations: TranslationTextApi[] | undefined,
+  name: string,
+  description: string | null,
+): TranslationTextApi[] {
+  const catalogName = name.trim() || name;
+  return (translations ?? []).map((row) => ({
+    ...row,
+    name: catalogName,
+    description,
+  }));
+}
+
+/** Align translation rows with catalog text so locale-based list titles update before Gemini finishes. */
+export function withMenuItemDisplayTranslationsSynced(
+  item: MenuItem,
+  name: string,
+  description: string | null | undefined,
+): MenuItem {
+  const catalogName = name.trim() || name;
+  const catalogDesc = normalizeCatalogDescription(description);
+  return {
+    ...item,
+    name: catalogName,
+    ...(catalogDesc !== null ? { description: catalogDesc } : {}),
+    translations: syncTranslationRowsForDisplay(item.translations, catalogName, catalogDesc),
+  };
+}
+
+export type CategoryDisplaySyncShape = {
+  name: string;
+  description: string | null;
+  coverPhoto?: string | null;
+  translations?: TranslationTextApi[];
+};
+
+/** Same as menu items; for global category cards that use `getCategoryDisplayForLocale`. */
+export function withCategoryDisplayTranslationsSynced<T extends CategoryDisplaySyncShape>(
+  category: T,
+  name: string,
+  description: string | null | undefined,
+): T {
+  const catalogName = name.trim() || name;
+  const catalogDesc = normalizeCatalogDescription(description);
+  return {
+    ...category,
+    name: catalogName,
+    description: catalogDesc,
+    translations: syncTranslationRowsForDisplay(category.translations, catalogName, catalogDesc),
+  };
+}

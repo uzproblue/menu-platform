@@ -4,7 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TranslationTextApi } from "@/lib/auth-api";
-import { getCategoryDisplayForLocale } from "@/lib/category-locale-display";
+import {
+  getCategoryDisplayForLocale,
+  withCategoryDisplayTranslationsSynced,
+} from "@/lib/category-locale-display";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import {
   appendCategoryMutation,
@@ -123,6 +126,14 @@ export function GlobalMenuCategoriesClient() {
   const handleSaveName = useCallback(
     async (payload: { name: string; description?: string; coverPhoto?: string }) => {
       if (!nameModal) return;
+      const previous = categories.find((c) => c.id === nameModal.categoryId);
+      const payloadDescription =
+        typeof payload.description === "string" ? payload.description : "";
+      const textFieldsChanged = previous
+        ? previous.name !== payload.name.trim() ||
+          (previous.description?.trim() || "") !== payloadDescription.trim()
+        : true;
+
       setRequestError(null);
       setExportWarning(null);
       setIsSaving(true);
@@ -152,10 +163,12 @@ export function GlobalMenuCategoriesClient() {
                 itemsCount?: unknown;
                 translations?: unknown;
               };
+              meta?: { textFieldsChanged?: unknown };
             } & Record<string, unknown>)
           | null;
         setExportWarning(readLocationExportWarning(successPayload, t));
         const updated = successPayload?.category;
+        const apiTextFieldsChanged = successPayload?.meta?.textFieldsChanged === true;
         if (
           updated &&
           typeof updated.id === "string" &&
@@ -166,19 +179,27 @@ export function GlobalMenuCategoriesClient() {
           const translations = Array.isArray(updated.translations)
             ? (updated.translations as TranslationTextApi[])
             : undefined;
+          let value: Category = {
+            id: updated.id,
+            name: updated.name,
+            description:
+              typeof updated.description === "string" ? updated.description : null,
+            coverPhoto:
+              typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
+            sortOrder: updated.sortOrder,
+            itemsCount: updated.itemsCount,
+            ...(translations !== undefined ? { translations } : {}),
+          };
+          if (apiTextFieldsChanged || textFieldsChanged) {
+            value = withCategoryDisplayTranslationsSynced(
+              value,
+              payload.name,
+              payloadDescription,
+            );
+          }
           appendCategoryMutation({
             kind: "upsert",
-            value: {
-              id: updated.id,
-              name: updated.name,
-              description:
-                typeof updated.description === "string" ? updated.description : null,
-              coverPhoto:
-                typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
-              sortOrder: updated.sortOrder,
-              itemsCount: updated.itemsCount,
-              ...(translations !== undefined ? { translations } : {}),
-            },
+            value,
           });
         }
 
@@ -192,7 +213,7 @@ export function GlobalMenuCategoriesClient() {
         setIsSaving(false);
       }
     },
-    [loadCategories, nameModal, t],
+    [categories, loadCategories, nameModal, t],
   );
 
   const handleTranslationsSaved = useCallback(
