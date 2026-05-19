@@ -61,6 +61,8 @@ API responses that sync a location now include **`locationExport.purge`** (`urls
 
 **Rapid toggles (enable/disable many items):** By default, location exports run in the background via `ctx.waitUntil` and are **coalesced** (one R2 write per location per burst). The admin UI serializes toggle PATCH requests so Workers are less likely to hit CPU/subrequest limits (Cloudflare Error 1102). Set **`LOCATION_EXPORT_STRICT=true`** only if you need the HTTP response to wait for export completion (not recommended on production Workers).
 
+**Global menu item/category renames:** PATCH returns immediately after the D1 update. Gemini re-translation (when name or description changed) and full-restaurant R2 export run in a **debounced** background pipeline (`schedulePostCatalogChangePipeline`, ~3s). Guest menus update shortly after that pipeline finishes; do not retry saves on 502 from the old synchronous translation path.
+
 ## Getting Started
 
 First, run the development server:

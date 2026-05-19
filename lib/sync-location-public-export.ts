@@ -3,6 +3,8 @@ import {
   getLocationMenuWithAuthServer,
   getLocationsWithAuthServer,
   getLocationWithAuthServer,
+  syncCategoryTranslationsWithAuthServer,
+  syncMenuItemTranslationsWithAuthServer,
 } from "@/lib/auth-api";
 import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
 import { buildLocationPublicExport } from "@/lib/data/location-public-export";
@@ -41,6 +43,35 @@ const locationExportInFlight = new Map<string, Promise<LocationExportResult>>();
 let restaurantBatchInFlight: Promise<SyncAndPurgeAllLocationExportsResult> | null =
   null;
 let restaurantBatchToken: string | null = null;
+
+const RESTAURANT_EXPORT_DEBOUNCE_MS = 3_000;
+
+type PendingCatalogPipeline = {
+  textFieldsChanged: boolean;
+  itemId?: string;
+  categoryId?: string;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+/** Debounced translation + export per access token (absorbs rapid saves/retries). */
+const pendingCatalogPipelines = new Map<string, PendingCatalogPipeline>();
+
+export type PostCatalogChangeOptions = {
+  textFieldsChanged: boolean;
+  itemId?: string;
+  categoryId?: string;
+};
+
+function makeDeferredBatchExportResult(): SyncAndPurgeAllLocationExportsResult {
+  return {
+    ok: true,
+    total: 0,
+    succeeded: 0,
+    failed: 0,
+    failures: [],
+    deferred: true,
+  };
+}
 
 /** Comma-separated origins (no path), same object key appended — e.g. guest `MENU_PUBLIC_BASE_URL` if it differs from `R2_PUBLIC_BASE_URL`. */
 function parseLocationExportPurgeExtraBases(): string[] {
@@ -176,25 +207,74 @@ export async function scheduleOrAwaitLocationPublicExport(
   return exportWork;
 }
 
-export async function scheduleOrAwaitAllRestaurantLocationExports(
+async function runCatalogChangePipeline(
   accessToken: string,
+  options: PostCatalogChangeOptions,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
-  if (isLocationExportStrict()) {
-    return syncAndPurgeAllRestaurantLocationExports(accessToken);
+  if (options.textFieldsChanged) {
+    if (options.itemId) {
+      const syncRes = await syncMenuItemTranslationsWithAuthServer(
+        accessToken,
+        options.itemId,
+      );
+      if (!syncRes.ok) {
+        console.error(
+          "[runCatalogChangePipeline] menu item translation sync failed",
+          options.itemId,
+          syncRes.error,
+          syncRes.message,
+        );
+      }
+    }
+    if (options.categoryId) {
+      const syncRes = await syncCategoryTranslationsWithAuthServer(
+        accessToken,
+        options.categoryId,
+      );
+      if (!syncRes.ok) {
+        console.error(
+          "[runCatalogChangePipeline] category translation sync failed",
+          options.categoryId,
+          syncRes.error,
+          syncRes.message,
+        );
+      }
+    }
   }
 
-  if (restaurantBatchInFlight && restaurantBatchToken === accessToken) {
-    return {
-      ok: true,
-      total: 0,
-      succeeded: 0,
-      failed: 0,
-      failures: [],
-      deferred: true,
-    };
+  const exportResult = await syncAndPurgeAllRestaurantLocationExports(accessToken);
+  if (!exportResult.ok) {
+    console.error(
+      "[runCatalogChangePipeline] restaurant location export batch failed",
+      exportResult.failures,
+    );
   }
+  return exportResult;
+}
 
-  const run = syncAndPurgeAllRestaurantLocationExports(accessToken).finally(() => {
+function mergeCatalogPipelineOptions(
+  current: PostCatalogChangeOptions,
+  next: PostCatalogChangeOptions,
+): PostCatalogChangeOptions {
+  return {
+    textFieldsChanged: current.textFieldsChanged || next.textFieldsChanged,
+    itemId: next.itemId ?? current.itemId,
+    categoryId: next.categoryId ?? current.categoryId,
+  };
+}
+
+function flushDebouncedCatalogPipeline(accessToken: string): void {
+  const pending = pendingCatalogPipelines.get(accessToken);
+  if (!pending) return;
+  pendingCatalogPipelines.delete(accessToken);
+
+  const options: PostCatalogChangeOptions = {
+    textFieldsChanged: pending.textFieldsChanged,
+    itemId: pending.itemId,
+    categoryId: pending.categoryId,
+  };
+
+  const run = runCatalogChangePipeline(accessToken, options).finally(() => {
     restaurantBatchInFlight = null;
     restaurantBatchToken = null;
   });
@@ -205,25 +285,68 @@ export async function scheduleOrAwaitAllRestaurantLocationExports(
     const { ctx } = getCloudflareContext();
     ctx.waitUntil(
       run.catch((err) => {
-        console.error(
-          "[scheduleOrAwaitAllRestaurantLocationExports] background sync failed",
-          err,
-        );
+        console.error("[flushDebouncedCatalogPipeline] background pipeline failed", err);
       }),
     );
-    return {
-      ok: true,
-      total: 0,
-      succeeded: 0,
-      failed: 0,
-      failures: [],
-      deferred: true,
-    };
   } catch {
-    /* `next dev` or non-Workers: no execution context */
+    void run.catch((err) => {
+      console.error("[flushDebouncedCatalogPipeline] pipeline failed", err);
+    });
+  }
+}
+
+/**
+ * After a global catalog write: optionally retranslate (Gemini), then refresh all location R2 snapshots.
+ * Default: debounced + `ctx.waitUntil` so HTTP handlers return quickly.
+ */
+export async function schedulePostCatalogChangePipeline(
+  accessToken: string,
+  options: PostCatalogChangeOptions,
+): Promise<SyncAndPurgeAllLocationExportsResult> {
+  if (isLocationExportStrict()) {
+    return runCatalogChangePipeline(accessToken, options);
   }
 
-  return run;
+  if (restaurantBatchInFlight && restaurantBatchToken === accessToken) {
+    return makeDeferredBatchExportResult();
+  }
+
+  const existing = pendingCatalogPipelines.get(accessToken);
+  if (existing) {
+    clearTimeout(existing.timer);
+    pendingCatalogPipelines.set(accessToken, {
+      ...mergeCatalogPipelineOptions(
+        {
+          textFieldsChanged: existing.textFieldsChanged,
+          itemId: existing.itemId,
+          categoryId: existing.categoryId,
+        },
+        options,
+      ),
+      timer: setTimeout(
+        () => flushDebouncedCatalogPipeline(accessToken),
+        RESTAURANT_EXPORT_DEBOUNCE_MS,
+      ),
+    });
+    return makeDeferredBatchExportResult();
+  }
+
+  pendingCatalogPipelines.set(accessToken, {
+    ...options,
+    timer: setTimeout(
+      () => flushDebouncedCatalogPipeline(accessToken),
+      RESTAURANT_EXPORT_DEBOUNCE_MS,
+    ),
+  });
+  return makeDeferredBatchExportResult();
+}
+
+export async function scheduleOrAwaitAllRestaurantLocationExports(
+  accessToken: string,
+): Promise<SyncAndPurgeAllLocationExportsResult> {
+  return schedulePostCatalogChangePipeline(accessToken, {
+    textFieldsChanged: false,
+  });
 }
 
 /**

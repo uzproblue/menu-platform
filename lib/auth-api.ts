@@ -86,6 +86,11 @@ export type CategoriesResponse = {
 
 export type CategoryResponse = {
   category: Category;
+  meta?: CatalogChangeMeta;
+};
+
+export type SyncCategoryTranslationsResponse = {
+  translations: TranslationTextApi[];
 };
 
 export type CatalogPriceApi = {
@@ -151,8 +156,13 @@ export type CreatedMenuItemApi = {
   translations: TranslationTextApi[];
 };
 
+export type CatalogChangeMeta = {
+  textFieldsChanged: boolean;
+};
+
 export type CreateMenuItemResponse = {
   item: CreatedMenuItemApi;
+  meta?: CatalogChangeMeta;
 };
 
 export type UpdateMenuItemInput = {
@@ -168,6 +178,11 @@ export type UpdateMenuItemInput = {
 
 export type UpdateMenuItemResponse = {
   item: CreatedMenuItemApi;
+  meta?: CatalogChangeMeta;
+};
+
+export type SyncMenuItemTranslationsResponse = {
+  translations: TranslationTextApi[];
 };
 
 export type UpdateMenuItemActivationResponse = {
@@ -1212,6 +1227,61 @@ export async function updateMenuItemWithAuthServer(
   }
 }
 
+export async function syncMenuItemTranslationsWithAuthServer(
+  accessToken: string,
+  itemId: string,
+): Promise<
+  | { ok: true; data: SyncMenuItemTranslationsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/menu-items/${encodeURIComponent(itemId)}/sync-translations`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as SyncMenuItemTranslationsResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
 export async function updateMenuItemTranslationsWithAuthServer(
   accessToken: string,
   itemId: string,
@@ -1418,6 +1488,61 @@ export async function updateCategoryWithAuthServer(
       };
     }
     return { ok: true, data: (await res.json()) as CategoryResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function syncCategoryTranslationsWithAuthServer(
+  accessToken: string,
+  categoryId: string,
+): Promise<
+  | { ok: true; data: SyncCategoryTranslationsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/categories/${encodeURIComponent(categoryId)}/sync-translations`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as SyncCategoryTranslationsResponse };
   } catch {
     return {
       ok: false,
