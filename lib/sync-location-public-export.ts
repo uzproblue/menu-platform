@@ -39,22 +39,23 @@ export type LocationExportResult =
 /** Single-flight export per location within a Worker isolate. */
 const locationExportInFlight = new Map<string, Promise<LocationExportResult>>();
 
-/** Single-flight batch export per access token within a Worker isolate. */
-let restaurantBatchInFlight: Promise<SyncAndPurgeAllLocationExportsResult> | null =
-  null;
-let restaurantBatchToken: string | null = null;
-
 const RESTAURANT_EXPORT_DEBOUNCE_MS = 3_000;
 
 type PendingCatalogPipeline = {
-  textFieldsChanged: boolean;
-  itemId?: string;
-  categoryId?: string;
-  timer: ReturnType<typeof setTimeout>;
+  options: PostCatalogChangeOptions;
+  /** Bumped on each schedule; runner sleeps until generation is stable. */
+  generation: number;
 };
 
 /** Debounced translation + export per access token (absorbs rapid saves/retries). */
 const pendingCatalogPipelines = new Map<string, PendingCatalogPipeline>();
+
+/** One debounce+pipeline runner per token; kept alive via ctx.waitUntil on Workers. */
+const catalogPipelineRunners = new Set<string>();
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export type PostCatalogChangeOptions = {
   textFieldsChanged: boolean;
@@ -263,35 +264,57 @@ function mergeCatalogPipelineOptions(
   };
 }
 
-function flushDebouncedCatalogPipeline(accessToken: string): void {
-  const pending = pendingCatalogPipelines.get(accessToken);
-  if (!pending) return;
-  pendingCatalogPipelines.delete(accessToken);
+/**
+ * Trailing-edge debounce, then translation sync + location export. Loops while saves
+ * arrive during an in-flight pipeline (merged via pendingCatalogPipelines).
+ */
+async function catalogPipelineRunner(accessToken: string): Promise<void> {
+  try {
+    for (;;) {
+      let options: PostCatalogChangeOptions | null = null;
 
-  const options: PostCatalogChangeOptions = {
-    textFieldsChanged: pending.textFieldsChanged,
-    itemId: pending.itemId,
-    categoryId: pending.categoryId,
-  };
+      while (pendingCatalogPipelines.has(accessToken)) {
+        const generation = pendingCatalogPipelines.get(accessToken)!.generation;
+        await sleep(RESTAURANT_EXPORT_DEBOUNCE_MS);
 
-  const run = runCatalogChangePipeline(accessToken, options).finally(() => {
-    restaurantBatchInFlight = null;
-    restaurantBatchToken = null;
-  });
-  restaurantBatchInFlight = run;
-  restaurantBatchToken = accessToken;
+        const state = pendingCatalogPipelines.get(accessToken);
+        if (!state || state.generation !== generation) {
+          continue;
+        }
+
+        options = state.options;
+        pendingCatalogPipelines.delete(accessToken);
+        break;
+      }
+
+      if (!options) return;
+
+      await runCatalogChangePipeline(accessToken, options);
+
+      if (!pendingCatalogPipelines.has(accessToken)) return;
+    }
+  } catch (err) {
+    console.error("[catalogPipelineRunner] pipeline failed", err);
+  } finally {
+    catalogPipelineRunners.delete(accessToken);
+    if (pendingCatalogPipelines.has(accessToken)) {
+      armCatalogPipelineRunner(accessToken);
+    }
+  }
+}
+
+/** Registers the runner under ctx.waitUntil so the debounce delay survives the HTTP response on Workers. */
+function armCatalogPipelineRunner(accessToken: string): void {
+  if (catalogPipelineRunners.has(accessToken)) return;
+  catalogPipelineRunners.add(accessToken);
+
+  const work = catalogPipelineRunner(accessToken);
 
   try {
     const { ctx } = getCloudflareContext();
-    ctx.waitUntil(
-      run.catch((err) => {
-        console.error("[flushDebouncedCatalogPipeline] background pipeline failed", err);
-      }),
-    );
+    ctx.waitUntil(work);
   } catch {
-    void run.catch((err) => {
-      console.error("[flushDebouncedCatalogPipeline] pipeline failed", err);
-    });
+    void work;
   }
 }
 
@@ -307,37 +330,17 @@ export async function schedulePostCatalogChangePipeline(
     return runCatalogChangePipeline(accessToken, options);
   }
 
-  if (restaurantBatchInFlight && restaurantBatchToken === accessToken) {
-    return makeDeferredBatchExportResult();
-  }
-
   const existing = pendingCatalogPipelines.get(accessToken);
-  if (existing) {
-    clearTimeout(existing.timer);
-    pendingCatalogPipelines.set(accessToken, {
-      ...mergeCatalogPipelineOptions(
-        {
-          textFieldsChanged: existing.textFieldsChanged,
-          itemId: existing.itemId,
-          categoryId: existing.categoryId,
-        },
-        options,
-      ),
-      timer: setTimeout(
-        () => flushDebouncedCatalogPipeline(accessToken),
-        RESTAURANT_EXPORT_DEBOUNCE_MS,
-      ),
-    });
-    return makeDeferredBatchExportResult();
-  }
+  const merged = existing
+    ? mergeCatalogPipelineOptions(existing.options, options)
+    : options;
 
   pendingCatalogPipelines.set(accessToken, {
-    ...options,
-    timer: setTimeout(
-      () => flushDebouncedCatalogPipeline(accessToken),
-      RESTAURANT_EXPORT_DEBOUNCE_MS,
-    ),
+    options: merged,
+    generation: (existing?.generation ?? 0) + 1,
   });
+
+  armCatalogPipelineRunner(accessToken);
   return makeDeferredBatchExportResult();
 }
 
