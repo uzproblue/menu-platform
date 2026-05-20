@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { deleteMenuItemWithAuthServer, updateMenuItemWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
+  postCatalogOptionsForMenuItem,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
 
@@ -101,11 +102,10 @@ export async function PATCH(
     );
   }
 
-  const textFieldsChanged = result.data.meta?.textFieldsChanged === true;
-  const exportBatchResult = await schedulePostCatalogChangePipeline(token, {
-    textFieldsChanged,
-    itemId: trimmedItemId,
-  });
+  const exportBatchResult = await schedulePostCatalogChangePipeline(
+    token,
+    postCatalogOptionsForMenuItem(trimmedItemId, result.data.item, result.data.meta),
+  );
   if (!exportBatchResult.ok) {
     console.error(
       "[PATCH menu-item] restaurant location export batch failed",

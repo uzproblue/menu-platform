@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
+  postCatalogOptionsForMenuItem,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
 
@@ -112,11 +113,12 @@ export async function POST(req: Request) {
   }
 
   const itemId = result.data.item.id;
-  const textFieldsChanged = result.data.meta?.textFieldsChanged !== false;
-  const exportBatchResult = await schedulePostCatalogChangePipeline(token, {
-    textFieldsChanged,
-    itemId,
-  });
+  const exportBatchResult = await schedulePostCatalogChangePipeline(
+    token,
+    postCatalogOptionsForMenuItem(itemId, result.data.item, {
+      textFieldsChanged: result.data.meta?.textFieldsChanged !== false,
+    }),
+  );
   if (!exportBatchResult.ok) {
     console.error(
       "[POST menu-items] restaurant location export batch failed",

@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
+  postCatalogOptionsForCategory,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
 
@@ -110,11 +111,10 @@ export async function PATCH(
     );
   }
 
-  const textFieldsChanged = result.data.meta?.textFieldsChanged === true;
-  const exportBatchResult = await schedulePostCatalogChangePipeline(token, {
-    textFieldsChanged,
-    categoryId: trimmedId,
-  });
+  const exportBatchResult = await schedulePostCatalogChangePipeline(
+    token,
+    postCatalogOptionsForCategory(trimmedId, result.data.category, result.data.meta),
+  );
   if (!exportBatchResult.ok) {
     console.error(
       "[PATCH category] restaurant location export batch failed",

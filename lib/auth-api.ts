@@ -92,8 +92,14 @@ export type CategoryResponse = {
   meta?: CatalogChangeMeta;
 };
 
+export type TranslationSyncMeta = {
+  written: number;
+  skippedReason?: "unconfigured" | "ai_failed" | "ai_empty";
+};
+
 export type SyncCategoryTranslationsResponse = {
   translations: TranslationTextApi[];
+  meta?: TranslationSyncMeta;
 };
 
 export type CatalogPriceApi = {
@@ -187,6 +193,7 @@ export type UpdateMenuItemResponse = {
 
 export type SyncMenuItemTranslationsResponse = {
   translations: TranslationTextApi[];
+  meta?: TranslationSyncMeta;
 };
 
 export type UpdateMenuItemActivationResponse = {

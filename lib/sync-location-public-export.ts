@@ -59,9 +59,51 @@ function sleep(ms: number): Promise<void> {
 
 export type PostCatalogChangeOptions = {
   textFieldsChanged: boolean;
+  /** When set, runs POST sync-translations (Gemini). Merged with OR across debounced saves. */
+  syncTranslations?: boolean;
   itemId?: string;
   categoryId?: string;
 };
+
+function shouldSyncItemTranslations(options: PostCatalogChangeOptions): boolean {
+  if (!options.itemId) return false;
+  return options.syncTranslations === true || options.textFieldsChanged === true;
+}
+
+function shouldSyncCategoryTranslations(options: PostCatalogChangeOptions): boolean {
+  if (!options.categoryId) return false;
+  return options.syncTranslations === true || options.textFieldsChanged === true;
+}
+
+/** When name/description changed or the item still has no guest translation rows. */
+export function postCatalogOptionsForMenuItem(
+  itemId: string,
+  item: { translations?: unknown[] },
+  meta?: { textFieldsChanged?: boolean },
+): PostCatalogChangeOptions {
+  const textFieldsChanged = meta?.textFieldsChanged === true;
+  const translationsMissing = (item.translations?.length ?? 0) === 0;
+  return {
+    textFieldsChanged,
+    syncTranslations: textFieldsChanged || translationsMissing,
+    itemId,
+  };
+}
+
+/** When name/description changed or the category still has no guest translation rows. */
+export function postCatalogOptionsForCategory(
+  categoryId: string,
+  category: { translations?: unknown[] },
+  meta?: { textFieldsChanged?: boolean },
+): PostCatalogChangeOptions {
+  const textFieldsChanged = meta?.textFieldsChanged === true;
+  const translationsMissing = (category.translations?.length ?? 0) === 0;
+  return {
+    textFieldsChanged,
+    syncTranslations: textFieldsChanged || translationsMissing,
+    categoryId,
+  };
+}
 
 function makeDeferredBatchExportResult(): SyncAndPurgeAllLocationExportsResult {
   return {
@@ -212,34 +254,48 @@ async function runCatalogChangePipeline(
   accessToken: string,
   options: PostCatalogChangeOptions,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
-  if (options.textFieldsChanged) {
-    if (options.itemId) {
-      const syncRes = await syncMenuItemTranslationsWithAuthServer(
-        accessToken,
+  if (shouldSyncItemTranslations(options)) {
+    const syncRes = await syncMenuItemTranslationsWithAuthServer(
+      accessToken,
+      options.itemId!,
+    );
+    if (!syncRes.ok) {
+      console.error(
+        "[runCatalogChangePipeline] menu item translation sync failed",
+        options.itemId,
+        syncRes.error,
+        syncRes.message,
+      );
+    } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
+      console.error(
+        "[runCatalogChangePipeline] menu item translation sync skipped — set CF_AI_GATEWAY_BASE_URL and CF_AI_GATEWAY_API_KEY on menu-server",
         options.itemId,
       );
-      if (!syncRes.ok) {
-        console.error(
-          "[runCatalogChangePipeline] menu item translation sync failed",
-          options.itemId,
-          syncRes.error,
-          syncRes.message,
-        );
-      }
+    } else if ((syncRes.data.meta?.written ?? syncRes.data.translations.length) === 0) {
+      console.warn(
+        "[runCatalogChangePipeline] menu item translation sync returned no rows",
+        options.itemId,
+        syncRes.data.meta?.skippedReason,
+      );
     }
-    if (options.categoryId) {
-      const syncRes = await syncCategoryTranslationsWithAuthServer(
-        accessToken,
+  }
+  if (shouldSyncCategoryTranslations(options)) {
+    const syncRes = await syncCategoryTranslationsWithAuthServer(
+      accessToken,
+      options.categoryId!,
+    );
+    if (!syncRes.ok) {
+      console.error(
+        "[runCatalogChangePipeline] category translation sync failed",
+        options.categoryId,
+        syncRes.error,
+        syncRes.message,
+      );
+    } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
+      console.error(
+        "[runCatalogChangePipeline] category translation sync skipped — set CF_AI_GATEWAY_BASE_URL and CF_AI_GATEWAY_API_KEY on menu-server",
         options.categoryId,
       );
-      if (!syncRes.ok) {
-        console.error(
-          "[runCatalogChangePipeline] category translation sync failed",
-          options.categoryId,
-          syncRes.error,
-          syncRes.message,
-        );
-      }
     }
   }
 
@@ -259,6 +315,9 @@ function mergeCatalogPipelineOptions(
 ): PostCatalogChangeOptions {
   return {
     textFieldsChanged: current.textFieldsChanged || next.textFieldsChanged,
+    syncTranslations:
+      (current.syncTranslations ?? current.textFieldsChanged) ||
+      (next.syncTranslations ?? next.textFieldsChanged),
     itemId: next.itemId ?? current.itemId,
     categoryId: next.categoryId ?? current.categoryId,
   };
