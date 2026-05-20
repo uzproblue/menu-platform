@@ -303,6 +303,12 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.downloadQr": "Скачать QR",
   "restaurants.newWizard.doneBack": "К ресторанам",
   "restaurants.newWizard.qrUrlHint": "QR-кодирует адрес: {url}",
+  "catalog.viewGrid": "Сетка",
+  "catalog.viewTable": "Таблица",
+  "catalog.viewMode": "Режим отображения",
+  "catalog.category": "Категория",
+  "catalog.section": "Раздел",
+
   "global.title": "Общее меню",
   "global.titleDishes": "Блюда",
   "global.titleBeverages": "Напитки",

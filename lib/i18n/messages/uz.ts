@@ -287,6 +287,12 @@ export const uzMessages: Messages = {
   "restaurants.newWizard.downloadQr": "QR ni yuklab olish",
   "restaurants.newWizard.doneBack": "Restoranlarga qaytish",
   "restaurants.newWizard.qrUrlHint": "QR manzilni kodlaydi: {url}",
+  "catalog.viewGrid": "Panjara",
+  "catalog.viewTable": "Jadval",
+  "catalog.viewMode": "Ko‘rinish rejimi",
+  "catalog.category": "Kategoriya",
+  "catalog.section": "Bo‘lim",
+
   "global.title": "Umumiy menyu",
   "global.titleDishes": "Taomlar",
   "global.titleBeverages": "Ichimliklar",

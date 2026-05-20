@@ -32,6 +32,13 @@ import {
   type MenuItemEditSavePayload,
 } from "./edit-menu-item-modal";
 import { GlobalMenuCategorySection } from "./global-menu-category-section";
+import { GlobalMenuItemsTable } from "./catalog-view/global-menu-items-table";
+import type { GlobalMenuItemTableRowData } from "./catalog-view/global-menu-item-table-row";
+import {
+  GLOBAL_MENU_VIEW_STORAGE_KEY,
+} from "./catalog-view/menu-catalog-view-mode";
+import { MenuCatalogViewToggle } from "./catalog-view/menu-catalog-view-toggle";
+import { useMenuCatalogView } from "./catalog-view/use-menu-catalog-view";
 import { GuestTranslationsBatchModal } from "./guest-translations-batch-modal";
 import {
   ToastStack,
@@ -111,6 +118,7 @@ export function GlobalMenuPageClient({
   loadError,
 }: GlobalMenuPageClientProps) {
   const { t, locale } = useI18n();
+  const [viewMode, setViewMode] = useMenuCatalogView(GLOBAL_MENU_VIEW_STORAGE_KEY);
   const enqueueToggle = useSerializedAsyncQueue();
   const { data, setData } = usePersistedGlobalMenu(initialData, { persistDraft: false });
   const [editor, setEditor] = useState<{
@@ -173,6 +181,24 @@ export function GlobalMenuPageClient({
   const visibleCategories = useMemo(
     () => data.categories.filter((c) => categoryMatchesSection(c, menuSection)),
     [data.categories, menuSection],
+  );
+
+  const flatItemRows: GlobalMenuItemTableRowData[] = useMemo(
+    () =>
+      visibleCategories.flatMap((cat) => {
+        const { name: categoryName } = getCategoryDisplayForLocale(
+          cat.name,
+          cat.description,
+          cat.translations,
+          locale,
+        );
+        return cat.items.map((item) => ({
+          item,
+          categoryId: cat.id,
+          categoryName,
+        }));
+      }),
+    [visibleCategories, locale],
   );
 
   const categoryOptions: MenuItemCategoryOption[] = useMemo(
@@ -629,6 +655,7 @@ export function GlobalMenuPageClient({
           <p className="mt-2 text-sm text-foreground/60">{pageSubtitle}</p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end sm:pt-0.5">
+          <MenuCatalogViewToggle value={viewMode} onChange={setViewMode} />
           <Link
             href="/global-menu/categories/dishes"
             className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-xl border border-foreground/15 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/5 transition-colors hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
@@ -641,21 +668,40 @@ export function GlobalMenuPageClient({
 
       <div className="space-y-5">
         {emptyState}
-        {visibleCategories.map((category) => (
-          <GlobalMenuCategorySection
-            key={category.id}
-            category={category}
-            onEditItem={(categoryId, itemId) => {
-              if (isSavingEdit) return;
-              setEditor({ categoryId, itemId });
-            }}
-            onEditItemTranslations={handleOpenItemTranslations}
-            onToggleActive={handleToggleActive}
-            onDeleteItem={handleRequestDelete}
-            isItemBusy={isItemBusy}
-            showAddItemButton
-          />
-        ))}
+        {viewMode === "grid"
+          ? visibleCategories.map((category) => (
+              <GlobalMenuCategorySection
+                key={category.id}
+                category={category}
+                onEditItem={(categoryId, itemId) => {
+                  if (isSavingEdit) return;
+                  setEditor({ categoryId, itemId });
+                }}
+                onEditItemTranslations={handleOpenItemTranslations}
+                onToggleActive={handleToggleActive}
+                onDeleteItem={handleRequestDelete}
+                isItemBusy={isItemBusy}
+                showAddItemButton
+              />
+            ))
+          : flatItemRows.length > 0 ? (
+              <GlobalMenuItemsTable
+                rows={flatItemRows}
+                locale={locale}
+                isItemBusy={(_categoryId, itemId) => isItemBusy(itemId)}
+                onEditItem={(categoryId, itemId) => {
+                  if (isSavingEdit) return;
+                  setEditor({ categoryId, itemId });
+                }}
+                onEditItemTranslations={handleOpenItemTranslations}
+                onToggleActive={handleToggleActive}
+                onDeleteItem={handleRequestDelete}
+              />
+            ) : loadError == null && visibleCategories.length > 0 ? (
+              <div className="rounded-2xl border border-foreground/10 bg-background/40 px-5 py-12 text-center text-sm text-foreground/70">
+                {t("global.emptyMenu")}
+              </div>
+            ) : null}
       </div>
 
       {editor ? (

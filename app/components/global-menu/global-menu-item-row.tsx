@@ -4,6 +4,7 @@ import type { MenuItem } from "@/lib/data/global-menu-types";
 import { getMenuItemDisplayForLocale } from "@/lib/category-locale-display";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { useI18n } from "../i18n-provider";
+import { GlobalMenuItemRowActions } from "./global-menu-item-row-actions";
 
 export function ItemThumbnail({
   src,
@@ -33,7 +34,7 @@ export function ItemThumbnail({
   );
 }
 
-function ItemActiveToggle({
+export function ItemActiveToggle({
   active,
   onToggle,
   disabled,
@@ -86,7 +87,7 @@ function ItemActiveToggle({
   );
 }
 
-function formatCatalogPrices(prices: MenuItem["prices"]): string {
+export function formatCatalogPrices(prices: MenuItem["prices"]): string {
   if (!prices.length) return "";
   return prices.map((p) => `${p.price} ${p.currency}`).join(" · ");
 }
@@ -212,69 +213,17 @@ export function GlobalMenuItemRow({
           </div>
 
           {hideEditButton ? null : (
-            <div className="absolute right-2 top-2 z-10 flex items-center gap-2 sm:right-3 sm:top-3">
-              {onEditTranslations ? (
-                <button
-                  type="button"
-                  onClick={() => onEditTranslations(categoryId, item.id)}
-                  disabled={isBusy}
-                  className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-foreground/15 bg-background/90 text-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-md transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-55"
-                  aria-label={t("global.editItemTranslationsAria", { name: display.name })}
-                >
-                  <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                    />
-                  </svg>
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => onEdit(categoryId, item.id)}
-                disabled={isBusy}
-                className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-foreground/15 bg-background/90 text-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-md transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-55"
-                aria-label={t("global.editItemAria", { name: display.name })}
-              >
-                <svg
-                  className="size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(categoryId, item.id)}
-                disabled={isBusy}
-                className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-red-400/40 bg-background/90 text-red-700 shadow-md ring-1 ring-red-400/25 backdrop-blur-md transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-55 dark:text-red-300"
-                aria-label={t("global.deleteItemAria", { name: display.name })}
-              >
-                <svg
-                  className="size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
+            <div className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3">
+              <GlobalMenuItemRowActions
+                itemName={display.name}
+                categoryId={categoryId}
+                itemId={item.id}
+                isBusy={isBusy}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onEditTranslations={onEditTranslations}
+                variant="card"
+              />
             </div>
           )}
         </div>

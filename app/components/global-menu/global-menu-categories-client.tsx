@@ -24,6 +24,12 @@ import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
 import { CategoryTranslationsModal } from "./category-translations-modal";
+import { GlobalMenuCategoriesTable } from "./catalog-view/global-menu-categories-table";
+import {
+  MENU_CATEGORIES_VIEW_STORAGE_KEY,
+} from "./catalog-view/menu-catalog-view-mode";
+import { MenuCatalogViewToggle } from "./catalog-view/menu-catalog-view-toggle";
+import { useMenuCatalogView } from "./catalog-view/use-menu-catalog-view";
 
 type Category = CategoryShape;
 
@@ -42,6 +48,7 @@ type GlobalMenuCategoriesClientProps = {
 
 export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategoriesClientProps) {
   const { t, locale } = useI18n();
+  const [viewMode, setViewMode] = useMenuCatalogView(MENU_CATEGORIES_VIEW_STORAGE_KEY);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -344,6 +351,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+          <MenuCatalogViewToggle value={viewMode} onChange={setViewMode} />
           <Link
             href={`/global-menu/categories/new?section=${menuSection}`}
             aria-disabled={isLoading}
@@ -405,6 +413,14 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
           <p className="text-sm font-medium text-foreground">{t("categories.emptyTitle")}</p>
           <p className="max-w-md text-sm text-foreground/60">{t("categories.emptyHelp")}</p>
         </div>
+      ) : viewMode === "table" ? (
+        <GlobalMenuCategoriesTable
+          categories={visibleCategories}
+          locale={locale}
+          onOpenTranslations={setTranslationsModalCategory}
+          onEdit={(categoryId) => setNameModal({ mode: "edit", categoryId })}
+          onDelete={setDeleteTarget}
+        />
       ) : (
         <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {visibleCategories.map((cat, index) => {

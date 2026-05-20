@@ -292,6 +292,12 @@ export const enMessages: Messages = {
   "restaurants.newWizard.doneBack": "Back to restaurants",
   "restaurants.newWizard.qrUrlHint": "QR encodes: {url}",
 
+  "catalog.viewGrid": "Grid",
+  "catalog.viewTable": "Table",
+  "catalog.viewMode": "View mode",
+  "catalog.category": "Category",
+  "catalog.section": "Section",
+
   "global.title": "Global Menu",
   "global.titleDishes": "Dishes",
   "global.titleBeverages": "Beverages",
