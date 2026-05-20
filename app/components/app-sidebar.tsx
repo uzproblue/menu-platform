@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { AppSidebarNav } from "./app-sidebar-nav";
 import { useI18n } from "./i18n-provider";
 
@@ -14,7 +15,9 @@ export function AppSidebar() {
           </p>
         </div>
         <div className="min-h-0 flex-1">
-          <AppSidebarNav />
+          <Suspense fallback={null}>
+            <AppSidebarNav />
+          </Suspense>
         </div>
       </div>
     </aside>

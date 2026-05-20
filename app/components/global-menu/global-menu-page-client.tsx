@@ -630,7 +630,7 @@ export function GlobalMenuPageClient({
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end sm:pt-0.5">
           <Link
-            href="/global-menu/categories"
+            href="/global-menu/categories/dishes"
             className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-xl border border-foreground/15 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/5 transition-colors hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             {t("global.manageCategories")}

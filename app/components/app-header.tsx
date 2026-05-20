@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import { AppLogo } from "./app-logo";
 import { AppSidebarNav } from "./app-sidebar-nav";
 import { LanguageSwitcher } from "./language-switcher";
@@ -122,7 +122,9 @@ export function AppHeader({ email }: AppHeaderProps) {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <AppSidebarNav onNavigate={close} />
+              <Suspense fallback={null}>
+                <AppSidebarNav onNavigate={close} />
+              </Suspense>
             </div>
             {email ? (
               <div className="shrink-0 border-t border-foreground/10 px-4 py-3">

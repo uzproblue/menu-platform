@@ -345,7 +345,7 @@ export function NewGlobalMenuItemClient({
           <div className="mt-5 rounded-xl border border-foreground/15 bg-foreground/5 px-4 py-4 text-sm text-foreground/80">
             <p>{t("newItem.noCategories")}</p>
             <Link
-              href="/global-menu/categories"
+              href="/global-menu/categories/dishes"
               className="mt-2 inline-block font-medium text-foreground underline decoration-foreground/30 underline-offset-2"
             >
               {t("newItem.manageCategoriesLink")}

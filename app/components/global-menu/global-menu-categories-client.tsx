@@ -20,6 +20,7 @@ import {
   consumePendingLocationExportWarning,
   readLocationExportWarning,
 } from "@/lib/location-export-warning";
+import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
 import { CategoryTranslationsModal } from "./category-translations-modal";
@@ -35,7 +36,11 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
   return payload?.message ?? fallback;
 }
 
-export function GlobalMenuCategoriesClient() {
+type GlobalMenuCategoriesClientProps = {
+  menuSection: MenuSection;
+};
+
+export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategoriesClientProps) {
   const { t, locale } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +66,18 @@ export function GlobalMenuCategoriesClient() {
     if (!nameModal || nameModal.mode !== "edit") return null;
     return categories.find((c) => c.id === nameModal.categoryId) ?? null;
   }, [categories, nameModal]);
+
+  const visibleCategories = useMemo(
+    () => categories.filter((c) => c.menuSection === menuSection),
+    [categories, menuSection],
+  );
+
+  const pageTitle =
+    menuSection === "beverages" ? t("categories.titleBeverages") : t("categories.titleDishes");
+  const pageSubtitle =
+    menuSection === "beverages"
+      ? t("categories.subtitleBeverages")
+      : t("categories.subtitleDishes");
 
   const loadCategories = useCallback(async () => {
     setLoadError(null);
@@ -314,13 +331,11 @@ export function GlobalMenuCategoriesClient() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-6">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {t("categories.title")}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{pageTitle}</h1>
           <p className="mt-2 text-sm text-foreground/60">
-            {t("categories.subtitle")}{" "}
+            {pageSubtitle}{" "}
             <Link
-              href="/global-menu"
+              href={menuSection === "beverages" ? "/global-menu/beverages" : "/global-menu/dishes"}
               className="font-medium text-foreground underline-offset-2 hover:underline"
             >
               {t("categories.globalMenuLink")}
@@ -330,7 +345,7 @@ export function GlobalMenuCategoriesClient() {
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           <Link
-            href="/global-menu/categories/new"
+            href={`/global-menu/categories/new?section=${menuSection}`}
             aria-disabled={isLoading}
             className="inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
@@ -385,14 +400,14 @@ export function GlobalMenuCategoriesClient() {
           <p className="text-sm font-medium text-foreground">{t("categories.couldNotLoad")}</p>
           <p className="max-w-md text-sm text-foreground/60">{loadError}</p>
         </div>
-      ) : categories.length === 0 ? (
+      ) : visibleCategories.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
           <p className="text-sm font-medium text-foreground">{t("categories.emptyTitle")}</p>
           <p className="max-w-md text-sm text-foreground/60">{t("categories.emptyHelp")}</p>
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {categories.map((cat, index) => {
+          {visibleCategories.map((cat, index) => {
             const display = getCategoryDisplayForLocale(
               cat.name,
               cat.description,

@@ -361,6 +361,12 @@ export const enMessages: Messages = {
   "global.errSaveItemNetwork": "Network error while saving item changes.",
 
   "categories.title": "Menu categories",
+  "categories.titleDishes": "Dish categories",
+  "categories.titleBeverages": "Beverage categories",
+  "categories.subtitleDishes":
+    "Manage food categories for your catalog. Changes sync with",
+  "categories.subtitleBeverages":
+    "Manage drink categories for your catalog. Changes sync with",
   "categories.menuSection": "Menu section",
   "categories.menuSectionDishes": "Dishes",
   "categories.menuSectionBeverages": "Beverages",

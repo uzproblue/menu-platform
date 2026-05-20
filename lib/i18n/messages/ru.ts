@@ -374,6 +374,12 @@ export const ruMessages: Messages = {
   "global.errSaveItemNetwork":
     "Сетевая ошибка при сохранении изменений позиции.",
   "categories.title": "Категории меню",
+  "categories.titleDishes": "Категории блюд",
+  "categories.titleBeverages": "Категории напитков",
+  "categories.subtitleDishes":
+    "Управление категориями еды в каталоге. Изменения синхронизируются с",
+  "categories.subtitleBeverages":
+    "Управление категориями напитков в каталоге. Изменения синхронизируются с",
   "categories.menuSection": "Раздел меню",
   "categories.menuSectionDishes": "Блюда",
   "categories.menuSectionBeverages": "Напитки",

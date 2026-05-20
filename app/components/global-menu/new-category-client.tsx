@@ -22,7 +22,11 @@ import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 
-export function NewCategoryClient() {
+type NewCategoryClientProps = {
+  initialMenuSection?: MenuSection;
+};
+
+export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategoryClientProps) {
   const { t } = useI18n();
   const router = useRouter();
   const nameId = useId();
@@ -33,7 +37,8 @@ export function NewCategoryClient() {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState("");
-  const [menuSection, setMenuSection] = useState<MenuSection>("dishes");
+  const [menuSection, setMenuSection] = useState<MenuSection>(initialMenuSection);
+  const categoriesListPath = `/global-menu/categories/${menuSection}`;
   const [description, setDescription] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
@@ -135,7 +140,7 @@ export function NewCategoryClient() {
       persistPendingLocationExportWarning(
         readLocationExportWarning(successPayload, t),
       );
-      router.push("/global-menu/categories");
+      router.push(`/global-menu/categories/${menuSection}`);
     } catch {
       setSubmitError(t("newCategory.createFailed"));
     } finally {
@@ -170,7 +175,7 @@ export function NewCategoryClient() {
           {t("nav.menuCategories")}
         </p>
         <Link
-          href="/global-menu/categories"
+          href={categoriesListPath}
           onClick={(e) => {
             if (controlsDisabled) e.preventDefault();
           }}
@@ -339,7 +344,7 @@ export function NewCategoryClient() {
 
             <div className="flex flex-col-reverse gap-2 border-t border-foreground/10 pt-5 sm:flex-row sm:justify-end">
               <Link
-                href="/global-menu/categories"
+                href={categoriesListPath}
                 onClick={(e) => {
                   if (controlsDisabled) e.preventDefault();
                 }}

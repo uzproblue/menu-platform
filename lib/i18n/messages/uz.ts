@@ -357,6 +357,12 @@ export const uzMessages: Messages = {
   "global.errSaveItem": "Element o'zgarishlarini saqlab bo'lmadi.",
   "global.errSaveItemNetwork": "Elementni saqlashda tarmoq xatosi.",
   "categories.title": "Menyu kategoriyalari",
+  "categories.titleDishes": "Taom kategoriyalari",
+  "categories.titleBeverages": "Ichimlik kategoriyalari",
+  "categories.subtitleDishes":
+    "Katalogdagi taom kategoriyalarini boshqaring. O'zgarishlar",
+  "categories.subtitleBeverages":
+    "Katalogdagi ichimlik kategoriyalarini boshqaring. O'zgarishlar",
   "categories.menuSection": "Menyu bo'limi",
   "categories.menuSectionDishes": "Taomlar",
   "categories.menuSectionBeverages": "Ichimliklar",
