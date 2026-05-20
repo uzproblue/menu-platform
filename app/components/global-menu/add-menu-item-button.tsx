@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 
-/** Stub target until create-item flow is backed by API. */
-export function AddMenuItemButton() {
+type AddMenuItemButtonProps = {
+  menuSection: MenuSection;
+};
+
+export function AddMenuItemButton({ menuSection }: AddMenuItemButtonProps) {
   const { t } = useI18n();
   return (
     <Link
-      href="/global-menu/items/new"
+      href={`/global-menu/items/new?section=${menuSection}`}
       className="inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
     >
       <svg

@@ -57,6 +57,10 @@ export async function POST(req: Request) {
     typeof body === "object" && body !== null && "coverPhoto" in body
       ? (body as { coverPhoto?: unknown }).coverPhoto
       : undefined;
+  const rawMenuSection =
+    typeof body === "object" && body !== null && "menuSection" in body
+      ? (body as { menuSection?: unknown }).menuSection
+      : undefined;
   if (typeof rawName !== "string" || !rawName.trim().length) {
     return NextResponse.json(
       { error: "invalid_body", message: "name is required" },
@@ -79,10 +83,16 @@ export async function POST(req: Request) {
   const description = typeof rawDescription === "string" ? rawDescription.trim() : "";
   const coverPhoto = typeof rawCoverPhoto === "string" ? rawCoverPhoto.trim() : "";
 
+  const menuSection =
+    rawMenuSection === "dishes" || rawMenuSection === "beverages"
+      ? rawMenuSection
+      : undefined;
+
   const result = await createCategoryWithAuthServer(token, {
     name: rawName.trim(),
     description: description || undefined,
     coverPhoto: coverPhoto || undefined,
+    menuSection,
   });
   if (!result.ok) {
     return NextResponse.json(

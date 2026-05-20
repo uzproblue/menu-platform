@@ -69,12 +69,15 @@ export type TranslationTextApi = {
   description?: string | null;
 };
 
+export type MenuSection = "dishes" | "beverages";
+
 export type Category = {
   id: string;
   name: string;
   description?: string | null;
   coverPhoto?: string | null;
   sortOrder: number;
+  menuSection: MenuSection;
   itemsCount: number;
   translations: TranslationTextApi[];
 };
@@ -118,6 +121,7 @@ export type GlobalMenuCategoryWithItemsApi = {
   description?: string;
   coverPhoto?: string | null;
   sortOrder: number;
+  menuSection?: MenuSection;
   translations: TranslationTextApi[];
   items: GlobalMenuItemApi[];
 };
@@ -1388,7 +1392,7 @@ export async function deleteMenuItemWithAuthServer(
 
 export async function createCategoryWithAuthServer(
   accessToken: string,
-  input: { name: string; description?: string; coverPhoto?: string },
+  input: { name: string; description?: string; coverPhoto?: string; menuSection?: MenuSection },
 ): Promise<
   | { ok: true; data: CategoryResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1447,6 +1451,7 @@ export async function updateCategoryWithAuthServer(
     description?: string;
     coverPhoto?: string;
     sortOrder?: number;
+    menuSection?: MenuSection;
   },
 ): Promise<
   | { ok: true; data: CategoryResponse }

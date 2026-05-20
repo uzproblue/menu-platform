@@ -1,5 +1,9 @@
 import type { CreatedMenuItemApi, GlobalMenuItemApi, GlobalMenuResponse } from "@/lib/auth-api";
-import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
+import type { GlobalMenuData, MenuItem, MenuSection } from "@/lib/data/global-menu-types";
+
+function normalizeMenuSection(value: string | undefined): MenuSection {
+  return value === "beverages" ? "beverages" : "dishes";
+}
 
 export function mapGlobalMenuItemApiToMenuItem(i: GlobalMenuItemApi | CreatedMenuItemApi): MenuItem {
   const item: MenuItem = {
@@ -27,6 +31,7 @@ export function mapGlobalMenuResponseToData(api: GlobalMenuResponse): GlobalMenu
       name: c.name,
       description: c.description ?? null,
       coverPhoto: c.coverPhoto ?? null,
+      menuSection: normalizeMenuSection(c.menuSection),
       translations: Array.isArray(c.translations) ? c.translations : [],
       items: c.items.map((i): MenuItem => mapGlobalMenuItemApiToMenuItem(i)),
     })),

@@ -55,12 +55,17 @@ export async function PATCH(
     typeof body === "object" && body !== null && "sortOrder" in body
       ? (body as { sortOrder?: unknown }).sortOrder
       : undefined;
+  const rawMenuSection =
+    typeof body === "object" && body !== null && "menuSection" in body
+      ? (body as { menuSection?: unknown }).menuSection
+      : undefined;
 
   const payload: {
     name?: string;
     description?: string;
     coverPhoto?: string;
     sortOrder?: number;
+    menuSection?: "dishes" | "beverages";
   } = {};
   if (typeof rawName === "string" && rawName.trim().length) {
     payload.name = rawName.trim();
@@ -78,16 +83,20 @@ export async function PATCH(
   ) {
     payload.sortOrder = rawSortOrder;
   }
+  if (rawMenuSection === "dishes" || rawMenuSection === "beverages") {
+    payload.menuSection = rawMenuSection;
+  }
   if (
     payload.name === undefined &&
     payload.description === undefined &&
     payload.coverPhoto === undefined &&
-    payload.sortOrder === undefined
+    payload.sortOrder === undefined &&
+    payload.menuSection === undefined
   ) {
     return NextResponse.json(
       {
         error: "invalid_body",
-        message: "name, description, coverPhoto or sortOrder is required",
+        message: "name, description, coverPhoto, menuSection or sortOrder is required",
       },
       { status: 400 },
     );

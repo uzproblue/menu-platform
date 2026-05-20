@@ -24,6 +24,8 @@ export const ruMessages: Messages = {
   "locale.switcherLabel": "Язык",
   "nav.home": "Главная",
   "nav.globalMenu": "Общее меню",
+  "nav.globalMenuDishes": "Блюда",
+  "nav.globalMenuBeverages": "Напитки",
   "nav.menuCategories": "Категории меню",
   "nav.restaurants": "Рестораны",
   "nav.settings": "Настройки",
@@ -302,8 +304,12 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.doneBack": "К ресторанам",
   "restaurants.newWizard.qrUrlHint": "QR-кодирует адрес: {url}",
   "global.title": "Общее меню",
+  "global.titleDishes": "Блюда",
+  "global.titleBeverages": "Напитки",
   "global.subtitle":
     "Позиции меню сгруппированы по категориям и загружаются из данных вашего ресторана.",
+  "global.subtitleDishes": "Категории и позиции еды в каталоге ресторана.",
+  "global.subtitleBeverages": "Категории и позиции напитков в каталоге ресторана.",
   "global.manageCategories": "Управлять категориями",
   "global.addNewItem": "Добавить позицию",
   "global.addNewInCategory": "Добавить в {name}",
@@ -368,6 +374,11 @@ export const ruMessages: Messages = {
   "global.errSaveItemNetwork":
     "Сетевая ошибка при сохранении изменений позиции.",
   "categories.title": "Категории меню",
+  "categories.menuSection": "Раздел меню",
+  "categories.menuSectionDishes": "Блюда",
+  "categories.menuSectionBeverages": "Напитки",
+  "categories.sectionBadgeDishes": "Блюда",
+  "categories.sectionBadgeBeverages": "Напитки",
   "categories.subtitle":
     "Меняйте порядок, переименовывайте, добавляйте и удаляйте категории. Изменения сохраняются в рабочем пространстве ресторана и синхронизируются с",
   "categories.globalMenuLink": "Общим меню",

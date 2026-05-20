@@ -21,6 +21,7 @@ export type CategoryShape = {
   description: string | null;
   coverPhoto: string | null;
   sortOrder: number;
+  menuSection: "dishes" | "beverages";
   itemsCount: number;
   /** Present on reads from menu-server; omitted on older pending upserts in sessionStorage. */
   translations?: TranslationTextApi[];
@@ -94,6 +95,13 @@ function isCategoryShape(value: unknown): value is CategoryShape {
     typeof v.itemsCount !== "number" ||
     (v.description !== null && typeof v.description !== "string") ||
     (v.coverPhoto !== null && typeof v.coverPhoto !== "string")
+  ) {
+    return false;
+  }
+  if (
+    v.menuSection !== undefined &&
+    v.menuSection !== "dishes" &&
+    v.menuSection !== "beverages"
   ) {
     return false;
   }
@@ -191,7 +199,8 @@ function categoryFieldsMatch(server: CategoryShape, optimistic: CategoryShape): 
     server.name === optimistic.name &&
     (server.description ?? null) === (optimistic.description ?? null) &&
     (server.coverPhoto ?? null) === (optimistic.coverPhoto ?? null) &&
-    server.sortOrder === optimistic.sortOrder
+    server.sortOrder === optimistic.sortOrder &&
+    (server.menuSection ?? "dishes") === (optimistic.menuSection ?? "dishes")
     // itemsCount intentionally skipped: it's a derived count whose value can
     // legitimately differ between an optimistic snapshot and the server's
     // recomputed total without indicating that our edit is still pending.

@@ -13,6 +13,7 @@ import {
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
+import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { ItemThumbnail } from "./global-menu-item-row";
 
@@ -24,6 +25,7 @@ type NewGlobalMenuItemClientProps = {
   initialCategories: NewItemCategoryOption[];
   categoriesLoadError: string | null;
   preselectedCategoryId?: string;
+  menuSection?: MenuSection;
 };
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -37,6 +39,7 @@ export function NewGlobalMenuItemClient({
   initialCategories,
   categoriesLoadError,
   preselectedCategoryId,
+  menuSection = "dishes",
 }: NewGlobalMenuItemClientProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -48,6 +51,13 @@ export function NewGlobalMenuItemClient({
   const activeId = useId();
 
   const [categories, setCategories] = useState(initialCategories);
+  useEffect(() => {
+    setCategories(initialCategories);
+    setCategoryId((prev) => {
+      if (initialCategories.some((c) => c.id === prev)) return prev;
+      return initialCategories[0]?.id ?? "";
+    });
+  }, [initialCategories]);
   const [categoryId, setCategoryId] = useState(() => {
     const preselected = preselectedCategoryId?.trim() ?? "";
     if (!preselected) return "";
@@ -80,15 +90,17 @@ export function NewGlobalMenuItemClient({
       return;
     }
     const data = (await res.json()) as {
-      categories?: Array<{ id: string; name: string }>;
+      categories?: Array<{ id: string; name: string; menuSection?: string }>;
     };
-    const next = Array.isArray(data.categories) ? data.categories : [];
+    const next = (Array.isArray(data.categories) ? data.categories : []).filter(
+      (c) => (c.menuSection === "beverages" ? "beverages" : "dishes") === menuSection,
+    );
     setCategories(next.map((c) => ({ id: c.id, name: c.name })));
     setCategoryId((prev) => {
       if (next.some((c) => c.id === prev)) return prev;
       return next[0]?.id ?? "";
     });
-  }, [t]);
+  }, [menuSection, t]);
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),

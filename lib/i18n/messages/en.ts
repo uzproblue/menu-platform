@@ -25,6 +25,8 @@ export const enMessages: Messages = {
 
   "nav.home": "Home",
   "nav.globalMenu": "Global Menu",
+  "nav.globalMenuDishes": "Dishes",
+  "nav.globalMenuBeverages": "Beverages",
   "nav.menuCategories": "Menu categories",
   "nav.restaurants": "Restaurants",
   "nav.settings": "Settings",
@@ -291,8 +293,12 @@ export const enMessages: Messages = {
   "restaurants.newWizard.qrUrlHint": "QR encodes: {url}",
 
   "global.title": "Global Menu",
+  "global.titleDishes": "Dishes",
+  "global.titleBeverages": "Beverages",
   "global.subtitle":
     "Menu items are grouped by category and loaded from your restaurant workspace.",
+  "global.subtitleDishes": "Food categories and items in your restaurant catalog.",
+  "global.subtitleBeverages": "Drink categories and items in your restaurant catalog.",
   "global.manageCategories": "Manage categories",
   "global.addNewItem": "Add new item",
   "global.addNewInCategory": "Add new {name}",
@@ -355,6 +361,11 @@ export const enMessages: Messages = {
   "global.errSaveItemNetwork": "Network error while saving item changes.",
 
   "categories.title": "Menu categories",
+  "categories.menuSection": "Menu section",
+  "categories.menuSectionDishes": "Dishes",
+  "categories.menuSectionBeverages": "Beverages",
+  "categories.sectionBadgeDishes": "Dishes",
+  "categories.sectionBadgeBeverages": "Beverages",
   "categories.subtitle":
     "Reorder, rename, add, or remove categories. Changes are saved to your restaurant workspace and stay in sync with",
   "categories.globalMenuLink": "Global Menu",

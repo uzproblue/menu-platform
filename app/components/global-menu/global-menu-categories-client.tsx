@@ -77,6 +77,7 @@ export function GlobalMenuCategoriesClient() {
         id: string;
         name: string;
         sortOrder: number;
+        menuSection?: string;
         itemsCount: number;
         description?: string | null;
         coverPhoto?: string | null;
@@ -89,6 +90,7 @@ export function GlobalMenuCategoriesClient() {
       id: c.id,
       name: c.name,
       sortOrder: c.sortOrder,
+      menuSection: c.menuSection === "beverages" ? "beverages" : "dishes",
       itemsCount: c.itemsCount,
       description: c.description ?? null,
       coverPhoto: c.coverPhoto ?? null,
@@ -124,7 +126,12 @@ export function GlobalMenuCategoriesClient() {
   }, [loadCategories, t]);
 
   const handleSaveName = useCallback(
-    async (payload: { name: string; description?: string; coverPhoto?: string }) => {
+    async (payload: {
+      name: string;
+      description?: string;
+      coverPhoto?: string;
+      menuSection: "dishes" | "beverages";
+    }) => {
       if (!nameModal) return;
       const previous = categories.find((c) => c.id === nameModal.categoryId);
       const payloadDescription =
@@ -160,6 +167,7 @@ export function GlobalMenuCategoriesClient() {
                 description?: unknown;
                 coverPhoto?: unknown;
                 sortOrder?: unknown;
+                menuSection?: unknown;
                 itemsCount?: unknown;
                 translations?: unknown;
               };
@@ -187,6 +195,8 @@ export function GlobalMenuCategoriesClient() {
             coverPhoto:
               typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
             sortOrder: updated.sortOrder,
+            menuSection:
+              updated.menuSection === "beverages" ? "beverages" : payload.menuSection,
             itemsCount: updated.itemsCount,
             ...(translations !== undefined ? { translations } : {}),
           };
@@ -226,6 +236,7 @@ export function GlobalMenuCategoriesClient() {
             description?: unknown;
             coverPhoto?: unknown;
             sortOrder?: unknown;
+            menuSection?: unknown;
             itemsCount?: unknown;
             translations?: unknown;
           }
@@ -240,6 +251,10 @@ export function GlobalMenuCategoriesClient() {
         const translationsList = Array.isArray(updated.translations)
           ? (updated.translations as TranslationTextApi[])
           : undefined;
+        const section =
+          updated.menuSection === "beverages"
+            ? "beverages"
+            : (translationsModalCategory?.menuSection ?? "dishes");
         appendCategoryMutation({
           kind: "upsert",
           value: {
@@ -250,6 +265,7 @@ export function GlobalMenuCategoriesClient() {
             coverPhoto:
               typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
             sortOrder: updated.sortOrder,
+            menuSection: section,
             itemsCount: updated.itemsCount,
             ...(translationsList !== undefined ? { translations: translationsList } : {}),
           },
@@ -449,6 +465,10 @@ export function GlobalMenuCategoriesClient() {
                       t("categories.translationsModal.noDescription")}
                   </p>
                   <p className="mt-3 text-xs font-medium uppercase tracking-wide text-white/75">
+                    {cat.menuSection === "beverages"
+                      ? t("categories.sectionBadgeBeverages")
+                      : t("categories.sectionBadgeDishes")}
+                    {" · "}
                     {cat.itemsCount} {t("common.items")}
                   </p>
                 </div>
@@ -487,6 +507,7 @@ export function GlobalMenuCategoriesClient() {
         initialName={editingCategory?.name ?? ""}
         initialDescription={editingCategory?.description ?? ""}
         initialCoverPhoto={editingCategory?.coverPhoto ?? ""}
+        initialMenuSection={editingCategory?.menuSection ?? "dishes"}
         isSaving={isSaving}
         onClose={() => setNameModal(null)}
         onSave={handleSaveName}

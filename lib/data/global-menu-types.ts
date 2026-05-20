@@ -1,5 +1,7 @@
 import type { TranslationTextApi } from "@/lib/auth-api";
 
+export type MenuSection = "dishes" | "beverages";
+
 /** Shape used by global menu UI (API-backed). */
 export type CatalogPriceRow = {
   id: string;
@@ -39,6 +41,7 @@ export type MenuCategory = {
   /** Catalog description; guest copy may come from `translations` per locale. */
   description?: string | null;
   coverPhoto?: string | null;
+  menuSection?: MenuSection;
   translations?: TranslationTextApi[];
   items: MenuItem[];
 };

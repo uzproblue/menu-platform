@@ -8,7 +8,7 @@ import {
   getMenuItemDisplayForLocale,
   withMenuItemDisplayTranslationsSynced,
 } from "@/lib/category-locale-display";
-import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
+import type { GlobalMenuData, MenuItem, MenuSection } from "@/lib/data/global-menu-types";
 import { mapGlobalMenuItemApiToMenuItem } from "@/lib/menu/map-global-menu-response";
 import { usePersistedGlobalMenu } from "@/hooks/use-persisted-global-menu";
 import {
@@ -85,10 +85,18 @@ function replaceItemInCatalog(
 }
 
 type GlobalMenuPageClientProps = {
+  menuSection: MenuSection;
   initialData: GlobalMenuData;
   /** Error code or message from server when menu could not be loaded. */
   loadError?: string | null;
 };
+
+function categoryMatchesSection(
+  category: GlobalMenuData["categories"][number],
+  menuSection: MenuSection,
+): boolean {
+  return (category.menuSection ?? "dishes") === menuSection;
+}
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as
@@ -97,7 +105,11 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
   return payload?.message ?? payload?.error ?? fallback;
 }
 
-export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageClientProps) {
+export function GlobalMenuPageClient({
+  menuSection,
+  initialData,
+  loadError,
+}: GlobalMenuPageClientProps) {
   const { t, locale } = useI18n();
   const enqueueToggle = useSerializedAsyncQueue();
   const { data, setData } = usePersistedGlobalMenu(initialData, { persistDraft: false });
@@ -158,9 +170,14 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
   }, [data, editor]);
   const isEditorSaving = editor ? isItemBusy(editor.itemId) : false;
 
+  const visibleCategories = useMemo(
+    () => data.categories.filter((c) => categoryMatchesSection(c, menuSection)),
+    [data.categories, menuSection],
+  );
+
   const categoryOptions: MenuItemCategoryOption[] = useMemo(
     () =>
-      data.categories.map((c) => ({
+      visibleCategories.map((c) => ({
         id: c.id,
         label: getCategoryDisplayForLocale(
           c.name,
@@ -169,7 +186,7 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           locale,
         ).name,
       })),
-    [data.categories, locale],
+    [visibleCategories, locale],
   );
 
   const itemTranslationsModalItem = useMemo(() => {
@@ -590,8 +607,13 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       </div>
     ) : null;
 
+  const pageTitle =
+    menuSection === "beverages" ? t("global.titleBeverages") : t("global.titleDishes");
+  const pageSubtitle =
+    menuSection === "beverages" ? t("global.subtitleBeverages") : t("global.subtitleDishes");
+
   const emptyState =
-    loadError == null && data.categories.length === 0 ? (
+    loadError == null && visibleCategories.length === 0 ? (
       <div className="rounded-2xl border border-foreground/10 bg-background/40 px-5 py-12 text-center text-sm text-foreground/70">
         {t("global.emptyMenu")}
       </div>
@@ -603,12 +625,8 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
       {exportWarningBanner}
       <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-6">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {t("global.title")}
-          </h1>
-          <p className="mt-2 text-sm text-foreground/60">
-            {t("global.subtitle")}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{pageTitle}</h1>
+          <p className="mt-2 text-sm text-foreground/60">{pageSubtitle}</p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end sm:pt-0.5">
           <Link
@@ -617,13 +635,13 @@ export function GlobalMenuPageClient({ initialData, loadError }: GlobalMenuPageC
           >
             {t("global.manageCategories")}
           </Link>
-          <AddMenuItemButton />
+          <AddMenuItemButton menuSection={menuSection} />
         </div>
       </div>
 
       <div className="space-y-5">
         {emptyState}
-        {data.categories.map((category) => (
+        {visibleCategories.map((category) => (
           <GlobalMenuCategorySection
             key={category.id}
             category={category}

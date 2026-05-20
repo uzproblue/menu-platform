@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
+import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { ItemThumbnail } from "./global-menu-item-row";
 
@@ -12,9 +13,15 @@ type CategoryNameModalProps = {
   initialName: string;
   initialDescription?: string | null;
   initialCoverPhoto?: string | null;
+  initialMenuSection?: MenuSection;
   isSaving: boolean;
   onClose: () => void;
-  onSave: (payload: { name: string; description?: string; coverPhoto?: string }) => Promise<void>;
+  onSave: (payload: {
+    name: string;
+    description?: string;
+    coverPhoto?: string;
+    menuSection: MenuSection;
+  }) => Promise<void>;
 };
 
 export function CategoryNameModal({
@@ -24,6 +31,7 @@ export function CategoryNameModal({
   initialName,
   initialDescription,
   initialCoverPhoto,
+  initialMenuSection = "dishes",
   isSaving,
   onClose,
   onSave,
@@ -31,11 +39,13 @@ export function CategoryNameModal({
   const { t } = useI18n();
   const titleId = useId();
   const nameId = useId();
+  const menuSectionId = useId();
   const descriptionId = useId();
   const coverPhotoUrlId = useId();
   const coverPhotoUploadId = useId();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
+  const [menuSection, setMenuSection] = useState<MenuSection>("dishes");
   const [description, setDescription] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
@@ -45,6 +55,7 @@ export function CategoryNameModal({
   useEffect(() => {
     if (!open) return;
     setName(initialName);
+    setMenuSection(initialMenuSection);
     setDescription(initialDescription ?? "");
     setCoverPhotoUrl(initialCoverPhoto ?? "");
     setSelectedCoverFile(null);
@@ -56,7 +67,7 @@ export function CategoryNameModal({
     if (uploadInputRef.current) {
       uploadInputRef.current.value = "";
     }
-  }, [initialCoverPhoto, initialDescription, initialName, mode, open]);
+  }, [initialCoverPhoto, initialDescription, initialMenuSection, initialName, mode, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,6 +113,7 @@ export function CategoryNameModal({
         name: name.trim(),
         description: description.trim() || undefined,
         coverPhoto,
+        menuSection,
       });
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t("newCategory.createFailed"));
@@ -167,6 +179,21 @@ export function CategoryNameModal({
               placeholder={t("categoryModal.displayNamePlaceholder")}
               autoFocus
             />
+          </div>
+          <div className="mt-4 space-y-2">
+            <label htmlFor={menuSectionId} className="text-sm font-medium text-foreground">
+              {t("categories.menuSection")}
+            </label>
+            <select
+              id={menuSectionId}
+              value={menuSection}
+              onChange={(e) => setMenuSection(e.target.value as MenuSection)}
+              disabled={controlsDisabled}
+              className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+            >
+              <option value="dishes">{t("categories.menuSectionDishes")}</option>
+              <option value="beverages">{t("categories.menuSectionBeverages")}</option>
+            </select>
           </div>
           <div className="mt-4 space-y-2">
             <label htmlFor={descriptionId} className="text-sm font-medium text-foreground">
