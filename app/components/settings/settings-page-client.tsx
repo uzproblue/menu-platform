@@ -298,6 +298,7 @@ export function SettingsPageClient({
       const payload = (await res.json().catch(() => null)) as {
         teammate?: Teammate;
         temporaryPassword?: string | null;
+        inviteEmailSent?: boolean;
         chefInvite?: { pinCode: string };
         message?: string;
       } | null;
@@ -317,13 +318,17 @@ export function SettingsPageClient({
         );
       } else if (payload?.temporaryPassword) {
         const invitedEmail = payload.teammate?.email?.trim();
-        setTeammateSaved(
-          invitedEmail
-            ? t("settings.teammateAddedEmailed", { email: invitedEmail })
-            : t("settings.teammateAddedTempPassword", {
-                password: payload.temporaryPassword,
-              }),
-        );
+        if (payload.inviteEmailSent && invitedEmail) {
+          setTeammateSaved(
+            t("settings.teammateAddedEmailed", { email: invitedEmail }),
+          );
+        } else {
+          setTeammateSaved(
+            t("settings.teammateAddedTempPassword", {
+              password: payload.temporaryPassword,
+            }),
+          );
+        }
       } else {
         setTeammateSaved(t("settings.teammateAdded"));
       }

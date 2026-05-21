@@ -110,8 +110,9 @@ function SuccessPanel({
         </div>
       </dl>
       <p className="text-xs text-foreground/50">
-        Save this password now. It may also be emailed if mail is configured on
-        the server.
+        {data.welcomeEmailSent
+          ? `Login details were also emailed to ${data.admin.email}.`
+          : "Save this password now. Welcome email was not sent — check menu-server Resend configuration."}
       </p>
       <button
         type="button"

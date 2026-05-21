@@ -490,12 +490,20 @@ export const enMessages: Messages = {
     "All categories are already enabled here.",
   "restaurantDetail.addCategoryTitle": "Add categories to this location",
   "restaurantDetail.addCategoryHint":
-    "Tick the categories to enable here. You can add items afterwards.",
+    "Select categories for this location. Uncheck to remove a category from the menu.",
   "restaurantDetail.addCategoryEmptyCatalog":
     "No categories exist yet. Create one in the global menu first.",
   "restaurantDetail.addCategorySaveFailed":
     "Could not update categories. Try again.",
-  "restaurantDetail.addCategoryAria": "Add category {name} to this location",
+  "restaurantDetail.addCategoryAria": "Toggle category {name} for this location",
+  "restaurantDetail.reorderCategoriesButton": "Reorder categories",
+  "restaurantDetail.reorderCategoriesTitle": "Reorder categories for this location",
+  "restaurantDetail.reorderCategoriesHint":
+    "Use the arrows to change the order guests see on the menu. Save when done.",
+  "restaurantDetail.reorderCategoriesSaveFailed":
+    "Could not save category order. Try again.",
+  "restaurantDetail.reorderCategoriesNeedTwo":
+    "Add at least two categories before reordering.",
   "restaurantDetail.itemToggleUpdating": "Updating menu…",
   "restaurantDetail.itemToggleEnabling": "Adding «{name}» to the guest menu…",
   "restaurantDetail.itemToggleDisabling": "Removing «{name}» from the guest menu…",

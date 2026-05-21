@@ -484,13 +484,21 @@ export const uzMessages: Messages = {
     "Hamma bo'limlar allaqachon ushbu lokatsiyaga ulangan.",
   "restaurantDetail.addCategoryTitle": "Lokatsiyaga bo'limlar qo'shish",
   "restaurantDetail.addCategoryHint":
-    "Yoqmoqchi bo'lgan bo'limlarni belgilang. Taomlarni keyin qo'shsa bo'ladi.",
+    "Ushbu lokatsiya uchun bo'limlarni tanlang. Belgini olib tashlash bo'limni menyudan olib tashlaydi.",
   "restaurantDetail.addCategoryEmptyCatalog":
     "Hali bo'limlar mavjud emas. Avval umumiy menyuda yarating.",
   "restaurantDetail.addCategorySaveFailed":
     "Bo'limlarni yangilab bo'lmadi. Qayta urinib ko'ring.",
   "restaurantDetail.addCategoryAria":
-    "«{name}» bo'limini ushbu lokatsiyaga qo'shish",
+    "«{name}» bo'limini ushbu lokatsiya uchun yoqish/o'chirish",
+  "restaurantDetail.reorderCategoriesButton": "Bo'limlar tartibini o'zgartirish",
+  "restaurantDetail.reorderCategoriesTitle": "Ushbu lokatsiya uchun bo'limlar tartibi",
+  "restaurantDetail.reorderCategoriesHint":
+    "Mehmonlar ko'radigan tartibni o'zgartirish uchun strelkalardan foydalaning. Tugagach saqlang.",
+  "restaurantDetail.reorderCategoriesSaveFailed":
+    "Bo'limlar tartibini saqlab bo'lmadi. Qayta urinib ko'ring.",
+  "restaurantDetail.reorderCategoriesNeedTwo":
+    "Tartibni o'zgartirish uchun kamida ikkita bo'lim kerak.",
   "restaurantDetail.itemToggleUpdating": "Menyu yangilanmoqda…",
   "restaurantDetail.itemToggleEnabling": "«{name}» mehmon menyusiga qo'shilmoqda…",
   "restaurantDetail.itemToggleDisabling": "«{name}» mehmon menyusidan olib tashlanmoqda…",

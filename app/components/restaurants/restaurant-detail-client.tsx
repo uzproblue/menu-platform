@@ -31,6 +31,7 @@ import {
   AddLocationCategoriesModal,
   type AvailableCategory,
 } from "./add-location-categories-modal";
+import { ReorderLocationCategoriesModal } from "./reorder-location-categories-modal";
 
 export type CategoryCatalogEntry = {
   id: string;
@@ -57,9 +58,44 @@ type AddCategoryState = {
 type EnabledSection = {
   id: string;
   name: string;
-  sortOrder: number;
   items: MenuItem[];
 };
+
+type ReorderCategoryState = {
+  open: boolean;
+  saving: boolean;
+  error: string | null;
+};
+
+async function patchLocationCategories(
+  locationId: string,
+  categoryIds: string[],
+): Promise<{ ok: true } | { ok: false; message?: string }> {
+  try {
+    const res = await fetch(
+      `/api/settings/locations/${encodeURIComponent(locationId)}/categories`,
+      {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryIds }),
+      },
+    );
+    if (!res.ok) {
+      let detail: string | undefined;
+      try {
+        const body = (await res.json()) as { message?: string };
+        if (typeof body?.message === "string") detail = body.message;
+      } catch {
+        /* ignore */
+      }
+      return { ok: false, message: detail };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
 
 type CatalogState =
   | { status: "idle" }
@@ -155,6 +191,11 @@ export function RestaurantDetailClient({
     saving: false,
     error: null,
   });
+  const [reorderState, setReorderState] = useState<ReorderCategoryState>({
+    open: false,
+    saving: false,
+    error: null,
+  });
 
   const displayName = restaurant.name.trim().length
     ? restaurant.name
@@ -220,13 +261,9 @@ export function RestaurantDetailClient({
       sections.push({
         id,
         name: cat?.name ?? catalogCategory?.name ?? id,
-        sortOrder: cat?.sortOrder ?? Number.MAX_SAFE_INTEGER,
         items,
       });
     }
-    sections.sort(
-      (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-    );
     return sections;
   }, [
     enabledCategoryIds,
@@ -242,10 +279,8 @@ export function RestaurantDetailClient({
     s.items.some((i) => i.locationEnabled === true),
   );
 
-  const availableToAdd: AvailableCategory[] = useMemo(() => {
-    const enabledSet = new Set(enabledCategoryIds);
+  const modalCategories: AvailableCategory[] = useMemo(() => {
     return categoriesCatalog
-      .filter((c) => !enabledSet.has(c.id))
       .map((c) => ({ id: c.id, name: c.name, itemsCount: c.itemsCount }))
       .sort(
         (a, b) =>
@@ -253,10 +288,23 @@ export function RestaurantDetailClient({
             (catalogById.get(b.id)?.sortOrder ?? 0) ||
           a.name.localeCompare(b.name),
       );
-  }, [categoriesCatalog, enabledCategoryIds, catalogById]);
+  }, [categoriesCatalog, catalogById]);
 
   const canShowAddButton = categoriesCatalog.length > 0;
-  const addButtonDisabled = availableToAdd.length === 0;
+  const canReorderCategories = enabledCategoryIds.length >= 2;
+
+  const reorderableCategories = useMemo(
+    () =>
+      enabledCategoryIds.map((id) => {
+        const cat = catalogById.get(id);
+        const catalogCategory = catalogCategoriesById.get(id);
+        return {
+          id,
+          name: cat?.name ?? catalogCategory?.name ?? id,
+        };
+      }),
+    [enabledCategoryIds, catalogById, catalogCategoriesById],
+  );
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -648,60 +696,74 @@ export function RestaurantDetailClient({
   );
 
   const handleOpenAdd = useCallback(() => {
-    if (addButtonDisabled) return;
     setAddState({ open: true, saving: false, error: null });
-  }, [addButtonDisabled]);
+  }, []);
 
   const handleCloseAdd = useCallback(() => {
     setAddState((prev) => (prev.saving ? prev : { ...prev, open: false, error: null }));
   }, []);
 
   const handleSaveAddCategories = useCallback(
-    async (addedIds: string[]) => {
-      if (addedIds.length === 0) return;
-      const cleanAdded = addedIds.filter(
-        (id) => !enabledCategoryIds.includes(id),
-      );
-      if (cleanAdded.length === 0) {
+    async (selectedIds: string[]) => {
+      const selectedSet = new Set(selectedIds);
+      const nextIds = categoriesCatalog
+        .filter((c) => selectedSet.has(c.id))
+        .map((c) => c.id);
+      const unchanged =
+        nextIds.length === enabledCategoryIds.length &&
+        nextIds.every((id, i) => id === enabledCategoryIds[i]);
+      if (unchanged) {
         setAddState((prev) => ({ ...prev, open: false, error: null }));
         return;
       }
       setAddState((prev) => ({ ...prev, saving: true, error: null }));
-      const nextIds = [...enabledCategoryIds, ...cleanAdded];
-      try {
-        const res = await fetch(
-          `/api/settings/locations/${encodeURIComponent(restaurant.id)}/categories`,
-          {
-            method: "PATCH",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ categoryIds: nextIds }),
-          },
-        );
-        if (!res.ok) {
-          let detail: string | undefined;
-          try {
-            const body = (await res.json()) as { message?: string };
-            if (typeof body?.message === "string") detail = body.message;
-          } catch {
-            /* ignore */
-          }
-          setAddState({
-            open: true,
-            saving: false,
-            error: detail ?? t("restaurantDetail.addCategorySaveFailed"),
-          });
-          return;
-        }
-        setEnabledCategoryIds(nextIds);
-        setAddState({ open: false, saving: false, error: null });
-      } catch {
+      const result = await patchLocationCategories(restaurant.id, nextIds);
+      if (!result.ok) {
         setAddState({
           open: true,
           saving: false,
-          error: t("restaurantDetail.addCategorySaveFailed"),
+          error: result.message ?? t("restaurantDetail.addCategorySaveFailed"),
         });
+        return;
       }
+      setEnabledCategoryIds(nextIds);
+      setAddState({ open: false, saving: false, error: null });
+    },
+    [categoriesCatalog, enabledCategoryIds, restaurant.id, t],
+  );
+
+  const handleOpenReorder = useCallback(() => {
+    if (!canReorderCategories) return;
+    setReorderState({ open: true, saving: false, error: null });
+  }, [canReorderCategories]);
+
+  const handleCloseReorder = useCallback(() => {
+    setReorderState((prev) =>
+      prev.saving ? prev : { ...prev, open: false, error: null },
+    );
+  }, []);
+
+  const handleSaveReorder = useCallback(
+    async (orderedIds: string[]) => {
+      const unchanged =
+        orderedIds.length === enabledCategoryIds.length &&
+        orderedIds.every((id, i) => id === enabledCategoryIds[i]);
+      if (unchanged) {
+        setReorderState((prev) => ({ ...prev, open: false, error: null }));
+        return;
+      }
+      setReorderState((prev) => ({ ...prev, saving: true, error: null }));
+      const result = await patchLocationCategories(restaurant.id, orderedIds);
+      if (!result.ok) {
+        setReorderState({
+          open: true,
+          saving: false,
+          error: result.message ?? t("restaurantDetail.reorderCategoriesSaveFailed"),
+        });
+        return;
+      }
+      setEnabledCategoryIds(orderedIds);
+      setReorderState({ open: false, saving: false, error: null });
     },
     [enabledCategoryIds, restaurant.id, t],
   );
@@ -803,36 +865,54 @@ export function RestaurantDetailClient({
           <h2 className="text-lg font-semibold tracking-tight text-foreground">
             {t("restaurantDetail.menuHeading")}
           </h2>
-          {canShowAddButton ? (
-            <button
-              type="button"
-              onClick={handleOpenAdd}
-              disabled={addButtonDisabled}
-              aria-disabled={addButtonDisabled}
-              title={
-                addButtonDisabled
-                  ? t("restaurantDetail.addCategoryNoneAvailable")
-                  : undefined
-              }
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
+          <div className="flex flex-wrap items-center gap-2">
+            {canReorderCategories ? (
+              <button
+                type="button"
+                onClick={handleOpenReorder}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              {t("restaurantDetail.addCategoryButton")}
-            </button>
-          ) : null}
+                <svg
+                  className="size-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 8h16M4 16h16"
+                  />
+                </svg>
+                {t("restaurantDetail.reorderCategoriesButton")}
+              </button>
+            ) : null}
+            {canShowAddButton ? (
+              <button
+                type="button"
+                onClick={handleOpenAdd}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              >
+                <svg
+                  className="size-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                {t("restaurantDetail.addCategoryButton")}
+              </button>
+            ) : null}
+          </div>
         </div>
         {hasEnabledCategories ? (
           enabledSections.map((section) => (
@@ -878,11 +958,22 @@ export function RestaurantDetailClient({
 
       <AddLocationCategoriesModal
         open={addState.open}
-        availableCategories={availableToAdd}
+        categories={modalCategories}
+        initialSelectedIds={enabledCategoryIds}
         saving={addState.saving}
         saveError={addState.error}
         onClose={handleCloseAdd}
         onSave={handleSaveAddCategories}
+      />
+
+      <ReorderLocationCategoriesModal
+        open={reorderState.open}
+        categories={reorderableCategories}
+        initialOrderIds={enabledCategoryIds}
+        saving={reorderState.saving}
+        saveError={reorderState.error}
+        onClose={handleCloseReorder}
+        onSave={handleSaveReorder}
       />
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />

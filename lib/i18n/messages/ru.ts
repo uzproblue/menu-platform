@@ -504,13 +504,21 @@ export const ruMessages: Messages = {
     "Все категории уже включены в эту локацию.",
   "restaurantDetail.addCategoryTitle": "Добавить категории в эту локацию",
   "restaurantDetail.addCategoryHint":
-    "Отметьте категории, которые нужно включить. Позиции можно добавить позже.",
+    "Выберите категории для этой локации. Снимите отметку, чтобы убрать категорию из меню.",
   "restaurantDetail.addCategoryEmptyCatalog":
     "Категорий пока нет. Сначала создайте их в общем меню.",
   "restaurantDetail.addCategorySaveFailed":
     "Не удалось обновить категории. Попробуйте ещё раз.",
   "restaurantDetail.addCategoryAria":
-    "Добавить категорию «{name}» в эту локацию",
+    "Переключить категорию «{name}» для этой локации",
+  "restaurantDetail.reorderCategoriesButton": "Изменить порядок категорий",
+  "restaurantDetail.reorderCategoriesTitle": "Порядок категорий для этой локации",
+  "restaurantDetail.reorderCategoriesHint":
+    "Стрелками измените порядок, в котором категории видят гости. Нажмите «Сохранить», когда закончите.",
+  "restaurantDetail.reorderCategoriesSaveFailed":
+    "Не удалось сохранить порядок категорий. Попробуйте ещё раз.",
+  "restaurantDetail.reorderCategoriesNeedTwo":
+    "Для изменения порядка нужно как минимум две категории.",
   "restaurantDetail.itemToggleUpdating": "Обновляем меню…",
   "restaurantDetail.itemToggleEnabling": "Добавляем «{name}» в меню для гостей…",
   "restaurantDetail.itemToggleDisabling": "Убираем «{name}» из меню для гостей…",

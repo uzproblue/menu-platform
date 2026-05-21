@@ -42,6 +42,7 @@ export type CreateTeammateResponse = {
     lastLoginAt: string | null;
   };
   temporaryPassword: string | null;
+  inviteEmailSent?: boolean;
   chefInvite?: {
     inviteId: string;
     pinCode: string;
@@ -484,6 +485,7 @@ export type ProvisionRestaurantResponse = {
     email: string;
     temporaryPassword: string;
   };
+  welcomeEmailSent?: boolean;
 };
 
 export type ProvisionRestaurantInput = {

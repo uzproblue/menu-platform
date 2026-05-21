@@ -15,18 +15,28 @@ export type AvailableCategory = {
   itemsCount: number;
 };
 
+function setsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const id of a) {
+    if (!b.has(id)) return false;
+  }
+  return true;
+}
+
 type AddLocationCategoriesModalProps = {
   open: boolean;
-  availableCategories: AvailableCategory[];
+  categories: AvailableCategory[];
+  initialSelectedIds: string[];
   saving: boolean;
   saveError: string | null;
   onClose: () => void;
-  onSave: (addedIds: string[]) => void;
+  onSave: (selectedIds: string[]) => void;
 };
 
 export function AddLocationCategoriesModal({
   open,
-  availableCategories,
+  categories,
+  initialSelectedIds,
   saving,
   saveError,
   onClose,
@@ -36,17 +46,22 @@ export function AddLocationCategoriesModal({
   const titleId = useId();
   const hintId = useId();
 
+  const initialSelected = useMemo(
+    () => new Set(initialSelectedIds),
+    [initialSelectedIds],
+  );
+
   const sessionKey = useMemo(() => {
     if (!open) return "closed";
-    return availableCategories.map((c) => c.id).join("|");
-  }, [open, availableCategories]);
+    return `${categories.map((c) => c.id).join("|")}::${initialSelectedIds.join("|")}`;
+  }, [open, categories, initialSelectedIds]);
 
   const [keySnapshot, setKeySnapshot] = useState<string>(sessionKey);
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(initialSelectedIds));
 
   if (keySnapshot !== sessionKey) {
     setKeySnapshot(sessionKey);
-    setSelected(new Set());
+    setSelected(new Set(initialSelectedIds));
   }
 
   useEffect(() => {
@@ -65,7 +80,8 @@ export function AddLocationCategoriesModal({
 
   if (!open) return null;
 
-  const canSave = !saving && selected.size > 0;
+  const hasChanges = !setsEqual(selected, initialSelected);
+  const canSave = !saving && hasChanges;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -110,13 +126,13 @@ export function AddLocationCategoriesModal({
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
         >
-          {availableCategories.length === 0 ? (
+          {categories.length === 0 ? (
             <p className="py-8 text-center text-sm text-foreground/55">
               {t("restaurantDetail.addCategoryEmptyCatalog")}
             </p>
           ) : (
             <ul className="grid grid-cols-1 gap-2">
-              {availableCategories.map((cat) => {
+              {categories.map((cat) => {
                 const checked = selected.has(cat.id);
                 const itemsLabel =
                   cat.itemsCount === 1
