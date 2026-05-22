@@ -24,6 +24,7 @@ if (
 }
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["konva", "react-konva"],
   ...(resolvedR2PublicBaseUrl || resolvedMenuUrl
     ? {
         env: {

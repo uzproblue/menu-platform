@@ -92,6 +92,23 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Seasonal menu designer (Konva + PDF)
+
+Authenticated route **`/seasonal-menus`**: design printable **A4** layouts from the global catalog or a **location** menu, save to **D1 + R2**, and download **PDF** in the browser.
+
+- **Editor:** [Konva](https://konvajs.org/) + [react-konva](https://github.com/konvajs/react-konva) (MIT, no paid design SDK or API keys).
+- **PDF:** high-resolution raster page via `stage.toDataURL({ pixelRatio: 3 })` + [jsPDF](https://github.com/parallax/jsPDF) (see `lib/seasonal-menu/export-stage-to-pdf.ts`).
+- **Persistence:** metadata in menu-server table `SeasonalMenuDesign`; canvas JSON at R2 prefix `seasonal-menu-designs/{restaurantId}/{id}.json` (private, not guest `location-public` exports).
+
+**menu-server migration** (before using the feature):
+
+```bash
+cd menu-server
+pnpm db:migrate:local   # or db:migrate:remote
+```
+
+**CORS for menu photos on canvas:** Konva must load dish images from your public CDN. Ensure the R2 public bucket (or CDN in front of `R2_PUBLIC_BASE_URL`) sends `Access-Control-Allow-Origin` for the platform origin, or exported PDFs may omit images.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

@@ -18,6 +18,11 @@ const topLinks: NavLinkItem[] = [
     labelKey: "nav.restaurants",
     match: (p) => p.startsWith("/restaurants"),
   },
+  {
+    href: "/seasonal-menus",
+    labelKey: "nav.seasonalMenus",
+    match: (p) => p.startsWith("/seasonal-menus"),
+  },
 ];
 
 const globalMenuChildren: NavLinkItem[] = [

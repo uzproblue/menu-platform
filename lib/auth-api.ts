@@ -2280,6 +2280,305 @@ export async function publishLocationMenuItemsWithAuthServer(
   }
 }
 
+export type SeasonalMenuDesignApi = {
+  id: string;
+  restaurantId: string;
+  title: string;
+  locationId: string | null;
+  r2ObjectKey: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SeasonalMenuDesignsListResponse = {
+  restaurantId: string;
+  designs: SeasonalMenuDesignApi[];
+};
+
+export type SeasonalMenuDesignResponse = {
+  design: SeasonalMenuDesignApi;
+};
+
+export type CreateSeasonalMenuDesignInput = {
+  title: string;
+  locationId?: string | null;
+};
+
+export type PatchSeasonalMenuDesignInput = {
+  title?: string;
+  locationId?: string | null;
+};
+
+export type DeleteSeasonalMenuDesignResponse = {
+  ok: true;
+  r2ObjectKey: string;
+};
+
+export async function listSeasonalMenuDesignsWithAuthServer(
+  accessToken: string,
+): Promise<
+  | { ok: true; data: SeasonalMenuDesignsListResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(transport, "/api/seasonal-menu-designs", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as SeasonalMenuDesignsListResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function createSeasonalMenuDesignWithAuthServer(
+  accessToken: string,
+  input: CreateSeasonalMenuDesignInput,
+): Promise<
+  | { ok: true; data: SeasonalMenuDesignResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(transport, "/api/seasonal-menu-designs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(input),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as SeasonalMenuDesignResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function getSeasonalMenuDesignWithAuthServer(
+  accessToken: string,
+  designId: string,
+): Promise<
+  | { ok: true; data: SeasonalMenuDesignResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/seasonal-menu-designs/${encodeURIComponent(designId)}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as SeasonalMenuDesignResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function patchSeasonalMenuDesignWithAuthServer(
+  accessToken: string,
+  designId: string,
+  input: PatchSeasonalMenuDesignInput,
+): Promise<
+  | { ok: true; data: SeasonalMenuDesignResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/seasonal-menu-designs/${encodeURIComponent(designId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as SeasonalMenuDesignResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function deleteSeasonalMenuDesignWithAuthServer(
+  accessToken: string,
+  designId: string,
+): Promise<
+  | { ok: true; data: DeleteSeasonalMenuDesignResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/seasonal-menu-designs/${encodeURIComponent(designId)}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as DeleteSeasonalMenuDesignResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
 export async function patchLocationMenuItemsWithAuthServer(
   accessToken: string,
   locationId: string,
