@@ -14,6 +14,24 @@ Set **`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** (and **`R2_PUBLIC_BASE_URL`** on the se
 
 `data:` / `blob:` previews use per-component **`unoptimized`** (loader not used for those).
 
+## Menu item videos (Bunny Stream)
+
+Admins upload showcase videos from **`/menu-item-videos`**. Upload flow:
+
+1. Platform **`POST /api/settings/menu-videos/upload-session`** creates a Bunny Stream video and returns TUS presigned headers (API key stays server-side).
+2. Browser uploads the file with **`tus-js-client`** directly to `https://video.bunnycdn.com/tusupload`.
+3. Platform **`PATCH /api/settings/menu-items/{id}/video`** saves the Bunny **video GUID** on `MenuItem.videoId` in menu-server.
+
+**menu-platform Worker / `.env`:**
+
+| Variable | Purpose |
+|----------|---------|
+| `BUNNY_STREAM_LIBRARY_ID` | Stream library id (server) |
+| `BUNNY_STREAM_API_KEY` | Stream library API key (secret, server only) |
+| `NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID` | Same library id for embed preview on the upload page |
+
+Run menu-server migration **`0007_menu_item_video`** before saving videos locally.
+
 ## Auth redirects (login / logout) on Cloudflare
 
 NextAuth builds redirect URLs from **`NEXTAUTH_URL`** unless **`AUTH_TRUST_HOST`** or **`VERCEL`** is set. On Workers, if `NEXTAUTH_URL` is missing or still `http://localhost:3000`, sign-in and sign-out send the browser to localhost.

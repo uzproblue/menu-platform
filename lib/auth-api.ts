@@ -118,6 +118,7 @@ export type GlobalMenuItemApi = {
   tags: string[];
   description?: string;
   image?: string;
+  videoId?: string;
   gramm?: string;
   translations: TranslationTextApi[];
 };
@@ -163,8 +164,17 @@ export type CreatedMenuItemApi = {
   tags: string[];
   description?: string;
   image?: string;
+  videoId?: string;
   gramm?: string;
   translations: TranslationTextApi[];
+};
+
+export type UpdateMenuItemVideoInput = {
+  videoId: string | null;
+};
+
+export type UpdateMenuItemVideoResponse = {
+  item: CreatedMenuItemApi;
 };
 
 export type CatalogChangeMeta = {
@@ -1230,6 +1240,64 @@ export async function updateMenuItemWithAuthServer(
       };
     }
     return { ok: true, data: (await res.json()) as UpdateMenuItemResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
+export async function updateMenuItemVideoWithAuthServer(
+  accessToken: string,
+  itemId: string,
+  input: UpdateMenuItemVideoInput,
+): Promise<
+  | { ok: true; data: UpdateMenuItemVideoResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(
+      transport,
+      `/api/menu-items/${encodeURIComponent(itemId)}/video`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+    return { ok: true, data: (await res.json()) as UpdateMenuItemVideoResponse };
   } catch {
     return {
       ok: false,

@@ -20,6 +20,7 @@ export function mapGlobalMenuItemApiToMenuItem(i: GlobalMenuItemApi | CreatedMen
   };
   if (i.description) item.description = i.description;
   if (i.image) item.image = i.image;
+  if (i.videoId) item.videoId = i.videoId;
   if (i.gramm) item.gramm = i.gramm;
   return item;
 }

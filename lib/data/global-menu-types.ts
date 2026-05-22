@@ -17,6 +17,8 @@ export type MenuItem = {
   /** Per-location publish toggle (restaurant detail); independent of global `active`. */
   locationEnabled?: boolean;
   image?: string;
+  /** Bunny Stream video GUID for showcase video. */
+  videoId?: string;
   /** Catalog prices; may include multiple currencies. */
   prices: CatalogPriceRow[];
   description?: string;
