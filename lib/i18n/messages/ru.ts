@@ -619,4 +619,26 @@ export const ruMessages: Messages = {
   "seasonalMenu.saveFailed": "Не удалось сохранить.",
   "seasonalMenu.exportFailed": "Не удалось экспортировать PDF.",
   "seasonalMenu.backToList": "К списку",
+  "seasonalMenu.wizardStep1": "Шаг 1 из 2",
+  "seasonalMenu.wizardStep2": "Шаг 2 из 2",
+  "seasonalMenu.wizardTitleTemplate": "Выберите шаблон",
+  "seasonalMenu.wizardTitleItems": "Выберите позиции",
+  "seasonalMenu.wizardSubtitleTemplate":
+    "Светлый или тёмный премиальный макет для сезонного меню.",
+  "seasonalMenu.wizardSubtitleItems":
+    "Отметьте блюда и напитки для меню. Расположение можно подправить в редакторе.",
+  "seasonalMenu.wizardNext": "Далее",
+  "seasonalMenu.templateLight": "Lumière",
+  "seasonalMenu.templateLightDesc": "Кремовая бумага, бронзовые акценты — дневная элегантность.",
+  "seasonalMenu.templateDark": "Noir",
+  "seasonalMenu.templateDarkDesc": "Угольный фон, золотые детали — вечерний fine dining.",
+  "seasonalMenu.menuTitleLabel": "Заголовок на странице",
+  "seasonalMenu.buildMenu": "Собрать меню",
+  "seasonalMenu.selectAll": "Выбрать все",
+  "seasonalMenu.clearSelection": "Снять выбор",
+  "seasonalMenu.pickAtLeastOne": "Выберите хотя бы одну позицию.",
+  "seasonalMenu.loadingFonts": "Загрузка шрифтов…",
+  "seasonalMenu.editSelection": "Изменить выбор",
+  "seasonalMenu.rebuildConfirm":
+    "Пересобрать макет по выбранным позициям? Ручные сдвиги элементов будут сброшены.",
 };

@@ -594,4 +594,26 @@ export const enMessages: Messages = {
   "seasonalMenu.saveFailed": "Could not save design.",
   "seasonalMenu.exportFailed": "Could not export PDF.",
   "seasonalMenu.backToList": "Back to list",
+  "seasonalMenu.wizardStep1": "Step 1 of 2",
+  "seasonalMenu.wizardStep2": "Step 2 of 2",
+  "seasonalMenu.wizardTitleTemplate": "Choose a template",
+  "seasonalMenu.wizardTitleItems": "Select menu items",
+  "seasonalMenu.wizardSubtitleTemplate":
+    "Pick a light or dark luxury layout for your seasonal menu.",
+  "seasonalMenu.wizardSubtitleItems":
+    "Choose which dishes and drinks appear on this menu. You can change the layout later in the editor.",
+  "seasonalMenu.wizardNext": "Continue",
+  "seasonalMenu.templateLight": "Lumière",
+  "seasonalMenu.templateLightDesc": "Cream paper, bronze accents — refined daytime elegance.",
+  "seasonalMenu.templateDark": "Noir",
+  "seasonalMenu.templateDarkDesc": "Charcoal backdrop, gold details — evening fine dining.",
+  "seasonalMenu.menuTitleLabel": "Menu title on page",
+  "seasonalMenu.buildMenu": "Build menu",
+  "seasonalMenu.selectAll": "Select all",
+  "seasonalMenu.clearSelection": "Clear selection",
+  "seasonalMenu.pickAtLeastOne": "Select at least one menu item to continue.",
+  "seasonalMenu.loadingFonts": "Loading fonts…",
+  "seasonalMenu.editSelection": "Edit selection",
+  "seasonalMenu.rebuildConfirm":
+    "Rebuild the menu layout from your selection? Manual position changes to items will be reset.",
 };

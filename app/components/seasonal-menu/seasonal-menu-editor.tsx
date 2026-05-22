@@ -14,12 +14,54 @@ export type SeasonalMenuEditorHandle = {
 type SeasonalMenuEditorProps = {
   nodes: EditorNode[];
   selectedId: string | null;
+  backgroundLayer?: Record<string, unknown>;
   onNodesChange: (nodes: EditorNode[]) => void;
   onSelect: (id: string | null) => void;
 };
 
+function BackgroundFromJson({ layer }: { layer: Record<string, unknown> }) {
+  const children = (layer.children ?? []) as Array<{
+    className?: string;
+    attrs?: Record<string, unknown>;
+  }>;
+
+  return (
+    <>
+      {children.map((child, i) => {
+        const a = child.attrs ?? {};
+        if (child.className !== "Rect") return null;
+        const gradient = a.fillLinearGradientColorStops as unknown[] | undefined;
+        return (
+          <Rect
+            key={i}
+            x={Number(a.x) || 0}
+            y={Number(a.y) || 0}
+            width={Number(a.width) || A4_WIDTH_PX}
+            height={Number(a.height) || A4_HEIGHT_PX}
+            fill={gradient ? undefined : (a.fill as string)}
+            fillLinearGradientStartPoint={
+              a.fillLinearGradientStartPoint as { x: number; y: number }
+            }
+            fillLinearGradientEndPoint={
+              a.fillLinearGradientEndPoint as { x: number; y: number }
+            }
+            fillLinearGradientColorStops={gradient as number[] | string[]}
+            stroke={a.stroke as string | undefined}
+            strokeWidth={Number(a.strokeWidth) || 0}
+            opacity={a.opacity as number | undefined}
+            listening={false}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 export const SeasonalMenuEditor = forwardRef<SeasonalMenuEditorHandle, SeasonalMenuEditorProps>(
-  function SeasonalMenuEditor({ nodes, selectedId, onNodesChange, onSelect }, ref) {
+  function SeasonalMenuEditor(
+    { nodes, selectedId, backgroundLayer, onNodesChange, onSelect },
+    ref,
+  ) {
     const stageRef = useRef<Konva.Stage>(null);
     const transformerRef = useRef<Konva.Transformer>(null);
 
@@ -68,17 +110,15 @@ export const SeasonalMenuEditor = forwardRef<SeasonalMenuEditorHandle, SeasonalM
               onSelect(null);
             }
           }}
-          className="mx-auto bg-white shadow-lg"
+          className="mx-auto shadow-lg"
           style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX }}
         >
           <Layer listening={false}>
-            <Rect
-              x={0}
-              y={0}
-              width={A4_WIDTH_PX}
-              height={A4_HEIGHT_PX}
-              fill="#ffffff"
-            />
+            {backgroundLayer ? (
+              <BackgroundFromJson layer={backgroundLayer} />
+            ) : (
+              <Rect x={0} y={0} width={A4_WIDTH_PX} height={A4_HEIGHT_PX} fill="#ffffff" />
+            )}
           </Layer>
           <Layer>
             {nodes.map((node) => {
@@ -94,6 +134,7 @@ export const SeasonalMenuEditor = forwardRef<SeasonalMenuEditorHandle, SeasonalM
                 );
               }
               const textNode = node as EditorTextNode;
+              const s = textNode.style;
               return (
                 <Text
                   key={textNode.id}
@@ -103,7 +144,10 @@ export const SeasonalMenuEditor = forwardRef<SeasonalMenuEditorHandle, SeasonalM
                   width={textNode.width}
                   text={textNode.text}
                   fontSize={textNode.fontSize}
-                  fill="#111111"
+                  fontFamily={s?.titleFontFamily ?? s?.bodyFontFamily}
+                  fontStyle={textNode.fontStyle ?? "normal"}
+                  fill={s?.titleColor ?? "#111111"}
+                  align={textNode.align ?? "left"}
                   draggable
                   onClick={() => onSelect(textNode.id)}
                   onTap={() => onSelect(textNode.id)}

@@ -11,6 +11,7 @@ type SeasonalMenuToolbarProps = {
   onAddText: () => void;
   onDeleteSelected: () => void;
   onExportPdf: () => void;
+  onEditSelection?: () => void;
   hasSelection: boolean;
 };
 
@@ -23,6 +24,7 @@ export function SeasonalMenuToolbar({
   onAddText,
   onDeleteSelected,
   onExportPdf,
+  onEditSelection,
   hasSelection,
 }: SeasonalMenuToolbarProps) {
   const { t } = useI18n();
@@ -36,6 +38,15 @@ export function SeasonalMenuToolbar({
         className="min-w-[12rem] flex-1 rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm font-medium"
         aria-label={t("seasonalMenu.designTitle")}
       />
+      {onEditSelection ? (
+        <button
+          type="button"
+          onClick={onEditSelection}
+          className="rounded-lg border border-foreground/15 px-3 py-2 text-sm font-medium hover:bg-foreground/5"
+        >
+          {t("seasonalMenu.editSelection")}
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onAddText}

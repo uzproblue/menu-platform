@@ -30,7 +30,7 @@ function MenuItemPhoto({
 }) {
   const [image] = useImage(canvasImageSrc(url));
   if (!image) return null;
-  // eslint-disable-next-line jsx-a11y/alt-text -- Konva canvas node, not a DOM <img>
+  // eslint-disable-next-line jsx-a11y/alt-text -- Konva canvas node
   return <Image image={image} x={x} y={y} width={size} height={size} listening={false} />;
 }
 
@@ -40,10 +40,15 @@ export function MenuItemKonvaBlock({
   onSelect,
   onDragEnd,
 }: MenuItemKonvaBlockProps) {
+  const s = node.style;
   const hasImage = Boolean(node.imageUrl);
-  const textX = hasImage ? 100 : 8;
+  const textX = hasImage ? 100 : 12;
   const textWidth = node.width - textX - 8;
-  let textY = 8;
+  const cardH = hasImage ? 120 : 96;
+  let textY = 12;
+
+  const cardFill = s?.cardFill ?? (selected ? "#f0f9ff" : "#ffffff");
+  const cardStroke = selected ? (s?.accentColor ?? "#2563eb") : (s?.cardStroke ?? "#e5e7eb");
 
   return (
     <Group
@@ -60,54 +65,58 @@ export function MenuItemKonvaBlock({
     >
       <Rect
         width={node.width}
-        height={hasImage ? 120 : 90}
-        fill={selected ? "#f0f9ff" : "#ffffff"}
-        stroke={selected ? "#2563eb" : "#e5e7eb"}
+        height={cardH}
+        fill={cardFill}
+        stroke={cardStroke}
         strokeWidth={selected ? 2 : 1}
         cornerRadius={8}
         shadowColor="#000000"
-        shadowBlur={4}
-        shadowOpacity={0.08}
+        shadowBlur={6}
+        shadowOpacity={0.1}
       />
       {hasImage && node.imageUrl ? (
-        <MenuItemPhoto url={node.imageUrl} x={8} y={8} size={84} />
+        <MenuItemPhoto url={node.imageUrl} x={10} y={10} size={80} />
       ) : null}
       <Text
         x={textX}
         y={textY}
         width={textWidth}
         text={node.name}
-        fontSize={18}
-        fontStyle="bold"
-        fill="#111111"
+        fontSize={20}
+        fontStyle="600"
+        fontFamily={s?.bodyFontFamily}
+        fill={s?.nameColor ?? "#111111"}
         wrap="word"
       />
       <Text
         x={textX}
-        y={(textY += 28)}
+        y={(textY += 30)}
         width={textWidth}
         text={node.price}
-        fontSize={16}
-        fill="#333333"
+        fontSize={18}
+        fontFamily={s?.bodyFontFamily}
+        fill={s?.priceColor ?? "#333333"}
       />
       {node.gramm ? (
         <Text
           x={textX}
-          y={(textY += 22)}
+          y={(textY += 24)}
           width={textWidth}
           text={node.gramm}
-          fontSize={13}
-          fill="#666666"
+          fontSize={14}
+          fontFamily={s?.bodyFontFamily}
+          fill={s?.grammColor ?? s?.descriptionColor ?? "#666666"}
         />
       ) : null}
       {node.description ? (
         <Text
           x={textX}
-          y={(textY += node.gramm ? 20 : 22)}
+          y={(textY += node.gramm ? 20 : 24)}
           width={textWidth}
           text={node.description}
-          fontSize={13}
-          fill="#444444"
+          fontSize={14}
+          fontFamily={s?.bodyFontFamily}
+          fill={s?.descriptionColor ?? "#444444"}
           wrap="word"
         />
       ) : null}

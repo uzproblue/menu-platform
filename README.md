@@ -97,8 +97,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 Authenticated route **`/seasonal-menus`**: design printable **A4** layouts from the global catalog or a **location** menu, save to **D1 + R2**, and download **PDF** in the browser.
 
 - **Editor:** [Konva](https://konvajs.org/) + [react-konva](https://github.com/konvajs/react-konva) (MIT, no paid design SDK or API keys).
+- **Templates:** two built-in luxury layouts — **Lumière** (light) and **Noir** (dark). New designs open a setup wizard: choose template, then multi-select menu items; the canvas is auto-laid out with Playfair Display + Cormorant Garamond (loaded under `/seasonal-menus`).
 - **PDF:** high-resolution raster page via `stage.toDataURL({ pixelRatio: 3 })` + [jsPDF](https://github.com/parallax/jsPDF) (see `lib/seasonal-menu/export-stage-to-pdf.ts`).
-- **Persistence:** metadata in menu-server table `SeasonalMenuDesign`; canvas JSON at R2 prefix `seasonal-menu-designs/{restaurantId}/{id}.json` (private, not guest `location-public` exports).
+- **Persistence:** metadata in menu-server table `SeasonalMenuDesign`; canvas JSON at R2 prefix `seasonal-menu-designs/{restaurantId}/{id}.json` (private, not guest `location-public` exports). Document may include `templateId`, `menuTitle`, and `theme`.
 
 **menu-server migration** (before using the feature):
 

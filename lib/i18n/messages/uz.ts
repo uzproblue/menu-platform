@@ -591,4 +591,26 @@ export const uzMessages: Messages = {
   "seasonalMenu.saveFailed": "Saqlab bo'lmadi.",
   "seasonalMenu.exportFailed": "PDF eksport qilib bo'lmadi.",
   "seasonalMenu.backToList": "Ro'yxatga",
+  "seasonalMenu.wizardStep1": "1-qadam / 2",
+  "seasonalMenu.wizardStep2": "2-qadam / 2",
+  "seasonalMenu.wizardTitleTemplate": "Shablonni tanlang",
+  "seasonalMenu.wizardTitleItems": "Menyu pozitsiyalarini tanlang",
+  "seasonalMenu.wizardSubtitleTemplate":
+    "Mavsumiy menyu uchun yorug' yoki qorong'u hashamatli maket.",
+  "seasonalMenu.wizardSubtitleItems":
+    "Menyuda ko'rsatiladigan taom va ichimliklarni belgilang. Keyinroq tartibni tahrirlashingiz mumkin.",
+  "seasonalMenu.wizardNext": "Davom etish",
+  "seasonalMenu.templateLight": "Lumière",
+  "seasonalMenu.templateLightDesc": "Krem qog'oz, bronza — kunduzgi nafis uslub.",
+  "seasonalMenu.templateDark": "Noir",
+  "seasonalMenu.templateDarkDesc": "Kulrang fon, oltin — kechki fine dining.",
+  "seasonalMenu.menuTitleLabel": "Sahifadagi sarlavha",
+  "seasonalMenu.buildMenu": "Menyuni yig'ish",
+  "seasonalMenu.selectAll": "Hammasini tanlash",
+  "seasonalMenu.clearSelection": "Tanlovni tozalash",
+  "seasonalMenu.pickAtLeastOne": "Kamida bitta pozitsiya tanlang.",
+  "seasonalMenu.loadingFonts": "Shriftlar yuklanmoqda…",
+  "seasonalMenu.editSelection": "Tanlovni tahrirlash",
+  "seasonalMenu.rebuildConfirm":
+    "Tanlangan pozitsiyalar bo'yicha maket qayta yig'iladi? Qo'lda siljitilgan joylar tiklanadi.",
 };
