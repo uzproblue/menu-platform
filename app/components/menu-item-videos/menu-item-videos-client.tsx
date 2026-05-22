@@ -41,9 +41,13 @@ type UploadSessionResponse = {
   authorizationExpire: number;
 };
 
-export function MenuItemVideosClient() {
+type MenuItemVideosClientProps = {
+  /** From server env (Worker runtime); avoids relying on NEXT_PUBLIC at build time. */
+  bunnyLibraryId: string;
+};
+
+export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientProps) {
   const { t } = useI18n();
-  const bunnyLibraryId = process.env.NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID?.trim() ?? "";
 
   const [items, setItems] = useState<FlatMenuItem[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(true);

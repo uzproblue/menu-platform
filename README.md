@@ -26,9 +26,9 @@ Admins upload showcase videos from **`/menu-item-videos`**. Upload flow:
 
 | Variable | Purpose |
 |----------|---------|
-| `BUNNY_STREAM_LIBRARY_ID` | Stream library id (server) |
+| `BUNNY_STREAM_LIBRARY_ID` | Stream library id (server + embed preview on upload page) |
 | `BUNNY_STREAM_API_KEY` | Stream library API key (secret, server only) |
-| `NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID` | Same library id for embed preview on the upload page |
+| `NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID` | Optional; only needed if you preview without `BUNNY_STREAM_LIBRARY_ID` on the server. On Cloudflare Workers, **`BUNNY_STREAM_LIBRARY_ID` alone is enough** — preview reads it at request time, not from the build bundle. |
 
 Run menu-server migration **`0007_menu_item_video`** before saving videos locally.
 

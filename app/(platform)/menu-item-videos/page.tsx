@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MenuItemVideosClient } from "@/app/components/menu-item-videos/menu-item-videos-client";
+import { getBunnyStreamLibraryIdForPreview } from "@/lib/bunny-stream";
 import { getServerT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -12,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MenuItemVideosPage() {
   const { t } = await getServerT();
+  const bunnyLibraryId = getBunnyStreamLibraryIdForPreview();
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -20,7 +22,7 @@ export default async function MenuItemVideosPage() {
           {t("menuItemVideos.title")}
         </h1>
         <p className="mt-2 text-sm text-foreground/60">{t("menuItemVideos.subtitle")}</p>
-        <MenuItemVideosClient />
+        <MenuItemVideosClient bunnyLibraryId={bunnyLibraryId} />
       </div>
     </div>
   );

@@ -19,6 +19,15 @@ export function getBunnyStreamConfig(): BunnyStreamConfig | null {
   return { libraryId, apiKey };
 }
 
+/** Library id for embed preview — readable on the server at Worker runtime. */
+export function getBunnyStreamLibraryIdForPreview(): string {
+  return (
+    process.env.BUNNY_STREAM_LIBRARY_ID?.trim() ||
+    process.env.NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID?.trim() ||
+    ""
+  );
+}
+
 export type CreateStreamVideoResult =
   | { ok: true; videoId: string; libraryId: string }
   | { ok: false; message: string; status?: number };
