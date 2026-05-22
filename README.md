@@ -107,7 +107,7 @@ cd menu-server
 pnpm db:migrate:local   # or db:migrate:remote
 ```
 
-**CORS for menu photos on canvas:** Konva must load dish images from your public CDN. Ensure the R2 public bucket (or CDN in front of `R2_PUBLIC_BASE_URL`) sends `Access-Control-Allow-Origin` for the platform origin, or exported PDFs may omit images.
+**Menu photos on the seasonal canvas:** Konva loads images via same-origin **`GET /api/settings/menu-image-proxy`** (authenticated), which fetches from your `R2_PUBLIC_BASE_URL` CDN server-side. You do not need R2 CORS rules for the designer; other pages use `next/image` and were never subject to canvas CORS.
 
 ## Deploy on Vercel
 

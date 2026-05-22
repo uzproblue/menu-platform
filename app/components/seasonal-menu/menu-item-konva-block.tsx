@@ -2,7 +2,13 @@
 
 import useImage from "use-image";
 import { Group, Image, Rect, Text } from "react-konva";
+import { toCanvasMenuImageProxyUrl } from "@/lib/menu-image-proxy";
 import type { EditorMenuItemNode } from "@/lib/seasonal-menu/stage-json";
+
+function canvasImageSrc(url: string): string {
+  if (url.startsWith("/api/settings/menu-image-proxy")) return url;
+  return toCanvasMenuImageProxyUrl(url);
+}
 
 type MenuItemKonvaBlockProps = {
   node: EditorMenuItemNode;
@@ -22,7 +28,7 @@ function MenuItemPhoto({
   y: number;
   size: number;
 }) {
-  const [image] = useImage(url, "anonymous");
+  const [image] = useImage(canvasImageSrc(url));
   if (!image) return null;
   // eslint-disable-next-line jsx-a11y/alt-text -- Konva canvas node, not a DOM <img>
   return <Image image={image} x={x} y={y} width={size} height={size} listening={false} />;
