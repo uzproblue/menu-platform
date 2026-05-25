@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   deleteCategoryWithAuthServer,
   updateCategoryWithAuthServer,
@@ -103,7 +104,13 @@ export async function PATCH(
     );
   }
 
-  const result = await updateCategoryWithAuthServer(token, trimmedId, payload);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await updateCategoryWithAuthServer(
+    token,
+    trimmedId,
+    payload,
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -161,7 +168,8 @@ export async function DELETE(
     );
   }
 
-  const result = await deleteCategoryWithAuthServer(token, trimmedId);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await deleteCategoryWithAuthServer(token, trimmedId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

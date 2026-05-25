@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateProfileNameWithAuthServer } from "@/lib/auth-api";
 
 export async function PATCH(req: Request) {

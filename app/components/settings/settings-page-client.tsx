@@ -28,6 +28,11 @@ type LocationOption = {
   name: string;
 };
 
+type InviteRestaurantOption = {
+  id: string;
+  name: string;
+};
+
 function formatLastLogin(value: string | null, neverLabel: string): string {
   if (!value) return neverLabel;
   const date = new Date(value);
@@ -57,6 +62,14 @@ export function SettingsPageClient({
 
   const [teammates, setTeammates] = useState<Teammate[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<RoleType>("USER");
+  const [isOwner, setIsOwner] = useState(false);
+  const [inviteRestaurantOptions, setInviteRestaurantOptions] = useState<
+    InviteRestaurantOption[]
+  >([]);
+  const [selectedInviteRestaurantIds, setSelectedInviteRestaurantIds] = useState<
+    string[]
+  >([]);
+  const [inviteRestaurantsPending, setInviteRestaurantsPending] = useState(false);
   const [teammatesPending, setTeammatesPending] = useState(true);
   const [teammatesError, setTeammatesError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -105,6 +118,40 @@ export function SettingsPageClient({
   }, [addOpen, teammateRole]);
 
   useEffect(() => {
+    if (!addOpen || !isOwner || teammateRole === "CHEF") return;
+    let cancelled = false;
+    async function loadInviteRestaurants() {
+      setInviteRestaurantsPending(true);
+      try {
+        const res = await fetch("/api/settings/restaurant-context", {
+          cache: "no-store",
+        });
+        const payload = (await res.json().catch(() => null)) as {
+          restaurants?: InviteRestaurantOption[];
+        } | null;
+        if (!cancelled && res.ok) {
+          const list = payload?.restaurants ?? [];
+          setInviteRestaurantOptions(list);
+          setSelectedInviteRestaurantIds((prev) =>
+            prev.length > 0 ? prev : list.map((r) => r.id),
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setInviteRestaurantOptions([]);
+          setSelectedInviteRestaurantIds([]);
+        }
+      } finally {
+        if (!cancelled) setInviteRestaurantsPending(false);
+      }
+    }
+    void loadInviteRestaurants();
+    return () => {
+      cancelled = true;
+    };
+  }, [addOpen, isOwner, teammateRole]);
+
+  useEffect(() => {
     let cancelled = false;
     async function loadTeammates() {
       setTeammatesPending(true);
@@ -116,6 +163,7 @@ export function SettingsPageClient({
         });
         const payload = (await res.json().catch(() => null)) as {
           currentUserRole?: RoleType;
+          isOwner?: boolean;
           teammates?: Teammate[];
           message?: string;
         } | null;
@@ -132,6 +180,7 @@ export function SettingsPageClient({
         if (!cancelled) {
           const allTeammates = payload?.teammates ?? [];
           setCurrentUserRole(payload?.currentUserRole ?? "USER");
+          setIsOwner(Boolean(payload?.isOwner));
           const selfId = session?.user?.id;
           const selfEmail = session?.user?.email?.toLowerCase();
           const filtered = allTeammates.filter((teammate) => {
@@ -266,7 +315,7 @@ export function SettingsPageClient({
       return;
     }
 
-    let body: Record<string, string>;
+    let body: Record<string, string | string[]>;
     if (teammateRole === "CHEF") {
       const telegramPhone = teammateTelegramPhone.trim();
       const locationId = teammateLocationId.trim();
@@ -285,7 +334,20 @@ export function SettingsPageClient({
         setTeammateError(t("settings.errEmailValid"));
         return;
       }
-      body = { email, name, role: teammateRole };
+      if (isOwner) {
+        if (selectedInviteRestaurantIds.length === 0) {
+          setTeammateError(t("settings.errRestaurantsRequired"));
+          return;
+        }
+        body = {
+          email,
+          name,
+          role: teammateRole,
+          restaurantIds: selectedInviteRestaurantIds,
+        };
+      } else {
+        body = { email, name, role: teammateRole };
+      }
     }
 
     setTeammatePending(true);
@@ -312,6 +374,9 @@ export function SettingsPageClient({
       setTeammateRole("USER");
       setTeammateTelegramPhone("");
       setTeammateLocationId("");
+      setSelectedInviteRestaurantIds(
+        inviteRestaurantOptions.map((r) => r.id),
+      );
       if (payload?.chefInvite?.pinCode) {
         setTeammateSaved(
           t("settings.chefAddedCode", { code: payload.chefInvite.pinCode }),
@@ -579,7 +644,7 @@ export function SettingsPageClient({
         </form>
       </section>
 
-      {currentUserRole === "ADMIN" ? (
+      {currentUserRole === "ADMIN" || isOwner ? (
         <section className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -590,7 +655,7 @@ export function SettingsPageClient({
               {t("settings.teammatesHelp")}
             </p>
           </div>
-          {currentUserRole === "ADMIN" ? (
+          {currentUserRole === "ADMIN" || isOwner ? (
             <button
               type="button"
               onClick={() => {
@@ -785,7 +850,7 @@ export function SettingsPageClient({
         </section>
       ) : null}
 
-      {currentUserRole === "ADMIN" && addOpen ? (
+      {(currentUserRole === "ADMIN" || isOwner) && addOpen ? (
         <div className="fixed inset-0 z-60 flex items-end justify-center p-0 sm:items-center sm:p-4">
           <button
             type="button"
@@ -875,6 +940,44 @@ export function SettingsPageClient({
                   <option value="CHEF">{t("settings.chef")}</option>
                 </select>
               </div>
+              {isOwner && teammateRole !== "CHEF" ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    {t("settings.inviteRestaurants")}
+                  </p>
+                  {inviteRestaurantsPending ? (
+                    <p className="text-xs text-foreground/55">
+                      {t("settings.loadingLocations")}
+                    </p>
+                  ) : (
+                    <ul className="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-foreground/15 bg-background/50 p-2">
+                      {inviteRestaurantOptions.map((r) => {
+                        const checked = selectedInviteRestaurantIds.includes(r.id);
+                        return (
+                          <li key={r.id}>
+                            <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-foreground/5">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setSelectedInviteRestaurantIds((prev) =>
+                                    checked
+                                      ? prev.filter((id) => id !== r.id)
+                                      : [...prev, r.id],
+                                  );
+                                  if (teammateError) setTeammateError(null);
+                                }}
+                                className="size-4 rounded border-foreground/30"
+                              />
+                              <span className="min-w-0 truncate">{r.name}</span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
               {teammateRole === "CHEF" ? (
                 <>
                   <div className="space-y-2">
@@ -959,7 +1062,7 @@ export function SettingsPageClient({
           </div>
         </div>
       ) : null}
-      {currentUserRole === "ADMIN" && deleteTarget ? (
+      {(currentUserRole === "ADMIN" || isOwner) && deleteTarget ? (
         <div className="fixed inset-0 z-60 flex items-end justify-center p-0 sm:items-center sm:p-4">
           <button
             type="button"
@@ -1021,7 +1124,7 @@ export function SettingsPageClient({
           </div>
         </div>
       ) : null}
-      {currentUserRole === "ADMIN" && revealTarget ? (
+      {(currentUserRole === "ADMIN" || isOwner) && revealTarget ? (
         <div className="fixed inset-0 z-60 flex items-end justify-center p-0 sm:items-center sm:p-4">
           <button
             type="button"

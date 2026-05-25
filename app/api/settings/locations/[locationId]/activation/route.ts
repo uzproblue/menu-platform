@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateLocationActivationWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
@@ -17,6 +18,8 @@ export async function PATCH(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { locationId } = await ctx.params;
   const trimmedId = locationId?.trim();
@@ -50,7 +53,7 @@ export async function PATCH(
 
   const result = await updateLocationActivationWithAuthServer(token, trimmedId, {
     isActive: rawIsActive,
-  });
+  }, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

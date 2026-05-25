@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { getLocationMenuWithAuthServer } from "@/lib/auth-api";
 
 export async function GET(
@@ -22,7 +23,8 @@ export async function GET(
     );
   }
 
-  const result = await getLocationMenuWithAuthServer(token, trimmedId);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await getLocationMenuWithAuthServer(token, trimmedId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

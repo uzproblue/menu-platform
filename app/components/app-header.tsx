@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import { AppLogo } from "./app-logo";
 import { AppSidebarNav } from "./app-sidebar-nav";
 import { LanguageSwitcher } from "./language-switcher";
+import { RestaurantSwitcher } from "./restaurant-switcher";
 import { SignOutButton } from "./sign-out-button";
 import { useI18n } from "./i18n-provider";
 
@@ -66,6 +67,7 @@ export function AppHeader({ email }: AppHeaderProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <RestaurantSwitcher />
           {email ? (
             <span
               className="hidden max-w-56 truncate text-sm text-foreground/70 md:inline md:max-w-72"

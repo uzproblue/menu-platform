@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { deleteMenuItemWithAuthServer, updateMenuItemWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
@@ -17,6 +18,8 @@ export async function PATCH(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { itemId } = await ctx.params;
   const trimmedItemId = itemId?.trim();
@@ -94,7 +97,7 @@ export async function PATCH(
     }
   }
 
-  const result = await updateMenuItemWithAuthServer(token, trimmedItemId, input);
+  const result = await updateMenuItemWithAuthServer(token, trimmedItemId, input, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -143,6 +146,8 @@ export async function DELETE(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { itemId } = await ctx.params;
   const trimmedItemId = itemId?.trim();
   if (!trimmedItemId) {
@@ -152,7 +157,7 @@ export async function DELETE(
     );
   }
 
-  const result = await deleteMenuItemWithAuthServer(token, trimmedItemId);
+  const result = await deleteMenuItemWithAuthServer(token, trimmedItemId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

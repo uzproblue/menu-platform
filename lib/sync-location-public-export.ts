@@ -6,6 +6,7 @@ import {
   syncCategoryTranslationsWithAuthServer,
   syncMenuItemTranslationsWithAuthServer,
 } from "@/lib/auth-api";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
 import { buildLocationPublicExport } from "@/lib/data/location-public-export";
 import {
@@ -254,10 +255,13 @@ async function runCatalogChangePipeline(
   accessToken: string,
   options: PostCatalogChangeOptions,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   if (shouldSyncItemTranslations(options)) {
     const syncRes = await syncMenuItemTranslationsWithAuthServer(
       accessToken,
       options.itemId!,
+      restaurantId,
     );
     if (!syncRes.ok) {
       console.error(
@@ -283,6 +287,7 @@ async function runCatalogChangePipeline(
     const syncRes = await syncCategoryTranslationsWithAuthServer(
       accessToken,
       options.categoryId!,
+      restaurantId,
     );
     if (!syncRes.ok) {
       console.error(
@@ -422,9 +427,10 @@ export async function syncLocationPublicExportToR2(
   | { ok: true; publicUrl: string; objectKey: string }
   | { ok: false; message: string }
 > {
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
   const [locRes, menuRes] = await Promise.all([
-    getLocationWithAuthServer(accessToken, locationId),
-    getLocationMenuWithAuthServer(accessToken, locationId),
+    getLocationWithAuthServer(accessToken, locationId, restaurantId),
+    getLocationMenuWithAuthServer(accessToken, locationId, restaurantId),
   ]);
 
   if (!locRes.ok) {
@@ -528,7 +534,8 @@ export async function syncAndPurgeAllRestaurantLocationExports(
   accessToken: string,
   concurrency = 4,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
-  const locationsRes = await getLocationsWithAuthServer(accessToken);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const locationsRes = await getLocationsWithAuthServer(accessToken, restaurantId);
   if (!locationsRes.ok) {
     return {
       ok: false,

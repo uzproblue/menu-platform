@@ -5,6 +5,7 @@ import { RestaurantDetailClient, type CategoryCatalogEntry } from "@/app/compone
 import type { GlobalMenuData } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   getCategoriesWithAuthServer,
   getGlobalMenuWithAuthServer,
@@ -50,7 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: t("restaurantDetail.metaDescription"),
     };
   }
-  const result = await getLocationWithAuthServer(token, decoded);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await getLocationWithAuthServer(token, decoded, restaurantId);
   const titleName =
     result.ok && result.data.location.name.trim().length
       ? result.data.location.name
@@ -71,11 +73,13 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const [locResult, manageResult, catalogResult, categoriesResult] = await Promise.all([
-    getLocationWithAuthServer(token, decoded),
-    getLocationMenuItemsWithAuthServer(token, decoded),
-    getGlobalMenuWithAuthServer(token),
-    getCategoriesWithAuthServer(token),
+    getLocationWithAuthServer(token, decoded, restaurantId),
+    getLocationMenuItemsWithAuthServer(token, decoded, restaurantId),
+    getGlobalMenuWithAuthServer(token, restaurantId),
+    getCategoriesWithAuthServer(token, restaurantId),
   ]);
 
   if (!locResult.ok) {

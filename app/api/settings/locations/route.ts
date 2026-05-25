@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   createLocationWithAuthServer,
   getLocationsWithAuthServer,
@@ -14,7 +15,8 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const result = await getLocationsWithAuthServer(token);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await getLocationsWithAuthServer(token, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -87,13 +89,18 @@ export async function POST(req: Request) {
   }
   const translationLangs = translationParsed.value;
 
-  const result = await createLocationWithAuthServer(token, {
-    name,
-    currency,
-    translationLangs,
-    logoUrl: logoUrl || undefined,
-    address: rawAddress || undefined,
-  });
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await createLocationWithAuthServer(
+    token,
+    {
+      name,
+      currency,
+      translationLangs,
+      logoUrl: logoUrl || undefined,
+      address: rawAddress || undefined,
+    },
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

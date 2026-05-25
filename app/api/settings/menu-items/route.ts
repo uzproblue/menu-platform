@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   createMenuItemWithAuthServer,
   type CatalogPriceInput,
@@ -18,6 +19,8 @@ export async function POST(req: Request) {
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   let body: unknown;
   try {
@@ -104,7 +107,7 @@ export async function POST(req: Request) {
     input.gramm = o.gramm.trim();
   }
 
-  const result = await createMenuItemWithAuthServer(token, input);
+  const result = await createMenuItemWithAuthServer(token, input, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

@@ -23,6 +23,9 @@ export const enMessages: Messages = {
   "locale.uzbek": "Uzbek",
   "locale.switcherLabel": "Language",
 
+  "restaurant.switcherLabel": "Restaurant",
+  "restaurant.selectPrompt": "Switch restaurant",
+
   "nav.home": "Home",
   "nav.globalMenu": "Global Menu",
   "nav.globalMenuDishes": "Dishes",
@@ -115,6 +118,8 @@ export const enMessages: Messages = {
   "settings.deleteTeammate": "Delete teammate",
   "settings.addTeammateTitle": "Add teammate",
   "settings.addTeammateHelp": "Add a user to your restaurant workspace.",
+  "settings.inviteRestaurants": "Restaurants",
+  "settings.errRestaurantsRequired": "Select at least one restaurant.",
   "settings.fullNamePlaceholder": "Full name",
   "settings.adding": "Adding...",
   "settings.deleteTeammateQuestion": "Delete teammate?",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   deleteSeasonalMenuDesignWithAuthServer,
   getSeasonalMenuDesignWithAuthServer,
@@ -17,8 +18,10 @@ export async function GET(_req: Request, context: RouteContext) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { designId } = await context.params;
-  const result = await getSeasonalMenuDesignWithAuthServer(token, designId);
+  const result = await getSeasonalMenuDesignWithAuthServer(token, designId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -35,6 +38,8 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { designId } = await context.params;
 
@@ -72,7 +77,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     }
   }
 
-  const result = await patchSeasonalMenuDesignWithAuthServer(token, designId, input);
+  const result = await patchSeasonalMenuDesignWithAuthServer(token, designId, input, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -90,8 +95,10 @@ export async function DELETE(_req: Request, context: RouteContext) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { designId } = await context.params;
-  const result = await deleteSeasonalMenuDesignWithAuthServer(token, designId);
+  const result = await deleteSeasonalMenuDesignWithAuthServer(token, designId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

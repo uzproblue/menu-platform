@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { getSeasonalMenuDesignWithAuthServer } from "@/lib/auth-api";
 import type { SeasonalMenuDocument } from "@/lib/seasonal-menu/document-types";
 import { createEmptySeasonalMenuDocument } from "@/lib/seasonal-menu/empty-document";
@@ -18,8 +19,10 @@ export async function GET(_req: Request, context: RouteContext) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { designId } = await context.params;
-  const meta = await getSeasonalMenuDesignWithAuthServer(token, designId);
+  const meta = await getSeasonalMenuDesignWithAuthServer(token, designId, restaurantId);
   if (!meta.ok) {
     return NextResponse.json(
       { error: meta.error, message: meta.message },
@@ -51,8 +54,10 @@ export async function PUT(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { designId } = await context.params;
-  const meta = await getSeasonalMenuDesignWithAuthServer(token, designId);
+  const meta = await getSeasonalMenuDesignWithAuthServer(token, designId, restaurantId);
   if (!meta.ok) {
     return NextResponse.json(
       { error: meta.error, message: meta.message },

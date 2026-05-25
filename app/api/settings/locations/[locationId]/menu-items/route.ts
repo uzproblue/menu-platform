@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   patchLocationMenuItemsWithAuthServer,
   publishLocationMenuItemsWithAuthServer,
@@ -20,6 +21,8 @@ export async function PUT(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { locationId } = await ctx.params;
   const trimmedId = locationId?.trim();
@@ -145,7 +148,7 @@ export async function PUT(
 
   const result = await publishLocationMenuItemsWithAuthServer(token, trimmedId, {
     items,
-  });
+  }, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -324,6 +327,8 @@ export async function PATCH(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { locationId } = await ctx.params;
   const trimmedId = locationId?.trim();
   if (!trimmedId) {
@@ -388,7 +393,7 @@ export async function PATCH(
     add: addParsed.rows.length > 0 ? addParsed.rows : undefined,
     update: updateParsed.rows.length > 0 ? updateParsed.rows : undefined,
     remove: removeParsed.ids.length > 0 ? removeParsed.ids : undefined,
-  });
+  }, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

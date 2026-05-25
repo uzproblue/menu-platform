@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { revealTemporaryPasswordWithAuthServer } from "@/lib/auth-api";
 
 export async function POST(
@@ -22,7 +23,12 @@ export async function POST(
     );
   }
 
-  const result = await revealTemporaryPasswordWithAuthServer(token, trimmedId);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await revealTemporaryPasswordWithAuthServer(
+    token,
+    trimmedId,
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

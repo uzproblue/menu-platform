@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   type TranslationTextApi,
   updateMenuItemTranslationsWithAuthServer,
@@ -19,6 +20,8 @@ export async function PUT(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { itemId } = await ctx.params;
   const trimmedId = itemId?.trim();
@@ -52,7 +55,7 @@ export async function PUT(
 
   const result = await updateMenuItemTranslationsWithAuthServer(token, trimmedId, {
     translations: translations as TranslationTextApi[],
-  });
+  }, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

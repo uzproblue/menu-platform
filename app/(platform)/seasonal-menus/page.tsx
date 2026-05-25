@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth/next";
 import { SeasonalMenusListClient } from "@/app/components/seasonal-menu/seasonal-menus-list-client";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   listSeasonalMenuDesignsWithAuthServer,
   type SeasonalMenuDesignApi,
@@ -24,7 +25,8 @@ export default async function SeasonalMenusPage() {
   if (!token) {
     loadError = "unauthorized";
   } else {
-    const result = await listSeasonalMenuDesignsWithAuthServer(token);
+    const restaurantId = await getSelectedRestaurantIdFromCookies();
+    const result = await listSeasonalMenuDesignsWithAuthServer(token, restaurantId);
     if (result.ok) {
       designs = result.data.designs;
     } else {

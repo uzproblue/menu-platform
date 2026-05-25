@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   createSeasonalMenuDesignWithAuthServer,
   deleteSeasonalMenuDesignWithAuthServer,
@@ -16,7 +17,9 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const result = await listSeasonalMenuDesignsWithAuthServer(token);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
+  const result = await listSeasonalMenuDesignsWithAuthServer(token, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -33,6 +36,8 @@ export async function POST(req: Request) {
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   let body: unknown;
   try {
@@ -68,10 +73,14 @@ export async function POST(req: Request) {
         ? null
         : undefined;
 
-  const result = await createSeasonalMenuDesignWithAuthServer(token, {
-    title,
-    ...(locationId !== undefined ? { locationId } : {}),
-  });
+  const result = await createSeasonalMenuDesignWithAuthServer(
+    token,
+    {
+      title,
+      ...(locationId !== undefined ? { locationId } : {}),
+    },
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -84,7 +93,7 @@ export async function POST(req: Request) {
     createEmptySeasonalMenuDocument(),
   );
   if (!putResult.ok) {
-    await deleteSeasonalMenuDesignWithAuthServer(token, result.data.design.id);
+    await deleteSeasonalMenuDesignWithAuthServer(token, result.data.design.id, restaurantId);
     return NextResponse.json(
       { error: putResult.error, message: putResult.message ?? "failed to store canvas" },
       { status: 500 },

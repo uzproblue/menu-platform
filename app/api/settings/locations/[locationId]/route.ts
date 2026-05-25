@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   deleteLocationWithAuthServer,
   getLocationWithAuthServer,
@@ -24,6 +25,8 @@ export async function GET(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { locationId } = await ctx.params;
   const trimmedId = locationId?.trim();
   if (!trimmedId) {
@@ -33,7 +36,7 @@ export async function GET(
     );
   }
 
-  const result = await getLocationWithAuthServer(token, trimmedId);
+  const result = await getLocationWithAuthServer(token, trimmedId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -53,6 +56,8 @@ export async function PATCH(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { locationId } = await ctx.params;
   const trimmedId = locationId?.trim();
@@ -170,7 +175,7 @@ export async function PATCH(
     );
   }
 
-  const result = await updateLocationDetailsWithAuthServer(token, trimmedId, payload);
+  const result = await updateLocationDetailsWithAuthServer(token, trimmedId, payload, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -217,6 +222,8 @@ export async function DELETE(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
   const { locationId } = await ctx.params;
   const trimmedId = locationId?.trim();
   if (!trimmedId) {
@@ -226,7 +233,7 @@ export async function DELETE(
     );
   }
 
-  const result = await deleteLocationWithAuthServer(token, trimmedId);
+  const result = await deleteLocationWithAuthServer(token, trimmedId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

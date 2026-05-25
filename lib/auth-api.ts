@@ -17,9 +17,20 @@ export type UpdateProfileNameResponse = {
   name: string;
 };
 
+export type MyRestaurantsResponse = {
+  isOwner: boolean;
+  restaurants: Array<{
+    id: string;
+    name: string;
+    role: "ADMIN" | "USER" | "CHEF";
+  }>;
+  currentRestaurantId: string | null;
+};
+
 export type TeammatesResponse = {
   restaurantId: string;
   currentUserRole: "ADMIN" | "USER" | "CHEF";
+  isOwner: boolean;
   teammates: Array<{
     id: string;
     email: string;
@@ -52,7 +63,7 @@ export type CreateTeammateResponse = {
 };
 
 export type CreateTeammateInput =
-  | { email: string; name: string; role: "ADMIN" | "USER" }
+  | { email: string; name: string; role: "ADMIN" | "USER"; restaurantIds?: string[] }
   | {
       name: string;
       role: "CHEF";
@@ -425,6 +436,21 @@ function getAuthApiTransport(): AuthApiTransport | null {
   return null;
 }
 
+export const RESTAURANT_ID_HEADER = "x-restaurant-id";
+
+export function authRequestHeaders(
+  accessToken: string,
+  restaurantId?: string,
+  extra?: Record<string, string>,
+): HeadersInit {
+  const h: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    ...extra,
+  };
+  if (restaurantId) h[RESTAURANT_ID_HEADER] = restaurantId;
+  return h;
+}
+
 async function authApiFetch(
   transport: AuthApiTransport,
   path: string,
@@ -672,6 +698,7 @@ export async function resetPasswordWithAuthServer(
 export async function updateProfileNameWithAuthServer(
   accessToken: string,
   name: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateProfileNameResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -689,10 +716,9 @@ export async function updateProfileNameWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/auth/me`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify({ name }),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -728,6 +754,7 @@ export async function updatePasswordWithAuthServer(
   accessToken: string,
   currentPassword: string,
   newPassword: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true }
   | { ok: false; status: number; error: string; message?: string }
@@ -745,10 +772,9 @@ export async function updatePasswordWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/auth/me/password`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify({ currentPassword, newPassword }),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -780,8 +806,60 @@ export async function updatePasswordWithAuthServer(
   }
 }
 
+export async function getMyRestaurantsWithAuthServer(
+  accessToken: string,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: MyRestaurantsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const transport = getAuthApiTransport();
+  if (!transport) {
+    return {
+      ok: false,
+      status: 503,
+      error: "auth_api_unavailable",
+      message: AUTH_API_UNAVAILABLE_MESSAGE,
+    };
+  }
+
+  try {
+    const res = await authApiFetch(transport, `/api/auth/me/restaurants`, {
+      method: "GET",
+      headers: authRequestHeaders(accessToken, restaurantId),
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      let payload: ApiErrorResponse | null = null;
+      try {
+        payload = (await res.json()) as ApiErrorResponse;
+      } catch {
+        payload = null;
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: payload?.error ?? "request_failed",
+        message: payload?.message,
+      };
+    }
+
+    return { ok: true, data: (await res.json()) as MyRestaurantsResponse };
+  } catch {
+    return {
+      ok: false,
+      status: 502,
+      error: "upstream_unreachable",
+      message: "Could not reach auth API server",
+    };
+  }
+}
+
 export async function getTeammatesWithAuthServer(
   accessToken: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: TeammatesResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -799,9 +877,7 @@ export async function getTeammatesWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/auth/me/teammates`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -835,6 +911,7 @@ export async function getTeammatesWithAuthServer(
 export async function createTeammateWithAuthServer(
   accessToken: string,
   input: CreateTeammateInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CreateTeammateResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -852,10 +929,9 @@ export async function createTeammateWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/auth/me/teammates`, {
       method: "POST",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -890,6 +966,7 @@ export async function createTeammateWithAuthServer(
 export async function revealTemporaryPasswordWithAuthServer(
   accessToken: string,
   teammateId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: RevealTemporaryPasswordResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -907,9 +984,7 @@ export async function revealTemporaryPasswordWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/auth/me/teammates/${encodeURIComponent(teammateId)}/temporary-password`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -946,6 +1021,7 @@ export async function revealTemporaryPasswordWithAuthServer(
 export async function deleteTeammateWithAuthServer(
   accessToken: string,
   teammateId: string,
+  restaurantId?: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
   const transport = getAuthApiTransport();
   if (!transport) {
@@ -960,9 +1036,7 @@ export async function deleteTeammateWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/auth/me/teammates/${encodeURIComponent(teammateId)}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -995,6 +1069,7 @@ export async function deleteTeammateWithAuthServer(
 
 export async function getCategoriesWithAuthServer(
   accessToken: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CategoriesResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1012,7 +1087,7 @@ export async function getCategoriesWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/categories`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -1043,6 +1118,7 @@ export async function getCategoriesWithAuthServer(
 
 export async function getGlobalMenuWithAuthServer(
   accessToken: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: GlobalMenuResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1060,7 +1136,7 @@ export async function getGlobalMenuWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/global-menu`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -1092,6 +1168,7 @@ export async function getGlobalMenuWithAuthServer(
 export async function createMenuItemWithAuthServer(
   accessToken: string,
   input: CreateMenuItemInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CreateMenuItemResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1109,10 +1186,9 @@ export async function createMenuItemWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/menu-items`, {
       method: "POST",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -1146,6 +1222,7 @@ export async function updateMenuItemActivationWithAuthServer(
   accessToken: string,
   itemId: string,
   input: { isActive: boolean },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateMenuItemActivationResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1163,10 +1240,9 @@ export async function updateMenuItemActivationWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/menu-items/${encodeURIComponent(itemId)}/activation`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -1200,6 +1276,7 @@ export async function updateMenuItemWithAuthServer(
   accessToken: string,
   itemId: string,
   input: UpdateMenuItemInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateMenuItemResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1217,10 +1294,9 @@ export async function updateMenuItemWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/menu-items/${encodeURIComponent(itemId)}`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -1254,6 +1330,7 @@ export async function updateMenuItemVideoWithAuthServer(
   accessToken: string,
   itemId: string,
   input: UpdateMenuItemVideoInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateMenuItemVideoResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1274,10 +1351,9 @@ export async function updateMenuItemVideoWithAuthServer(
       `/api/menu-items/${encodeURIComponent(itemId)}/video`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId, {
+        "Content-Type": "application/json",
+      }),
         body: JSON.stringify(input),
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),
@@ -1311,6 +1387,7 @@ export async function updateMenuItemVideoWithAuthServer(
 export async function syncMenuItemTranslationsWithAuthServer(
   accessToken: string,
   itemId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: SyncMenuItemTranslationsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1331,9 +1408,7 @@ export async function syncMenuItemTranslationsWithAuthServer(
       `/api/menu-items/${encodeURIComponent(itemId)}/sync-translations`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId),
         cache: "no-store",
         signal: AbortSignal.timeout(30_000),
       },
@@ -1367,6 +1442,7 @@ export async function updateMenuItemTranslationsWithAuthServer(
   accessToken: string,
   itemId: string,
   input: { translations: TranslationTextApi[] },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateMenuItemResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1387,10 +1463,9 @@ export async function updateMenuItemTranslationsWithAuthServer(
       `/api/menu-items/${encodeURIComponent(itemId)}/translations`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId, {
+        "Content-Type": "application/json",
+      }),
         body: JSON.stringify(input),
         cache: "no-store",
         signal: AbortSignal.timeout(30_000),
@@ -1424,6 +1499,7 @@ export async function updateMenuItemTranslationsWithAuthServer(
 export async function deleteMenuItemWithAuthServer(
   accessToken: string,
   itemId: string,
+  restaurantId?: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
   const transport = getAuthApiTransport();
   if (!transport) {
@@ -1438,7 +1514,7 @@ export async function deleteMenuItemWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/menu-items/${encodeURIComponent(itemId)}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -1470,6 +1546,7 @@ export async function deleteMenuItemWithAuthServer(
 export async function createCategoryWithAuthServer(
   accessToken: string,
   input: { name: string; description?: string; coverPhoto?: string; menuSection?: MenuSection },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CategoryResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1487,10 +1564,9 @@ export async function createCategoryWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/categories`, {
       method: "POST",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -1524,12 +1600,13 @@ export async function updateCategoryWithAuthServer(
   accessToken: string,
   categoryId: string,
   input: {
-    name?: string;
-    description?: string;
-    coverPhoto?: string;
-    sortOrder?: number;
-    menuSection?: MenuSection;
+  name?: string;
+  description?: string;
+  coverPhoto?: string;
+  sortOrder?: number;
+  menuSection?: MenuSection;
   },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CategoryResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1547,10 +1624,9 @@ export async function updateCategoryWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/categories/${encodeURIComponent(categoryId)}`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -1583,6 +1659,7 @@ export async function updateCategoryWithAuthServer(
 export async function syncCategoryTranslationsWithAuthServer(
   accessToken: string,
   categoryId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: SyncCategoryTranslationsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1603,9 +1680,7 @@ export async function syncCategoryTranslationsWithAuthServer(
       `/api/categories/${encodeURIComponent(categoryId)}/sync-translations`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId),
         cache: "no-store",
         signal: AbortSignal.timeout(30_000),
       },
@@ -1639,6 +1714,7 @@ export async function updateCategoryTranslationsWithAuthServer(
   accessToken: string,
   categoryId: string,
   input: { translations: TranslationTextApi[] },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CategoryResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1659,10 +1735,9 @@ export async function updateCategoryTranslationsWithAuthServer(
       `/api/categories/${encodeURIComponent(categoryId)}/translations`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId, {
+        "Content-Type": "application/json",
+      }),
         body: JSON.stringify(input),
         cache: "no-store",
         signal: AbortSignal.timeout(30_000),
@@ -1696,6 +1771,7 @@ export async function updateCategoryTranslationsWithAuthServer(
 export async function deleteCategoryWithAuthServer(
   accessToken: string,
   categoryId: string,
+  restaurantId?: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
   const transport = getAuthApiTransport();
   if (!transport) {
@@ -1710,7 +1786,7 @@ export async function deleteCategoryWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/categories/${encodeURIComponent(categoryId)}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -1741,6 +1817,7 @@ export async function deleteCategoryWithAuthServer(
 
 export async function getLocationsWithAuthServer(
   accessToken: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: LocationsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1758,9 +1835,7 @@ export async function getLocationsWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -1793,6 +1868,7 @@ export async function getLocationsWithAuthServer(
 export async function createLocationWithAuthServer(
   accessToken: string,
   input: CreateLocationInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: CreateLocationResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1810,10 +1886,9 @@ export async function createLocationWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations`, {
       method: "POST",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -1846,6 +1921,7 @@ export async function createLocationWithAuthServer(
 export async function getLocationWithAuthServer(
   accessToken: string,
   locationId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: GetLocationResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1863,9 +1939,7 @@ export async function getLocationWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -1898,6 +1972,7 @@ export async function getLocationWithAuthServer(
 export async function getLocationMenuWithAuthServer(
   accessToken: string,
   locationId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: GlobalMenuResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1915,9 +1990,7 @@ export async function getLocationMenuWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/menu`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(30_000),
     });
@@ -1950,6 +2023,7 @@ export async function getLocationMenuWithAuthServer(
 export async function getLocationMenuItemsWithAuthServer(
   accessToken: string,
   locationId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: LocationMenuItemsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -1970,9 +2044,7 @@ export async function getLocationMenuItemsWithAuthServer(
       `/api/locations/${encodeURIComponent(locationId)}/menu-items`,
       {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId),
         cache: "no-store",
         signal: AbortSignal.timeout(30_000),
       },
@@ -2008,6 +2080,7 @@ export async function patchLocationMenuItemEnabledWithAuthServer(
   locationId: string,
   menuItemId: string,
   input: PatchLocationMenuItemEnabledInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: PatchLocationMenuItemEnabledResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2028,10 +2101,9 @@ export async function patchLocationMenuItemEnabledWithAuthServer(
       `/api/locations/${encodeURIComponent(locationId)}/menu-items/${encodeURIComponent(menuItemId)}`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId, {
+        "Content-Type": "application/json",
+      }),
         body: JSON.stringify(input),
         cache: "no-store",
         signal: AbortSignal.timeout(30_000),
@@ -2070,6 +2142,7 @@ export async function updateLocationDetailsWithAuthServer(
   accessToken: string,
   locationId: string,
   input: UpdateLocationDetailsInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateLocationDetailsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2087,10 +2160,9 @@ export async function updateLocationDetailsWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -2127,6 +2199,7 @@ export async function updateLocationDetailsWithAuthServer(
 export async function deleteLocationWithAuthServer(
   accessToken: string,
   locationId: string,
+  restaurantId?: string,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string; message?: string }> {
   const transport = getAuthApiTransport();
   if (!transport) {
@@ -2141,9 +2214,7 @@ export async function deleteLocationWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
@@ -2178,6 +2249,7 @@ export async function updateLocationActivationWithAuthServer(
   accessToken: string,
   locationId: string,
   input: { isActive: boolean },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateLocationActivationResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2195,10 +2267,9 @@ export async function updateLocationActivationWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/activation`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -2236,6 +2307,7 @@ export async function updateLocationCategoriesWithAuthServer(
   accessToken: string,
   locationId: string,
   input: { categoryIds: string[] },
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateLocationCategoriesResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2253,10 +2325,9 @@ export async function updateLocationCategoriesWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/categories`, {
       method: "PATCH",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -2294,6 +2365,7 @@ export async function publishLocationMenuItemsWithAuthServer(
   accessToken: string,
   locationId: string,
   input: PutLocationMenuItemsInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: PutLocationMenuItemsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2311,10 +2383,9 @@ export async function publishLocationMenuItemsWithAuthServer(
   try {
     const res = await authApiFetch(transport, `/api/locations/${encodeURIComponent(locationId)}/menu-items`, {
       method: "PUT",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(60_000),
@@ -2384,6 +2455,7 @@ export type DeleteSeasonalMenuDesignResponse = {
 
 export async function listSeasonalMenuDesignsWithAuthServer(
   accessToken: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: SeasonalMenuDesignsListResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2401,7 +2473,7 @@ export async function listSeasonalMenuDesignsWithAuthServer(
   try {
     const res = await authApiFetch(transport, "/api/seasonal-menu-designs", {
       method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: authRequestHeaders(accessToken, restaurantId),
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
@@ -2433,6 +2505,7 @@ export async function listSeasonalMenuDesignsWithAuthServer(
 export async function createSeasonalMenuDesignWithAuthServer(
   accessToken: string,
   input: CreateSeasonalMenuDesignInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: SeasonalMenuDesignResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2450,10 +2523,9 @@ export async function createSeasonalMenuDesignWithAuthServer(
   try {
     const res = await authApiFetch(transport, "/api/seasonal-menu-designs", {
       method: "POST",
-      headers: {
+      headers: authRequestHeaders(accessToken, restaurantId, {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify(input),
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
@@ -2486,6 +2558,7 @@ export async function createSeasonalMenuDesignWithAuthServer(
 export async function getSeasonalMenuDesignWithAuthServer(
   accessToken: string,
   designId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: SeasonalMenuDesignResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2506,7 +2579,7 @@ export async function getSeasonalMenuDesignWithAuthServer(
       `/api/seasonal-menu-designs/${encodeURIComponent(designId)}`,
       {
         method: "GET",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: authRequestHeaders(accessToken, restaurantId),
         cache: "no-store",
         signal: AbortSignal.timeout(15_000),
       },
@@ -2540,6 +2613,7 @@ export async function patchSeasonalMenuDesignWithAuthServer(
   accessToken: string,
   designId: string,
   input: PatchSeasonalMenuDesignInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: SeasonalMenuDesignResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2560,10 +2634,9 @@ export async function patchSeasonalMenuDesignWithAuthServer(
       `/api/seasonal-menu-designs/${encodeURIComponent(designId)}`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId, {
+        "Content-Type": "application/json",
+      }),
         body: JSON.stringify(input),
         cache: "no-store",
         signal: AbortSignal.timeout(15_000),
@@ -2597,6 +2670,7 @@ export async function patchSeasonalMenuDesignWithAuthServer(
 export async function deleteSeasonalMenuDesignWithAuthServer(
   accessToken: string,
   designId: string,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: DeleteSeasonalMenuDesignResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2617,7 +2691,7 @@ export async function deleteSeasonalMenuDesignWithAuthServer(
       `/api/seasonal-menu-designs/${encodeURIComponent(designId)}`,
       {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: authRequestHeaders(accessToken, restaurantId),
         cache: "no-store",
         signal: AbortSignal.timeout(15_000),
       },
@@ -2651,6 +2725,7 @@ export async function patchLocationMenuItemsWithAuthServer(
   accessToken: string,
   locationId: string,
   input: PatchLocationMenuItemsInput,
+  restaurantId?: string,
 ): Promise<
   | { ok: true; data: PatchLocationMenuItemsResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -2671,10 +2746,9 @@ export async function patchLocationMenuItemsWithAuthServer(
       `/api/locations/${encodeURIComponent(locationId)}/menu-items`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: authRequestHeaders(accessToken, restaurantId, {
+        "Content-Type": "application/json",
+      }),
         body: JSON.stringify(input),
         cache: "no-store",
         signal: AbortSignal.timeout(60_000),

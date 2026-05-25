@@ -22,6 +22,8 @@ export const ruMessages: Messages = {
   "locale.russian": "Русский",
   "locale.uzbek": "Узбекский",
   "locale.switcherLabel": "Язык",
+  "restaurant.switcherLabel": "Ресторан",
+  "restaurant.selectPrompt": "Переключить ресторан",
   "nav.home": "Главная",
   "nav.globalMenu": "Общее меню",
   "nav.globalMenuDishes": "Блюда",
@@ -112,6 +114,8 @@ export const ruMessages: Messages = {
   "settings.addTeammateTitle": "Добавить сотрудника",
   "settings.addTeammateHelp":
     "Добавьте пользователя в рабочее пространство ресторана.",
+  "settings.inviteRestaurants": "Рестораны",
+  "settings.errRestaurantsRequired": "Выберите хотя бы один ресторан.",
   "settings.fullNamePlaceholder": "Полное имя",
   "settings.adding": "Добавление...",
   "settings.deleteTeammateQuestion": "Удалить сотрудника?",

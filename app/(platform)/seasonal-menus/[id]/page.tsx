@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { SeasonalMenuDesignerClient } from "@/app/components/seasonal-menu/seasonal-menu-designer-client";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   getGlobalMenuWithAuthServer,
   getLocationMenuWithAuthServer,
@@ -31,12 +32,14 @@ export default async function SeasonalMenuEditorPage({ params }: PageProps) {
     notFound();
   }
 
-  const meta = await getSeasonalMenuDesignWithAuthServer(token, id);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+
+  const meta = await getSeasonalMenuDesignWithAuthServer(token, id, restaurantId);
   if (!meta.ok) {
     notFound();
   }
 
-  const locationsRes = await getLocationsWithAuthServer(token);
+  const locationsRes = await getLocationsWithAuthServer(token, restaurantId);
   const locations =
     locationsRes.ok ?
       locationsRes.data.locations.map((l) => ({ id: l.id, name: l.name }))
@@ -51,8 +54,8 @@ export default async function SeasonalMenuEditorPage({ params }: PageProps) {
   let initialMenuData: GlobalMenuData = { categories: [] };
   const locId = meta.data.design.locationId;
   const menuRes = locId
-    ? await getLocationMenuWithAuthServer(token, locId)
-    : await getGlobalMenuWithAuthServer(token);
+    ? await getLocationMenuWithAuthServer(token, locId, restaurantId)
+    : await getGlobalMenuWithAuthServer(token, restaurantId);
   if (menuRes.ok) {
     initialMenuData = mapGlobalMenuResponseToData(menuRes.data);
   }

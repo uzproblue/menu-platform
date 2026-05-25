@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateLocationCategoriesWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
@@ -63,9 +64,13 @@ export async function PATCH(
     categoryIds.push(x.trim());
   }
 
-  const result = await updateLocationCategoriesWithAuthServer(token, trimmedId, {
-    categoryIds,
-  });
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await updateLocationCategoriesWithAuthServer(
+    token,
+    trimmedId,
+    { categoryIds },
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

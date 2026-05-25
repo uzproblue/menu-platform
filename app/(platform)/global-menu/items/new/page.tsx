@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { NewGlobalMenuItemClient } from "@/app/components/global-menu/new-global-menu-item-client";
 import type { MenuSection } from "@/lib/data/global-menu-types";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { getCategoriesWithAuthServer } from "@/lib/auth-api";
 
 export const metadata: Metadata = {
@@ -32,7 +33,8 @@ export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalM
   if (!token) {
     categoriesLoadError = "unauthorized";
   } else {
-    const result = await getCategoriesWithAuthServer(token);
+    const restaurantId = await getSelectedRestaurantIdFromCookies();
+    const result = await getCategoriesWithAuthServer(token, restaurantId);
     if (result.ok) {
       initialCategories = result.data.categories
         .filter((c) => c.menuSection === menuSection)

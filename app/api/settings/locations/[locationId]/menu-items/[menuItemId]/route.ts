@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { patchLocationMenuItemEnabledWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
@@ -17,6 +18,8 @@ export async function PATCH(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { locationId, menuItemId } = await ctx.params;
   const trimmedLocationId = locationId?.trim();

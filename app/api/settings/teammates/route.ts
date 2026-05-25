@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
   createTeammateWithAuthServer,
   getTeammatesWithAuthServer,
@@ -13,7 +14,8 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const result = await getTeammatesWithAuthServer(token);
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const result = await getTeammatesWithAuthServer(token, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -30,6 +32,8 @@ export async function POST(req: Request) {
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   let body: unknown;
   try {
@@ -91,12 +95,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await createTeammateWithAuthServer(token, {
-      name,
-      role: "CHEF",
-      telegramPhone,
-      locationId,
-    });
+    const result = await createTeammateWithAuthServer(
+      token,
+      {
+        name,
+        role: "CHEF",
+        telegramPhone,
+        locationId,
+      },
+      restaurantId,
+    );
     if (!result.ok) {
       return NextResponse.json(
         { error: result.error, message: result.message },
@@ -122,11 +130,24 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await createTeammateWithAuthServer(token, {
-    email,
-    name,
-    role: rawRole as "ADMIN" | "USER",
-  });
+  const rawRestaurantIds = o.restaurantIds;
+  const restaurantIds = Array.isArray(rawRestaurantIds)
+    ? rawRestaurantIds
+        .filter((id): id is string => typeof id === "string")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+    : undefined;
+
+  const result = await createTeammateWithAuthServer(
+    token,
+    {
+      email,
+      name,
+      role: rawRole as "ADMIN" | "USER",
+      ...(restaurantIds?.length ? { restaurantIds } : {}),
+    },
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

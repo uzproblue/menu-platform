@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateMenuItemVideoWithAuthServer } from "@/lib/auth-api";
 
 export async function PATCH(
@@ -12,6 +13,8 @@ export async function PATCH(
   if (!token) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  const restaurantId = await getSelectedRestaurantIdFromCookies();
 
   const { itemId } = await ctx.params;
   const trimmedItemId = itemId?.trim();
@@ -66,7 +69,7 @@ export async function PATCH(
 
   const result = await updateMenuItemVideoWithAuthServer(token, trimmedItemId, {
     videoId,
-  });
+  }, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
