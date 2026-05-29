@@ -247,6 +247,13 @@ export const uzMessages: Messages = {
   "restaurants.newWizard.logoPreviewAlt": "Logo ko'rinishi",
   "restaurants.newWizard.removeLogo": "Logoni olib tashlash",
   "restaurants.newWizard.logoEmptyHint": "Lokatsiyada logo bo'lmasa, bo'sh qoldiring.",
+  "restaurants.newWizard.iikoIntegrationTitle": "iiko stop-list sinxronizatsiyasi",
+  "restaurants.newWizard.iikoIntegrationHint":
+    "iikoCloud tashkilot ID sini kiriting — stop-list vebhooklari mehmon menyusini avtomatik yangilaydi.",
+  "restaurants.newWizard.posOrganizationId": "iiko tashkilot ID",
+  "restaurants.newWizard.posOrganizationIdPlaceholder": "masalan 550e8400-e29b-41d4-a716-446655440000",
+  "restaurants.newWizard.posTerminalGroupId": "iiko terminal guruhi ID (ixtiyoriy)",
+  "restaurants.newWizard.chefAlertChatId": "Telegram ogohlantirish chat ID (ixtiyoriy)",
   "restaurants.newWizard.logoUrlOrPath": "Logo URL yoki yo'l",
   "restaurants.newWizard.categoryCoverAlt": "{name} kategoriyasi muqovasi",
   "restaurants.newWizard.previewPlaceholderName": "Restoraningiz",

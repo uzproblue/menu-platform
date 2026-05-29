@@ -235,6 +235,12 @@ export type Location = {
   translationLangs: string[];
   /** Menu category ids enabled for this location (subset of restaurant catalog). */
   enabledCategoryIds: string[];
+  /** iikoCloud organization UUID for stop-list webhook routing. */
+  posOrganizationId?: string;
+  /** Optional iiko terminal group UUID. */
+  posTerminalGroupId?: string;
+  /** Telegram chat id for staff stop-list alerts. */
+  chefAlertChatId?: string;
   isDefault: boolean;
   isActive: boolean;
   categoryCount: number;
@@ -298,6 +304,9 @@ export type UpdateLocationDetailsInput = {
   logoUrl?: string;
   address?: string | null;
   translationLangs?: string[];
+  posOrganizationId?: string | null;
+  posTerminalGroupId?: string | null;
+  chefAlertChatId?: string | null;
 };
 
 export type UpdateLocationDetailsResponse = {
@@ -309,6 +318,9 @@ export type UpdateLocationDetailsResponse = {
     logoUrl: string;
     translationLangs: string[];
     enabledCategoryIds: string[];
+    posOrganizationId?: string;
+    posTerminalGroupId?: string;
+    chefAlertChatId?: string;
     isDefault: boolean;
     isActive: boolean;
     createdAt: string;

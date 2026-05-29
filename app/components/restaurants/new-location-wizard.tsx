@@ -55,6 +55,9 @@ export function NewLocationWizard({
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoImageError, setLogoImageError] = useState<string | null>(null);
+  const [posOrganizationId, setPosOrganizationId] = useState("");
+  const [posTerminalGroupId, setPosTerminalGroupId] = useState("");
+  const [chefAlertChatId, setChefAlertChatId] = useState("");
   const maxLogoImageSizeBytes = useMemo(
     () => getMaxUploadSizeBytes("location-logo"),
     [],
@@ -137,6 +140,9 @@ export function NewLocationWizard({
             : [...DEFAULT_LOCATION_TRANSLATION_SELECTION],
         );
         setLogoUrlInput(loc.logoUrl ?? "");
+        setPosOrganizationId(loc.posOrganizationId ?? "");
+        setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
+        setChefAlertChatId(loc.chefAlertChatId ?? "");
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -384,6 +390,9 @@ export function NewLocationWizard({
               address: trimmedAddress.length ? trimmedAddress : null,
               logoUrl: logoForPatch,
               translationLangs,
+              posOrganizationId: posOrganizationId.trim() || null,
+              posTerminalGroupId: posTerminalGroupId.trim() || null,
+              chefAlertChatId: chefAlertChatId.trim() || null,
             }),
           },
         );
@@ -402,6 +411,9 @@ export function NewLocationWizard({
             : [...DEFAULT_LOCATION_TRANSLATION_SELECTION],
         );
         setLogoUrlInput(loc.logoUrl ?? "");
+        setPosOrganizationId(loc.posOrganizationId ?? "");
+        setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
+        setChefAlertChatId(loc.chefAlertChatId ?? "");
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -719,6 +731,12 @@ export function NewLocationWizard({
             logoImageError={logoImageError}
             setLogoImageError={setLogoImageError}
             maxLogoImageSizeBytes={maxLogoImageSizeBytes}
+            posOrganizationId={posOrganizationId}
+            setPosOrganizationId={setPosOrganizationId}
+            posTerminalGroupId={posTerminalGroupId}
+            setPosTerminalGroupId={setPosTerminalGroupId}
+            chefAlertChatId={chefAlertChatId}
+            setChefAlertChatId={setChefAlertChatId}
             isLoadingLocationEdit={isLoadingLocationEdit}
             editLoadError={editLoadError}
             isSavingStep1={isSavingStep1}

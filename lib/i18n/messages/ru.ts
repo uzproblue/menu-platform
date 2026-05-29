@@ -260,6 +260,13 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.removeLogo": "Убрать логотип",
   "restaurants.newWizard.logoEmptyHint":
     "Оставьте пустым, если у локации нет логотипа.",
+  "restaurants.newWizard.iikoIntegrationTitle": "Синхронизация стоп-листа iiko",
+  "restaurants.newWizard.iikoIntegrationHint":
+    "Укажите organization ID из iikoCloud — вебхуки стоп-листа будут автоматически обновлять гостевое меню.",
+  "restaurants.newWizard.posOrganizationId": "ID организации iiko",
+  "restaurants.newWizard.posOrganizationIdPlaceholder": "например 550e8400-e29b-41d4-a716-446655440000",
+  "restaurants.newWizard.posTerminalGroupId": "ID группы терминалов iiko (необязательно)",
+  "restaurants.newWizard.chefAlertChatId": "Telegram chat ID для оповещений (необязательно)",
   "restaurants.newWizard.logoUrlOrPath": "URL или путь к логотипу",
   "restaurants.newWizard.categoryCoverAlt": "Обложка категории «{name}»",
   "restaurants.newWizard.previewPlaceholderName": "Ваш ресторан",

@@ -23,6 +23,12 @@ type WizardStepBasicsProps = {
   logoImageError: string | null;
   setLogoImageError: (v: string | null) => void;
   maxLogoImageSizeBytes: number;
+  posOrganizationId: string;
+  setPosOrganizationId: (v: string) => void;
+  posTerminalGroupId: string;
+  setPosTerminalGroupId: (v: string) => void;
+  chefAlertChatId: string;
+  setChefAlertChatId: (v: string) => void;
   isLoadingLocationEdit: boolean;
   editLoadError: string | null;
   isSavingStep1: boolean;
@@ -50,6 +56,12 @@ export function WizardStepBasics({
   logoImageError,
   setLogoImageError,
   maxLogoImageSizeBytes,
+  posOrganizationId,
+  setPosOrganizationId,
+  posTerminalGroupId,
+  setPosTerminalGroupId,
+  chefAlertChatId,
+  setChefAlertChatId,
   isLoadingLocationEdit,
   editLoadError,
   isSavingStep1,
@@ -232,6 +244,55 @@ export function WizardStepBasics({
           </div>
         </div>
         <p className="text-xs text-foreground/50">{t("restaurants.newWizard.logoEmptyHint")}</p>
+      </div>
+      <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-4 space-y-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            {t("restaurants.newWizard.iikoIntegrationTitle")}
+          </p>
+          <p className="mt-1 text-xs text-foreground/55">
+            {t("restaurants.newWizard.iikoIntegrationHint")}
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-foreground/70" htmlFor="nw-pos-org">
+              {t("restaurants.newWizard.posOrganizationId")}
+            </label>
+            <input
+              id="nw-pos-org"
+              value={posOrganizationId}
+              onChange={(e) => setPosOrganizationId(e.target.value)}
+              disabled={formDisabled}
+              placeholder={t("restaurants.newWizard.posOrganizationIdPlaceholder")}
+              className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-foreground/70" htmlFor="nw-pos-tg">
+              {t("restaurants.newWizard.posTerminalGroupId")}
+            </label>
+            <input
+              id="nw-pos-tg"
+              value={posTerminalGroupId}
+              onChange={(e) => setPosTerminalGroupId(e.target.value)}
+              disabled={formDisabled}
+              className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-foreground/70" htmlFor="nw-chef-chat">
+              {t("restaurants.newWizard.chefAlertChatId")}
+            </label>
+            <input
+              id="nw-chef-chat"
+              value={chefAlertChatId}
+              onChange={(e) => setChefAlertChatId(e.target.value)}
+              disabled={formDisabled}
+              className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+        </div>
       </div>
       <div className="flex justify-end gap-2">
         <button

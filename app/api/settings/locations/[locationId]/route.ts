@@ -92,6 +92,9 @@ export async function PATCH(
     logoUrl?: string;
     address?: string | null;
     translationLangs?: string[];
+    posOrganizationId?: string | null;
+    posTerminalGroupId?: string | null;
+    chefAlertChatId?: string | null;
   } = {};
 
   if ("name" in o) {
@@ -157,19 +160,54 @@ export async function PATCH(
     }
     payload.translationLangs = parsed.value;
   }
+  if ("posOrganizationId" in o) {
+    if (o.posOrganizationId !== null && typeof o.posOrganizationId !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "posOrganizationId must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v =
+      o.posOrganizationId === null ? null : (o.posOrganizationId as string).trim();
+    payload.posOrganizationId = v?.length ? v : null;
+  }
+  if ("posTerminalGroupId" in o) {
+    if (o.posTerminalGroupId !== null && typeof o.posTerminalGroupId !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "posTerminalGroupId must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v =
+      o.posTerminalGroupId === null ? null : (o.posTerminalGroupId as string).trim();
+    payload.posTerminalGroupId = v?.length ? v : null;
+  }
+  if ("chefAlertChatId" in o) {
+    if (o.chefAlertChatId !== null && typeof o.chefAlertChatId !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "chefAlertChatId must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v = o.chefAlertChatId === null ? null : (o.chefAlertChatId as string).trim();
+    payload.chefAlertChatId = v?.length ? v : null;
+  }
 
   if (
     payload.name === undefined &&
     payload.currency === undefined &&
     payload.logoUrl === undefined &&
     payload.address === undefined &&
-    payload.translationLangs === undefined
+    payload.translationLangs === undefined &&
+    payload.posOrganizationId === undefined &&
+    payload.posTerminalGroupId === undefined &&
+    payload.chefAlertChatId === undefined
   ) {
     return NextResponse.json(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, address, translationLangs is required",
+          "at least one of name, currency, logoUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, chefAlertChatId is required",
       },
       { status: 400 },
     );
