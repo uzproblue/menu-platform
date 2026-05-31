@@ -208,9 +208,10 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
       : null;
 
   return (
-    <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <aside className="flex min-h-[320px] flex-col rounded-xl border border-foreground/10 bg-background/40">
-        <div className="border-b border-foreground/10 p-3">
+    <div className="mt-6 flex min-h-0 flex-1 flex-col sm:mt-8">
+      <div className="grid h-full min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-stretch">
+      <aside className="flex h-full min-h-0 max-h-[min(50vh,100%)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-background/40 lg:max-h-full">
+        <div className="shrink-0 border-b border-foreground/10 p-3">
           <input
             type="search"
             placeholder={t("menuItemVideos.searchItems")}
@@ -278,7 +279,7 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
         </ul>
       </aside>
 
-      <section className="rounded-xl border border-foreground/10 bg-background/40 p-5">
+      <section className="rounded-xl border border-foreground/10 bg-background/40 p-5 lg:min-h-0 lg:overflow-y-auto">
         {!selected ? (
           <p className="text-sm text-foreground/60">{t("menuItemVideos.selectItem")}</p>
         ) : (
@@ -384,6 +385,7 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }
