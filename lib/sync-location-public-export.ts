@@ -272,7 +272,7 @@ async function runCatalogChangePipeline(
       );
     } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
       console.error(
-        "[runCatalogChangePipeline] menu item translation sync skipped — set CF_AI_GATEWAY_BASE_URL and CF_AI_GATEWAY_API_KEY on menu-server",
+        "[runCatalogChangePipeline] menu item translation sync skipped — set CF_AI_GATEWAY_* on menu-server (dynamic route: BASE_URL, DYNAMIC_ROUTE, TOKEN)",
         options.itemId,
       );
     } else if ((syncRes.data.meta?.written ?? syncRes.data.translations.length) === 0) {
@@ -298,7 +298,7 @@ async function runCatalogChangePipeline(
       );
     } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
       console.error(
-        "[runCatalogChangePipeline] category translation sync skipped — set CF_AI_GATEWAY_BASE_URL and CF_AI_GATEWAY_API_KEY on menu-server",
+        "[runCatalogChangePipeline] category translation sync skipped — set CF_AI_GATEWAY_* on menu-server (dynamic route: BASE_URL, DYNAMIC_ROUTE, TOKEN)",
         options.categoryId,
       );
     }
