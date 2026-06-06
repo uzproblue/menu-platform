@@ -1,4 +1,5 @@
 import { authApiJson } from "./client";
+import type { LocationPublicExport } from "@/lib/data/location-public-export";
 import type {
   GlobalMenuResponse,
   LocationMenuItemsResponse,
@@ -9,6 +10,40 @@ import type {
   PutLocationMenuItemsInput,
   PutLocationMenuItemsResponse,
 } from "./types";
+
+export type ExportPatchChangeInput = {
+  menuItemId: string;
+  nextEnabled: boolean;
+};
+
+export type PatchLocationMenuExportInput = {
+  snapshot: LocationPublicExport;
+  changes: ExportPatchChangeInput[];
+  publicBaseUrl?: string;
+};
+
+export type PatchLocationMenuExportResponse = {
+  export: LocationPublicExport;
+};
+
+export async function patchLocationMenuExportWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  input: PatchLocationMenuExportInput,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: PatchLocationMenuExportResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<PatchLocationMenuExportResponse>({
+    path: `/api/locations/${encodeURIComponent(locationId)}/menu/export-from-patch`,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: input,
+    timeoutMs: 30_000,
+  });
+}
 
 export async function getLocationMenuWithAuthServer(
   accessToken: string,

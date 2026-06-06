@@ -3,17 +3,27 @@ import {
   getLocationMenuWithAuthServer,
   getLocationsWithAuthServer,
   getLocationWithAuthServer,
+  patchLocationMenuExportWithAuthServer,
   syncCategoryTranslationsWithAuthServer,
   syncMenuItemTranslationsWithAuthServer,
 } from "@/lib/auth-api";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
 import { buildLocationPublicExport } from "@/lib/data/location-public-export";
+import type { LocationPublicExport } from "@/lib/data/location-public-export";
 import {
+  getLocationPublicExportFromR2,
   makeLocationPublicExportObjectKey,
   putLocationPublicExportToR2,
 } from "@/lib/r2-location-export";
 import { getR2UploadConfig } from "@/lib/r2-upload";
+
+export type LocationExportMode =
+  | { kind: "full" }
+  | {
+      kind: "availability_patch";
+      changes: Array<{ menuItemId: string; enabled: boolean }>;
+    };
 
 /** Result of Cloudflare CDN purge for the public snapshot URL(s). */
 export type LocationSnapshotPurgeDetail = {
@@ -201,12 +211,13 @@ function makeDeferredLocationExportResult(
 function coalescedSyncAndPurgeLocationPublicExport(
   accessToken: string,
   locationId: string,
+  mode: LocationExportMode = { kind: "full" },
 ): Promise<LocationExportResult> {
   const key = locationId.trim();
   const existing = locationExportInFlight.get(key);
   if (existing) return existing;
 
-  const work = syncAndPurgeLocationPublicExport(accessToken, key).finally(() => {
+  const work = syncAndPurgeLocationPublicExport(accessToken, key, mode).finally(() => {
     locationExportInFlight.delete(key);
   });
   locationExportInFlight.set(key, work);
@@ -220,14 +231,16 @@ function coalescedSyncAndPurgeLocationPublicExport(
 export async function scheduleOrAwaitLocationPublicExport(
   accessToken: string,
   locationId: string,
+  mode: LocationExportMode = { kind: "full" },
 ): Promise<LocationExportResult> {
   if (isLocationExportStrict()) {
-    return coalescedSyncAndPurgeLocationPublicExport(accessToken, locationId);
+    return coalescedSyncAndPurgeLocationPublicExport(accessToken, locationId, mode);
   }
 
   const exportWork = coalescedSyncAndPurgeLocationPublicExport(
     accessToken,
     locationId,
+    mode,
   ).catch((err) => {
     console.error(
       "[scheduleOrAwaitLocationPublicExport] background sync failed",
@@ -423,40 +436,80 @@ export async function scheduleOrAwaitAllRestaurantLocationExports(
 export async function syncLocationPublicExportToR2(
   accessToken: string,
   locationId: string,
+  mode: LocationExportMode = { kind: "full" },
 ): Promise<
   | { ok: true; publicUrl: string; objectKey: string }
   | { ok: false; message: string }
 > {
   const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const [locRes, menuRes] = await Promise.all([
-    getLocationWithAuthServer(accessToken, locationId, restaurantId),
-    getLocationMenuWithAuthServer(accessToken, locationId, restaurantId),
-  ]);
-
-  if (!locRes.ok) {
-    return {
-      ok: false,
-      message: locRes.message ?? locRes.error ?? "location_fetch_failed",
-    };
-  }
-  if (!menuRes.ok) {
-    return {
-      ok: false,
-      message: menuRes.message ?? menuRes.error ?? "menu_fetch_failed",
-    };
-  }
-
   const r2Config = getR2UploadConfig();
-  const payload = buildLocationPublicExport(
-    locRes.data.location,
-    menuRes.data,
-    r2Config.publicBaseUrl,
-  );
+
+  let payload: LocationPublicExport | undefined;
+
+  if (
+    mode.kind === "availability_patch" &&
+    mode.changes.length > 0
+  ) {
+    const snapshot = await getLocationPublicExportFromR2(locationId);
+    if (snapshot) {
+      const patchRes = await patchLocationMenuExportWithAuthServer(
+        accessToken,
+        locationId,
+        {
+          snapshot,
+          changes: mode.changes.map((c) => ({
+            menuItemId: c.menuItemId,
+            nextEnabled: c.enabled,
+          })),
+          publicBaseUrl: r2Config.publicBaseUrl,
+        },
+        restaurantId,
+      );
+      if (patchRes.ok) {
+        payload = patchRes.data.export;
+      } else {
+        console.warn(
+          "[syncLocationPublicExportToR2] patch failed, falling back to full export",
+          locationId,
+          patchRes.message ?? patchRes.error,
+        );
+        mode = { kind: "full" };
+      }
+    } else {
+      mode = { kind: "full" };
+    }
+  }
+
+  if (!payload) {
+    const [locRes, menuRes] = await Promise.all([
+      getLocationWithAuthServer(accessToken, locationId, restaurantId),
+      getLocationMenuWithAuthServer(accessToken, locationId, restaurantId),
+    ]);
+
+    if (!locRes.ok) {
+      return {
+        ok: false,
+        message: locRes.message ?? locRes.error ?? "location_fetch_failed",
+      };
+    }
+    if (!menuRes.ok) {
+      return {
+        ok: false,
+        message: menuRes.message ?? menuRes.error ?? "menu_fetch_failed",
+      };
+    }
+
+    payload = buildLocationPublicExport(
+      locRes.data.location,
+      menuRes.data,
+      r2Config.publicBaseUrl,
+    );
+  }
 
   try {
     const { publicUrl, objectKey } = await putLocationPublicExportToR2(
       locationId,
-      payload,
+      payload!,
     );
     return { ok: true, publicUrl, objectKey };
   } catch (e) {
@@ -469,8 +522,9 @@ export async function syncLocationPublicExportToR2(
 export async function syncAndPurgeLocationPublicExport(
   accessToken: string,
   locationId: string,
+  mode: LocationExportMode = { kind: "full" },
 ): Promise<LocationExportResult> {
-  const syncRes = await syncLocationPublicExportToR2(accessToken, locationId);
+  const syncRes = await syncLocationPublicExportToR2(accessToken, locationId, mode);
   if (!syncRes.ok) {
     return syncRes;
   }

@@ -114,6 +114,10 @@ export async function PATCH(
   const exportResult = await scheduleOrAwaitLocationPublicExport(
     token,
     trimmedLocationId,
+    {
+      kind: "availability_patch",
+      changes: [{ menuItemId: trimmedMenuItemId, enabled: rawEnabled }],
+    },
   );
   if (!exportResult.ok) {
     console.error(

@@ -1,5 +1,5 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { brotliCompressSync } from "node:zlib";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { brotliCompressSync, brotliDecompressSync } from "node:zlib";
 import type { LocationPublicExport } from "@/lib/data/location-public-export";
 import { createR2S3Client, getR2UploadConfig } from "@/lib/r2-upload";
 
@@ -22,6 +22,35 @@ export function makeLocationPublicExportObjectKey(locationId: string): string {
     throw new Error("invalid locationId for export object key");
   }
   return `location-public/v1/${safe}.json`;
+}
+
+export async function getLocationPublicExportFromR2(
+  locationId: string,
+): Promise<LocationPublicExport | null> {
+  const config = getR2UploadConfig();
+  const client = createR2S3Client(config);
+  const objectKey = makeLocationPublicExportObjectKey(locationId);
+
+  try {
+    const res = await client.send(
+      new GetObjectCommand({
+        Bucket: config.bucket,
+        Key: objectKey,
+      }),
+    );
+    if (!res.Body) return null;
+
+    const bytes = await res.Body.transformToByteArray();
+    const encoding = res.ContentEncoding?.toLowerCase() ?? "";
+    const jsonBytes = encoding === "br" ? brotliDecompressSync(bytes) : bytes;
+    return JSON.parse(new TextDecoder().decode(jsonBytes)) as LocationPublicExport;
+  } catch (err: unknown) {
+    const name = err && typeof err === "object" && "name" in err ? String(err.name) : "";
+    if (name === "NoSuchKey" || name === "NotFound") {
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function putLocationPublicExportToR2(

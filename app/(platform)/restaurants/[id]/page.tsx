@@ -7,7 +7,6 @@ import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
-  getCategoriesWithAuthServer,
   getGlobalMenuWithAuthServer,
   getLocationMenuItemsWithAuthServer,
   getLocationWithAuthServer,
@@ -75,11 +74,10 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
 
-  const [locResult, manageResult, catalogResult, categoriesResult] = await Promise.all([
+  const [locResult, manageResult, catalogResult] = await Promise.all([
     getLocationWithAuthServer(token, decoded, restaurantId),
     getLocationMenuItemsWithAuthServer(token, decoded, restaurantId),
     getGlobalMenuWithAuthServer(token, restaurantId),
-    getCategoriesWithAuthServer(token, restaurantId),
   ]);
 
   if (!locResult.ok) {
@@ -103,15 +101,15 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     ? manageResult.data.items
     : [];
 
-  const categoriesCatalog: CategoryCatalogEntry[] = categoriesResult.ok
-    ? categoriesResult.data.categories.map((c) => ({
-        id: c.id,
-        name: c.name,
-        sortOrder: c.sortOrder,
-        itemsCount: c.itemsCount,
-        menuSection: c.menuSection === "beverages" ? "beverages" : "dishes",
-      }))
-    : [];
+  const categoriesCatalog: CategoryCatalogEntry[] = (
+    initialGlobalMenu?.categories ?? []
+  ).map((c) => ({
+    id: c.id,
+    name: c.name,
+    sortOrder: c.sortOrder,
+    itemsCount: c.items.length,
+    menuSection: c.menuSection === "beverages" ? "beverages" : "dishes",
+  }));
 
   return (
     <div className="mx-auto max-w-7xl px-0 py-6 sm:py-8">
