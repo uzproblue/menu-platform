@@ -29,6 +29,29 @@ function flattenMenuItems(data: GlobalMenuData): FlatMenuItem[] {
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function VideoListBadge({ label }: { label: string }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-400"
+      title={label}
+      aria-hidden
+    >
+      <svg
+        className="size-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="2" y="6" width="14" height="12" rx="2" />
+        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11v2z" />
+      </svg>
+    </span>
+  );
+}
+
 function bunnyEmbedUrl(libraryId: string, videoId: string): string {
   return `https://iframe.mediadelivery.net/embed/${encodeURIComponent(libraryId)}/${encodeURIComponent(videoId)}`;
 }
@@ -252,7 +275,9 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
               {t("menuItemVideos.noItems")}
             </li>
           ) : (
-            filtered.map((item) => (
+            filtered.map((item) => {
+              const hasVideo = Boolean(item.videoId?.trim());
+              return (
               <li key={item.id}>
                 <button
                   type="button"
@@ -261,20 +286,30 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
                     setActionError(null);
                     setFile(null);
                   }}
-                  className={`w-full rounded-lg px-2 py-2 text-left text-sm transition ${
+                  aria-label={
+                    hasVideo
+                      ? `${item.name}, ${item.categoryName}, ${t("menuItemVideos.hasVideo")}`
+                      : `${item.name}, ${item.categoryName}`
+                  }
+                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-sm transition ${
+                    hasVideo ? "border-l-2 border-emerald-500/50 pl-2.5" : "border-l-2 border-transparent pl-2.5"
+                  } ${
                     selectedId === item.id
                       ? "bg-foreground/10 font-medium text-foreground"
                       : "text-foreground/80 hover:bg-foreground/5"
                   }`}
                 >
-                  <span className="block truncate">{item.name}</span>
-                  <span className="mt-0.5 block truncate text-xs text-foreground/50">
-                    {item.categoryName}
-                    {item.videoId ? ` · ${t("menuItemVideos.hasVideo")}` : ""}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{item.name}</span>
+                    <span className="mt-0.5 block truncate text-xs text-foreground/50">
+                      {item.categoryName}
+                    </span>
                   </span>
+                  {hasVideo ? <VideoListBadge label={t("menuItemVideos.hasVideo")} /> : null}
                 </button>
               </li>
-            ))
+            );
+            })
           )}
         </ul>
       </aside>

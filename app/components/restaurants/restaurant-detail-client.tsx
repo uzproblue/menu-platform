@@ -13,6 +13,7 @@ import type {
   GlobalMenuData,
   MenuCategory,
   MenuItem,
+  MenuSection,
 } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { GlobalMenuCategorySection } from "@/app/components/global-menu/global-menu-category-section";
@@ -38,7 +39,42 @@ export type CategoryCatalogEntry = {
   name: string;
   sortOrder: number;
   itemsCount: number;
+  menuSection: MenuSection;
 };
+
+function resolveCategoryMenuSection(
+  id: string,
+  catalogEntry?: CategoryCatalogEntry,
+  globalCategory?: MenuCategory,
+): MenuSection {
+  if (catalogEntry?.menuSection === "beverages") return "beverages";
+  if (globalCategory?.menuSection === "beverages") return "beverages";
+  return "dishes";
+}
+
+function mergeSectionCategoryOrder(
+  fullOrder: string[],
+  section: MenuSection,
+  newSectionOrder: string[],
+  sectionOf: (id: string) => MenuSection,
+): string[] {
+  const result: string[] = [];
+  let insertedSection = false;
+  for (const id of fullOrder) {
+    if (sectionOf(id) !== section) {
+      result.push(id);
+      continue;
+    }
+    if (!insertedSection) {
+      result.push(...newSectionOrder);
+      insertedSection = true;
+    }
+  }
+  if (!insertedSection) {
+    result.push(...newSectionOrder);
+  }
+  return result;
+}
 
 type RestaurantDetailClientProps = {
   restaurant: RestaurantDisplayInfo;
@@ -196,6 +232,7 @@ export function RestaurantDetailClient({
     saving: false,
     error: null,
   });
+  const [menuTab, setMenuTab] = useState<MenuSection>("dishes");
 
   const displayName = restaurant.name.trim().length
     ? restaurant.name
@@ -274,6 +311,29 @@ export function RestaurantDetailClient({
     restaurant.currency,
   ]);
 
+  const sectionOfCategoryId = useCallback(
+    (id: string): MenuSection =>
+      resolveCategoryMenuSection(
+        id,
+        catalogById.get(id),
+        catalogCategoriesById.get(id),
+      ),
+    [catalogById, catalogCategoriesById],
+  );
+
+  const enabledCategoryIdsInTab = useMemo(
+    () => enabledCategoryIds.filter((id) => sectionOfCategoryId(id) === menuTab),
+    [enabledCategoryIds, menuTab, sectionOfCategoryId],
+  );
+
+  const visibleSections = useMemo(
+    () =>
+      enabledSections.filter(
+        (s) => sectionOfCategoryId(s.id) === menuTab,
+      ),
+    [enabledSections, menuTab, sectionOfCategoryId],
+  );
+
   const hasEnabledCategories = enabledSections.length > 0;
   const hasPublishedMenu = enabledSections.some((s) =>
     s.items.some((i) => i.locationEnabled === true),
@@ -281,6 +341,7 @@ export function RestaurantDetailClient({
 
   const modalCategories: AvailableCategory[] = useMemo(() => {
     return categoriesCatalog
+      .filter((c) => c.menuSection === menuTab)
       .map((c) => ({ id: c.id, name: c.name, itemsCount: c.itemsCount }))
       .sort(
         (a, b) =>
@@ -288,14 +349,14 @@ export function RestaurantDetailClient({
             (catalogById.get(b.id)?.sortOrder ?? 0) ||
           a.name.localeCompare(b.name),
       );
-  }, [categoriesCatalog, catalogById]);
+  }, [categoriesCatalog, catalogById, menuTab]);
 
-  const canShowAddButton = categoriesCatalog.length > 0;
-  const canReorderCategories = enabledCategoryIds.length >= 2;
+  const canShowAddButton = modalCategories.length > 0;
+  const canReorderCategories = enabledCategoryIdsInTab.length >= 2;
 
   const reorderableCategories = useMemo(
     () =>
-      enabledCategoryIds.map((id) => {
+      enabledCategoryIdsInTab.map((id) => {
         const cat = catalogById.get(id);
         const catalogCategory = catalogCategoriesById.get(id);
         return {
@@ -303,7 +364,7 @@ export function RestaurantDetailClient({
           name: cat?.name ?? catalogCategory?.name ?? id,
         };
       }),
-    [enabledCategoryIds, catalogById, catalogCategoriesById],
+    [enabledCategoryIdsInTab, catalogById, catalogCategoriesById],
   );
 
   const dismissToast = useCallback((id: string) => {
@@ -744,16 +805,22 @@ export function RestaurantDetailClient({
   }, []);
 
   const handleSaveReorder = useCallback(
-    async (orderedIds: string[]) => {
+    async (orderedSectionIds: string[]) => {
+      const mergedIds = mergeSectionCategoryOrder(
+        enabledCategoryIds,
+        menuTab,
+        orderedSectionIds,
+        sectionOfCategoryId,
+      );
       const unchanged =
-        orderedIds.length === enabledCategoryIds.length &&
-        orderedIds.every((id, i) => id === enabledCategoryIds[i]);
+        mergedIds.length === enabledCategoryIds.length &&
+        mergedIds.every((id, i) => id === enabledCategoryIds[i]);
       if (unchanged) {
         setReorderState((prev) => ({ ...prev, open: false, error: null }));
         return;
       }
       setReorderState((prev) => ({ ...prev, saving: true, error: null }));
-      const result = await patchLocationCategories(restaurant.id, orderedIds);
+      const result = await patchLocationCategories(restaurant.id, mergedIds);
       if (!result.ok) {
         setReorderState({
           open: true,
@@ -762,10 +829,10 @@ export function RestaurantDetailClient({
         });
         return;
       }
-      setEnabledCategoryIds(orderedIds);
+      setEnabledCategoryIds(mergedIds);
       setReorderState({ open: false, saving: false, error: null });
     },
-    [enabledCategoryIds, restaurant.id, t],
+    [enabledCategoryIds, menuTab, restaurant.id, sectionOfCategoryId, t],
   );
 
   const renderEditButton = useCallback(
@@ -914,25 +981,49 @@ export function RestaurantDetailClient({
             ) : null}
           </div>
         </div>
+        <div className="flex flex-wrap gap-1">
+          {(["dishes", "beverages"] as const).map((section) => (
+            <button
+              key={section}
+              type="button"
+              onClick={() => setMenuTab(section)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                menuTab === section
+                  ? "bg-foreground text-background"
+                  : "bg-foreground/10 text-foreground/70"
+              }`}
+            >
+              {section === "dishes"
+                ? t("nav.globalMenuDishes")
+                : t("nav.globalMenuBeverages")}
+            </button>
+          ))}
+        </div>
         {hasEnabledCategories ? (
-          enabledSections.map((section) => (
-            <GlobalMenuCategorySection
-              key={section.id}
-              category={{
-                id: section.id,
-                name: section.name,
-                items: section.items,
-              }}
-              onEditItem={noopEdit}
-              onToggleActive={handleToggleActive}
-              onDeleteItem={noopDelete}
-              isItemBusy={(itemId) => toggleBusyIds.has(itemId)}
-              hideEditButton
-              useLocationMenuToggle
-              headerActions={renderEditButton(section.id, section.name)}
-              emptyMessage={t("restaurantDetail.emptyCategoryHint")}
-            />
-          ))
+          visibleSections.length > 0 ? (
+            visibleSections.map((section) => (
+              <GlobalMenuCategorySection
+                key={section.id}
+                category={{
+                  id: section.id,
+                  name: section.name,
+                  items: section.items,
+                }}
+                onEditItem={noopEdit}
+                onToggleActive={handleToggleActive}
+                onDeleteItem={noopDelete}
+                isItemBusy={(itemId) => toggleBusyIds.has(itemId)}
+                hideEditButton
+                useLocationMenuToggle
+                headerActions={renderEditButton(section.id, section.name)}
+                emptyMessage={t("restaurantDetail.emptyCategoryHint")}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-foreground/55">
+              {t("restaurantDetail.menuEmptyHint")}
+            </p>
+          )
         ) : (
           <p className="text-sm text-foreground/55">{t("restaurantDetail.menuEmptyHint")}</p>
         )}
@@ -969,7 +1060,7 @@ export function RestaurantDetailClient({
       <ReorderLocationCategoriesModal
         open={reorderState.open}
         categories={reorderableCategories}
-        initialOrderIds={enabledCategoryIds}
+        initialOrderIds={enabledCategoryIdsInTab}
         saving={reorderState.saving}
         saveError={reorderState.error}
         onClose={handleCloseReorder}

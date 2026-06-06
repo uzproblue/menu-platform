@@ -109,6 +109,7 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
         name: c.name,
         sortOrder: c.sortOrder,
         itemsCount: c.itemsCount,
+        menuSection: c.menuSection === "beverages" ? "beverages" : "dishes",
       }))
     : [];
 
