@@ -102,6 +102,7 @@ export async function PATCH(
     trimmedLocationId,
     trimmedMenuItemId,
     patchInput,
+    restaurantId,
   );
   if (!result.ok) {
     return NextResponse.json(
