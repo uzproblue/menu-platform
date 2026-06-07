@@ -23,6 +23,7 @@ declare namespace Cloudflare {
 		BUNNY_STREAM_API_KEY: string;
 		NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID: string;
 		MENU_SERVER: Fetcher /* menu-server */;
+		MENU_LOYALTY: Fetcher /* menu-loyalty-worker */;
 	}
 }
 interface CloudflareEnv extends Cloudflare.Env {}

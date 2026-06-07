@@ -28,6 +28,16 @@ const topLinks: NavLinkItem[] = [
     labelKey: "nav.menuItemVideos",
     match: (p) => p.startsWith("/menu-item-videos"),
   },
+  {
+    href: "/loyalty/members",
+    labelKey: "nav.loyaltyMembers",
+    match: (p) => p.startsWith("/loyalty/members"),
+  },
+  {
+    href: "/loyalty/promotions",
+    labelKey: "nav.loyaltyPromotions",
+    match: (p) => p.startsWith("/loyalty/promotions"),
+  },
 ];
 
 const globalMenuChildren: NavLinkItem[] = [

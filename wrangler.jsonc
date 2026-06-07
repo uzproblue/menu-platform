@@ -21,6 +21,10 @@
 		{
 			"binding": "MENU_SERVER",
 			"service": "menu-server"
+		},
+		{
+			"binding": "MENU_LOYALTY",
+			"service": "menu-loyalty-worker"
 		}
 	],
 	// Auth: set in dashboard or `wrangler secret put` / vars — do not use localhost in production:

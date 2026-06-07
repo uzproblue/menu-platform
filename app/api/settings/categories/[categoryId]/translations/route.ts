@@ -53,9 +53,14 @@ export async function PUT(
     );
   }
 
-  const result = await updateCategoryTranslationsWithAuthServer(token, trimmedId, {
-    translations: translations as TranslationTextApi[],
-  }, restaurantId);
+  const result = await updateCategoryTranslationsWithAuthServer(
+    token,
+    trimmedId,
+    {
+      translations: translations as TranslationTextApi[],
+    },
+    restaurantId,
+  );
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -63,7 +68,8 @@ export async function PUT(
     );
   }
 
-  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
+  const exportBatchResult =
+    await scheduleOrAwaitAllRestaurantLocationExports(token);
   if (!exportBatchResult.ok) {
     console.error(
       "[PUT category translations] restaurant location export batch failed",
