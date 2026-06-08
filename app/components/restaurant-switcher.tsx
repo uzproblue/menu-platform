@@ -56,6 +56,11 @@ export function RestaurantSwitcher() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ restaurantId: resolvedId }),
         });
+        window.dispatchEvent(
+          new CustomEvent("restaurant-context-changed", {
+            detail: { restaurantId: resolvedId },
+          }),
+        );
         router.refresh();
       }
     } catch {

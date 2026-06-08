@@ -121,10 +121,13 @@ export function HomeDashboardCharts() {
     }
   }, []);
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async (activeRestaurantId: string | null) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/analytics/guest-dashboard", { cache: "no-store" });
+      const url = activeRestaurantId
+        ? `/api/analytics/guest-dashboard?restaurantId=${encodeURIComponent(activeRestaurantId)}`
+        : "/api/analytics/guest-dashboard";
+      const res = await fetch(url, { cache: "no-store" });
       const data = res.ok
         ? ((await res.json()) as GuestDashboardData)
         : EMPTY_DASHBOARD;
@@ -139,7 +142,7 @@ export function HomeDashboardCharts() {
   const refresh = useCallback(async () => {
     const id = await loadContext();
     setRestaurantId(id);
-    await loadDashboard();
+    await loadDashboard(id);
   }, [loadContext, loadDashboard]);
 
   useEffect(() => {
@@ -149,8 +152,9 @@ export function HomeDashboardCharts() {
   useEffect(() => {
     const onContextChange = (event: Event) => {
       const detail = (event as CustomEvent<{ restaurantId?: string }>).detail;
-      if (detail?.restaurantId) setRestaurantId(detail.restaurantId);
-      void loadDashboard();
+      const nextId = detail?.restaurantId ?? null;
+      if (nextId) setRestaurantId(nextId);
+      void loadDashboard(nextId);
     };
     window.addEventListener("restaurant-context-changed", onContextChange);
     return () => window.removeEventListener("restaurant-context-changed", onContextChange);

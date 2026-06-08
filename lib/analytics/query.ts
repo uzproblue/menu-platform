@@ -46,13 +46,14 @@ export async function queryAnalyticsEngine(sql: string): Promise<AnalyticsSqlRow
   });
 
   if (!res.ok) {
-    console.error("[analytics] SQL API HTTP error", res.status);
+    const body = await res.text().catch(() => "");
+    console.error("[analytics] SQL API HTTP error", res.status, body.slice(0, 500));
     return [];
   }
 
   const json = (await res.json()) as SqlApiResponse;
   if (!json.success) {
-    console.error("[analytics] SQL API error", json.errors);
+    console.error("[analytics] SQL API error", json.errors, "sql:", sql.slice(0, 200));
     return [];
   }
 
