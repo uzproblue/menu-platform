@@ -107,6 +107,9 @@ export function RestaurantSwitcher() {
       });
       if (!res.ok) return;
       setSelectedId(restaurantId);
+      window.dispatchEvent(
+        new CustomEvent("restaurant-context-changed", { detail: { restaurantId } }),
+      );
       router.refresh();
     } finally {
       setPending(false);

@@ -7,4 +7,5 @@ export type { RecordStaffEventInput, AnalyticsSource } from "./write";
 export { getStaffAnalyticsContext, trackStaffMutation } from "./context";
 export type { StaffAnalyticsContext } from "./context";
 export { fetchStaffDashboardData } from "./dashboard-data";
-export type { StaffDashboardData, StaffActivityDay, StaffActionCount } from "./types";
+export { fetchGuestDashboardData } from "./guest-dashboard-data";
+export type { StaffDashboardData, StaffActivityDay, StaffActionCount, GuestDashboardData } from "./types";
