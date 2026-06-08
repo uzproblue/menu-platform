@@ -1,3 +1,4 @@
+import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { PlatformEvent } from "./events";
 

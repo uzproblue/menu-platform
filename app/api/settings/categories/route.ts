@@ -11,7 +11,7 @@ import {
   postCatalogOptionsForCategory,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);

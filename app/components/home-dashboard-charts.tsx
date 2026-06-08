@@ -17,7 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { StaffDashboardData } from "@/lib/analytics/dashboard-data";
+import type { StaffDashboardData } from "@/lib/analytics/types";
 
 const activityConfig = {
   events: {

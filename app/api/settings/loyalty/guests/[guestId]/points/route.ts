@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { mutateGuestPointsWithAuthServer } from "@/lib/loyalty-api";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 type Props = { params: Promise<{ guestId: string }> };
 

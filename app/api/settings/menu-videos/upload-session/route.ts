@@ -6,7 +6,7 @@ import {
   createStreamVideo,
   getBunnyStreamConfig,
 } from "@/lib/bunny-stream";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);

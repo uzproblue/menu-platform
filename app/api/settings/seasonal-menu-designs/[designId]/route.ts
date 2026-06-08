@@ -8,7 +8,7 @@ import {
   patchSeasonalMenuDesignWithAuthServer,
 } from "@/lib/auth-api";
 import { deleteSeasonalMenuDesignFromR2 } from "@/lib/r2-seasonal-menu-design";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 type RouteContext = { params: Promise<{ designId: string }> };
 

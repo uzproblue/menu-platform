@@ -17,7 +17,7 @@ import {
   putLocationPublicExportToR2,
 } from "@/lib/r2-location-export";
 import { getR2UploadConfig } from "@/lib/r2-upload";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export type LocationExportMode =
   | { kind: "full" }

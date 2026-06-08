@@ -11,7 +11,7 @@ import {
   selectedRestaurantCookieOptions,
   SELECTED_RESTAURANT_COOKIE,
 } from "@/lib/restaurant-context";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);

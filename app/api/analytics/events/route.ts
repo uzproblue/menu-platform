@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { isClientEvent } from "@/lib/analytics/events";
-import { getStaffAnalyticsContext } from "@/lib/analytics/context";
-import { recordStaffEvent } from "@/lib/analytics/write";
+import { getStaffAnalyticsContext, recordStaffEvent } from "@/lib/analytics/server";
 
 export async function POST(req: Request) {
   const ctx = await getStaffAnalyticsContext();

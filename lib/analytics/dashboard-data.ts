@@ -1,25 +1,9 @@
+import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { queryAnalyticsEngine, restaurantFilter } from "./query";
+import type { StaffActionCount, StaffActivityDay, StaffDashboardData } from "./types";
 
-export type StaffActivityDay = {
-  date: string;
-  day: string;
-  events: number;
-  pageViews: number;
-};
-
-export type StaffActionCount = {
-  event: string;
-  count: number;
-  label: string;
-};
-
-export type StaffDashboardData = {
-  configured: boolean;
-  activityLast7Days: StaffActivityDay[];
-  topActions: StaffActionCount[];
-  locationActions: StaffActionCount[];
-};
+export type { StaffActionCount, StaffActivityDay, StaffDashboardData } from "./types";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 

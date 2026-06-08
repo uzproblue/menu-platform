@@ -9,7 +9,7 @@ import {
 } from "@/lib/auth-api";
 import { createEmptySeasonalMenuDocument } from "@/lib/seasonal-menu/empty-document";
 import { putSeasonalMenuDesignToR2 } from "@/lib/r2-seasonal-menu-design";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);

@@ -10,7 +10,7 @@ import {
   isLocationExportStrict,
   scheduleOrAwaitAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function PUT(
   req: Request,

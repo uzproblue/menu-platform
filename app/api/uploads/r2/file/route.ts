@@ -7,7 +7,7 @@ import {
   validateUploadInput,
 } from "@/lib/r2-upload";
 import { resolveRestaurantIdForR2Upload } from "@/lib/r2-upload-resolve-restaurant";
-import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 function inferContentTypeForImage(file: File): string {
   const reported = file.type.trim().toLowerCase();

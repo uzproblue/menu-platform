@@ -1,3 +1,4 @@
+import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 const SQL_API = "https://api.cloudflare.com/client/v4/accounts";
