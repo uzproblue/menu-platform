@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   Bar,
@@ -17,25 +17,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { GuestDashboardData } from "@/lib/analytics/types";
-
-const trendConfig = {
-  visitors: { label: "Visitors", color: "var(--chart-1)" },
-  pageViews: { label: "Page views", color: "var(--chart-2)" },
-  cartAdds: { label: "Cart adds", color: "var(--chart-3)" },
-} satisfies ChartConfig;
-
-const funnelConfig = {
-  count: { label: "Events", color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
-const barConfig = {
-  count: { label: "Count", color: "var(--chart-5)" },
-} satisfies ChartConfig;
-
-const hourlyConfig = {
-  count: { label: "Activity", color: "var(--chart-1)" },
-} satisfies ChartConfig;
+import { useI18n } from "@/app/components/i18n-provider";
+import type { GuestDashboardData, GuestFunnelStepKey } from "@/lib/analytics/types";
 
 function ChartCard({
   title,
@@ -76,6 +59,19 @@ function KpiCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function guestEventLabel(t: (key: string) => string, event: string, fallback: string): string {
+  const suffix = event.replace(/^guest\./, "");
+  const key = `dashboard.guestEvent.${suffix}`;
+  const translated = t(key);
+  return translated !== key ? translated : fallback;
+}
+
+function pageLabel(t: (key: string) => string, page: string): string {
+  const key = `dashboard.page.${page}`;
+  const translated = t(key);
+  return translated !== key ? translated : page;
+}
+
 const EMPTY_DASHBOARD: GuestDashboardData = {
   configured: false,
   summary: {
@@ -98,10 +94,45 @@ const EMPTY_DASHBOARD: GuestDashboardData = {
 };
 
 export function HomeDashboardCharts() {
+  const { t } = useI18n();
   const gradId = useId().replace(/:/g, "");
   const [dashboard, setDashboard] = useState<GuestDashboardData>(EMPTY_DASHBOARD);
   const [loading, setLoading] = useState(true);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+
+  const trendConfig = useMemo(
+    () =>
+      ({
+        visitors: { label: t("dashboard.series.visitors"), color: "var(--chart-1)" },
+        pageViews: { label: t("dashboard.series.pageViews"), color: "var(--chart-2)" },
+        cartAdds: { label: t("dashboard.series.cartAdds"), color: "var(--chart-3)" },
+      }) satisfies ChartConfig,
+    [t],
+  );
+
+  const funnelConfig = useMemo(
+    () =>
+      ({
+        count: { label: t("dashboard.series.events"), color: "var(--chart-4)" },
+      }) satisfies ChartConfig,
+    [t],
+  );
+
+  const barConfig = useMemo(
+    () =>
+      ({
+        count: { label: t("dashboard.series.count"), color: "var(--chart-5)" },
+      }) satisfies ChartConfig,
+    [t],
+  );
+
+  const hourlyConfig = useMemo(
+    () =>
+      ({
+        count: { label: t("dashboard.series.activity"), color: "var(--chart-1)" },
+      }) satisfies ChartConfig,
+    [t],
+  );
 
   const loadContext = useCallback(async () => {
     try {
@@ -161,18 +192,13 @@ export function HomeDashboardCharts() {
   }, [loadDashboard]);
 
   if (loading) {
-    return (
-      <p className="mt-8 text-sm text-foreground/50">Loading guest analytics…</p>
-    );
+    return <p className="mt-8 text-sm text-foreground/50">{t("dashboard.loading")}</p>;
   }
 
   if (!dashboard.configured) {
     return (
       <p className="mt-8 rounded-xl border border-foreground/10 bg-background/40 px-4 py-3 text-sm text-foreground/60">
-        Guest analytics will appear here once{" "}
-        <code className="text-xs">CF_ACCOUNT_ID</code> and{" "}
-        <code className="text-xs">CF_ANALYTICS_API_TOKEN</code> are configured on
-        the Worker.
+        {t("dashboard.notConfigured")}
       </p>
     );
   }
@@ -180,30 +206,34 @@ export function HomeDashboardCharts() {
   if (!restaurantId) {
     return (
       <p className="mt-8 rounded-xl border border-foreground/10 bg-background/40 px-4 py-3 text-sm text-foreground/60">
-        Select a restaurant to view guest menu analytics.
+        {t("dashboard.selectRestaurant")}
       </p>
     );
   }
 
   const { summary } = dashboard;
   const topItemsViewed = dashboard.topItemsViewed.map((row) => ({
-    label: row.itemId,
+    label: row.name,
     count: row.count,
   }));
   const topItemsCarted = dashboard.topItemsCarted.map((row) => ({
-    label: row.itemId,
+    label: row.name,
     count: row.count,
   }));
   const topCategories = dashboard.topCategories.map((row) => ({
-    label: row.categoryId,
+    label: row.name,
     count: row.count,
   }));
   const topPages = dashboard.topPages.map((row) => ({
-    label: row.page,
+    label: pageLabel(t, row.page),
     count: row.count,
   }));
   const eventBreakdown = dashboard.eventBreakdown.map((row) => ({
-    label: row.label,
+    label: guestEventLabel(t, row.event, row.label),
+    count: row.count,
+  }));
+  const funnelData = dashboard.funnel.map((row) => ({
+    step: t(`dashboard.funnel.${row.stepKey as GuestFunnelStepKey}`),
     count: row.count,
   }));
   const locations = dashboard.locations.map((row) => ({
@@ -215,17 +245,17 @@ export function HomeDashboardCharts() {
   return (
     <div className="mt-8 space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4">
-        <KpiCard label="Unique visitors" value={summary.uniqueVisitors} />
-        <KpiCard label="Page views" value={summary.pageViews} />
-        <KpiCard label="Cart adds" value={summary.cartAdds} />
-        <KpiCard label="Loyalty enrolls" value={summary.loyaltyEnrolls} />
+        <KpiCard label={t("dashboard.kpi.uniqueVisitors")} value={summary.uniqueVisitors} />
+        <KpiCard label={t("dashboard.kpi.pageViews")} value={summary.pageViews} />
+        <KpiCard label={t("dashboard.kpi.cartAdds")} value={summary.cartAdds} />
+        <KpiCard label={t("dashboard.kpi.loyaltyEnrolls")} value={summary.loyaltyEnrolls} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
         <ChartCard
           className="lg:col-span-2"
-          title="Guest activity (last 7 days)"
-          description="Daily unique visitors, page views, and cart adds for the selected restaurant."
+          title={t("dashboard.chart.guestActivity.title")}
+          description={t("dashboard.chart.guestActivity.description")}
         >
           <ChartContainer
             config={trendConfig}
@@ -289,11 +319,11 @@ export function HomeDashboardCharts() {
         </ChartCard>
 
         <ChartCard
-          title="Conversion funnel"
-          description="Menu open → category → item view → cart add."
+          title={t("dashboard.chart.funnel.title")}
+          description={t("dashboard.chart.funnel.description")}
         >
           <ChartContainer config={funnelConfig} className="h-[min(18rem,45vw)] w-full min-h-[200px] sm:h-64">
-            <BarChart data={dashboard.funnel} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
+            <BarChart data={funnelData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 6" />
               <XAxis dataKey="step" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
               <YAxis tickLine={false} axisLine={false} width={36} tick={{ fontSize: 11 }} />
@@ -304,8 +334,8 @@ export function HomeDashboardCharts() {
         </ChartCard>
 
         <ChartCard
-          title="Hourly activity (UTC)"
-          description="When guests browse the menu during the day."
+          title={t("dashboard.chart.hourly.title")}
+          description={t("dashboard.chart.hourly.description")}
         >
           <ChartContainer config={hourlyConfig} className="h-[min(18rem,45vw)] w-full min-h-[200px] sm:h-64">
             <BarChart data={dashboard.hourlyActivity} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
@@ -318,27 +348,39 @@ export function HomeDashboardCharts() {
           </ChartContainer>
         </ChartCard>
 
-        <ChartCard title="Top items viewed" description="Most viewed menu items this week.">
-          <HorizontalBarChart data={topItemsViewed} />
+        <ChartCard
+          title={t("dashboard.chart.topItemsViewed.title")}
+          description={t("dashboard.chart.topItemsViewed.description")}
+        >
+          <HorizontalBarChart data={topItemsViewed} config={barConfig} emptyLabel={t("dashboard.noData")} />
         </ChartCard>
 
-        <ChartCard title="Top items carted" description="Items added to cart most often.">
-          <HorizontalBarChart data={topItemsCarted} />
+        <ChartCard
+          title={t("dashboard.chart.topItemsCarted.title")}
+          description={t("dashboard.chart.topItemsCarted.description")}
+        >
+          <HorizontalBarChart data={topItemsCarted} config={barConfig} emptyLabel={t("dashboard.noData")} />
         </ChartCard>
 
-        <ChartCard title="Top categories" description="Category interactions (clicks, tabs, scroll).">
-          <HorizontalBarChart data={topCategories} />
+        <ChartCard
+          title={t("dashboard.chart.topCategories.title")}
+          description={t("dashboard.chart.topCategories.description")}
+        >
+          <HorizontalBarChart data={topCategories} config={barConfig} emptyLabel={t("dashboard.noData")} />
         </ChartCard>
 
-        <ChartCard title="Top pages" description="Guest page types visited.">
-          <HorizontalBarChart data={topPages} />
+        <ChartCard
+          title={t("dashboard.chart.topPages.title")}
+          description={t("dashboard.chart.topPages.description")}
+        >
+          <HorizontalBarChart data={topPages} config={barConfig} emptyLabel={t("dashboard.noData")} />
         </ChartCard>
 
         {locations.length > 1 ? (
           <ChartCard
             className="lg:col-span-2"
-            title="Locations"
-            description="Event volume per location for multi-location restaurants."
+            title={t("dashboard.chart.locations.title")}
+            description={t("dashboard.chart.locations.description")}
           >
             <ChartContainer config={barConfig} className="h-[min(16rem,40vw)] w-full min-h-[180px] sm:h-56">
               <BarChart
@@ -364,22 +406,32 @@ export function HomeDashboardCharts() {
         ) : null}
 
         {dashboard.languages.length > 0 ? (
-          <ChartCard title="Languages" description="Menu language picks and changes.">
+          <ChartCard
+            title={t("dashboard.chart.languages.title")}
+            description={t("dashboard.chart.languages.description")}
+          >
             <HorizontalBarChart
               data={dashboard.languages.map((row) => ({
                 label: row.lang,
                 count: row.count,
               }))}
+              config={barConfig}
+              emptyLabel={t("dashboard.noData")}
             />
           </ChartCard>
         ) : null}
 
         <ChartCard
           className="lg:col-span-2"
-          title="All guest actions"
-          description="Every tracked guest event ranked — full detail of menu behavior."
+          title={t("dashboard.chart.eventBreakdown.title")}
+          description={t("dashboard.chart.eventBreakdown.description")}
         >
-          <HorizontalBarChart data={eventBreakdown} wide />
+          <HorizontalBarChart
+            data={eventBreakdown}
+            config={barConfig}
+            emptyLabel={t("dashboard.noData")}
+            wide
+          />
         </ChartCard>
       </div>
     </div>
@@ -388,18 +440,22 @@ export function HomeDashboardCharts() {
 
 function HorizontalBarChart({
   data,
+  config,
+  emptyLabel,
   wide = false,
 }: {
   data: { label: string; count: number }[];
+  config: ChartConfig;
+  emptyLabel: string;
   wide?: boolean;
 }) {
   if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-foreground/50">No data yet</p>;
+    return <p className="py-8 text-center text-sm text-foreground/50">{emptyLabel}</p>;
   }
 
   return (
     <ChartContainer
-      config={barConfig}
+      config={config}
       className={`w-full min-h-[200px] ${wide ? "h-[min(28rem,70vw)] sm:h-96" : "h-[min(20rem,50vw)] sm:h-72"}`}
     >
       <BarChart

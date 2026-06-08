@@ -80,10 +80,10 @@ function emptyDashboard(): GuestDashboardData {
     languages: [],
     hourlyActivity: Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 })),
     funnel: [
-      { step: "Menu open", count: 0 },
-      { step: "Category", count: 0 },
-      { step: "Item view", count: 0 },
-      { step: "Cart add", count: 0 },
+      { stepKey: "menuOpen", count: 0 },
+      { stepKey: "category", count: 0 },
+      { stepKey: "itemView", count: 0 },
+      { stepKey: "cartAdd", count: 0 },
     ],
   };
 }
@@ -299,15 +299,15 @@ export async function fetchGuestDashboardData(
   }
 
   const funnel: GuestFunnelStep[] = [
-    { step: "Menu open", count: pageViews },
+    { stepKey: "menuOpen", count: pageViews },
     {
-      step: "Category",
+      stepKey: "category",
       count:
         (eventMap.get("guest.category_clicked") ?? 0) +
         (eventMap.get("guest.category_selected") ?? 0),
     },
-    { step: "Item view", count: eventMap.get("guest.item_viewed") ?? 0 },
-    { step: "Cart add", count: cartAdds },
+    { stepKey: "itemView", count: eventMap.get("guest.item_viewed") ?? 0 },
+    { stepKey: "cartAdd", count: cartAdds },
   ];
 
   const hourlyActivity = Array.from({ length: 24 }, (_, hour) => ({
@@ -336,14 +336,17 @@ export async function fetchGuestDashboardData(
     })),
     topCategories: topNFromMap(categoryCounts).map(({ key, count }) => ({
       categoryId: key,
+      name: key,
       count,
     })),
     topItemsViewed: topNFromMap(itemViewedCounts).map(({ key, count }) => ({
       itemId: key,
+      name: key,
       count,
     })),
     topItemsCarted: topNFromMap(itemCartedCounts).map(({ key, count }) => ({
       itemId: key,
+      name: key,
       count,
     })),
     locations: [...locationStats.entries()]

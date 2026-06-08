@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getMyRestaurantsWithAuthServer } from "@/lib/auth-api/teammates";
+import { enrichGuestDashboardWithCatalogNames } from "@/lib/analytics/enrich-guest-dashboard";
 import {
   fetchGuestDashboardData,
   getStaffAnalyticsContext,
@@ -35,8 +36,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const session = await getServerSession(authOptions);
+  const token = session?.accessToken;
+  if (!token) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const requestedId = new URL(req.url).searchParams.get("restaurantId");
   const restaurantId = await resolveRestaurantId(requestedId);
-  const data = await fetchGuestDashboardData(restaurantId);
+  const raw = await fetchGuestDashboardData(restaurantId);
+  const data = await enrichGuestDashboardWithCatalogNames(raw, token, restaurantId);
   return NextResponse.json(data, { status: 200 });
 }

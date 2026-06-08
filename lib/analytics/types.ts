@@ -45,8 +45,10 @@ export type GuestRankedCount = {
   count: number;
 };
 
+export type GuestFunnelStepKey = "menuOpen" | "category" | "itemView" | "cartAdd";
+
 export type GuestFunnelStep = {
-  step: string;
+  stepKey: GuestFunnelStepKey;
   count: number;
 };
 
@@ -55,9 +57,9 @@ export type GuestDashboardData = {
   summary: GuestDashboardSummary;
   dailyTrend: GuestDailyTrendDay[];
   topPages: { page: string; count: number }[];
-  topCategories: { categoryId: string; count: number }[];
-  topItemsViewed: { itemId: string; count: number }[];
-  topItemsCarted: { itemId: string; count: number }[];
+  topCategories: { categoryId: string; name: string; count: number }[];
+  topItemsViewed: { itemId: string; name: string; count: number }[];
+  topItemsCarted: { itemId: string; name: string; count: number }[];
   locations: { locationId: string; events: number; visitors: number }[];
   eventBreakdown: { event: string; count: number; label: string }[];
   languages: { lang: string; count: number }[];
