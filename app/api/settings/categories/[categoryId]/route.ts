@@ -11,6 +11,7 @@ import {
   postCatalogOptionsForCategory,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PATCH(
   req: Request,
@@ -140,6 +141,10 @@ export async function PATCH(
     }
   }
 
+  void trackStaffMutation(PlatformEvent.CATALOG_CATEGORY_UPDATED, {
+    categoryId: trimmedId,
+  });
+
   return NextResponse.json(
     {
       ...result.data,
@@ -196,6 +201,10 @@ export async function DELETE(
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.CATALOG_CATEGORY_DELETED, {
+    categoryId: trimmedId,
+  });
 
   return new NextResponse(null, { status: 204 });
 }

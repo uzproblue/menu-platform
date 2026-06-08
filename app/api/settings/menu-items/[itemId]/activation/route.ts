@@ -7,6 +7,7 @@ import {
   isLocationExportStrict,
   scheduleOrAwaitAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PATCH(
   req: Request,
@@ -78,6 +79,13 @@ export async function PATCH(
       );
     }
   }
+
+  void trackStaffMutation(
+    rawIsActive
+      ? PlatformEvent.CATALOG_MENU_ITEM_ACTIVATED
+      : PlatformEvent.CATALOG_MENU_ITEM_DEACTIVATED,
+    { itemId: trimmedItemId, enabled: rawIsActive },
+  );
 
   return NextResponse.json(
     {

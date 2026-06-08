@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import { buildLocationMenuPublicUrl } from "@/lib/location-menu-url";
+import { PlatformEvent, trackClientEvent } from "@/lib/analytics";
 
 export type QrLocationRef = { id: string; name: string };
 
@@ -64,6 +65,9 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
     document.body.appendChild(a);
     a.click();
     a.remove();
+    trackClientEvent(PlatformEvent.LOCATION_QR_DOWNLOADED, {
+      locationId: location.id,
+    });
   }, [qrDataUrl, location.id]);
 
   async function handleCopyQrMenuLink() {
@@ -71,6 +75,9 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
     setQrCopyFailed(false);
     try {
       await navigator.clipboard.writeText(qrMenuUrl);
+      trackClientEvent(PlatformEvent.LOCATION_QR_LINK_COPIED, {
+        locationId: location.id,
+      });
       setQrLinkCopied(true);
       window.setTimeout(() => setQrLinkCopied(false), 2000);
     } catch {

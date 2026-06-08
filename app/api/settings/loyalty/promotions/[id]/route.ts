@@ -7,6 +7,7 @@ import {
   updatePromotionWithAuthServer,
 } from "@/lib/loyalty-api";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -57,6 +58,8 @@ export async function PATCH(req: Request, { params }: Props) {
       { status: result.status },
     );
   }
+  void trackStaffMutation(PlatformEvent.LOYALTY_PROMOTION_UPDATED, { promotionId: id });
+
   return NextResponse.json(result.data);
 }
 
@@ -76,5 +79,7 @@ export async function DELETE(_req: Request, { params }: Props) {
       { status: result.status },
     );
   }
+  void trackStaffMutation(PlatformEvent.LOYALTY_PROMOTION_DELETED, { promotionId: id });
+
   return new NextResponse(null, { status: 204 });
 }

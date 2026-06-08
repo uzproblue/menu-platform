@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth-api";
 import { createEmptySeasonalMenuDocument } from "@/lib/seasonal-menu/empty-document";
 import { putSeasonalMenuDesignToR2 } from "@/lib/r2-seasonal-menu-design";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -99,6 +100,11 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.SEASONAL_DESIGN_CREATED, {
+    designId: result.data.design.id,
+    locationId,
+  });
 
   return NextResponse.json(result.data, { status: 201 });
 }

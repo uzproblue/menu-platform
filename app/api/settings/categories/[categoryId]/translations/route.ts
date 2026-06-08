@@ -10,6 +10,7 @@ import {
   isLocationExportStrict,
   scheduleOrAwaitAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PUT(
   req: Request,
@@ -87,6 +88,10 @@ export async function PUT(
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.CATALOG_CATEGORY_TRANSLATIONS_UPDATED, {
+    categoryId: trimmedId,
+  });
 
   return NextResponse.json(
     {

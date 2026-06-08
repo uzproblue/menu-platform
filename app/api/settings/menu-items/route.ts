@@ -12,6 +12,7 @@ import {
   postCatalogOptionsForMenuItem,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -139,6 +140,11 @@ export async function POST(req: Request) {
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.CATALOG_MENU_ITEM_CREATED, {
+    itemId,
+    categoryId,
+  });
 
   return NextResponse.json(
     {

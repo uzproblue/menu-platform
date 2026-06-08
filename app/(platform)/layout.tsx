@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AppHeader } from "../components/app-header";
 import { AppSidebar } from "../components/app-sidebar";
 import { PlatformBackground } from "../components/platform-background";
+import { PlatformPageTracker } from "../components/platform-page-tracker";
 
 export default async function PlatformLayout({
   children,
@@ -14,6 +15,7 @@ export default async function PlatformLayout({
 
   return (
     <div className="relative h-dvh min-h-0 overflow-hidden font-sans">
+      <PlatformPageTracker />
       <PlatformBackground />
       <div className="relative z-10 flex h-full min-h-0">
         <AppSidebar />

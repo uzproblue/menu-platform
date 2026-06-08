@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "./i18n-provider";
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/types";
+import { PlatformEvent, trackClientEvent } from "@/lib/analytics";
 
 export function LanguageSwitcher() {
   const { locale, setLocale, t } = useI18n();
@@ -73,6 +74,9 @@ export function LanguageSwitcher() {
                 role="menuitemradio"
                 aria-checked={active}
                 onClick={() => {
+                  if (locale !== value) {
+                    trackClientEvent(PlatformEvent.LOCALE_CHANGED, { locale: value });
+                  }
                   setLocale(value as Locale);
                   setOpen(false);
                 }}

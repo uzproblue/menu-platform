@@ -7,6 +7,7 @@ import {
   validateUploadInput,
 } from "@/lib/r2-upload";
 import { resolveRestaurantIdForR2Upload } from "@/lib/r2-upload-resolve-restaurant";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 function inferContentTypeForImage(file: File): string {
   const reported = file.type.trim().toLowerCase();
@@ -87,6 +88,11 @@ export async function POST(req: Request) {
       restaurantId: restaurantResult.restaurantId,
       body,
     });
+    void trackStaffMutation(PlatformEvent.MEDIA_R2_UPLOADED, {
+      target: parsed.target,
+      objectKey,
+    });
+
     return NextResponse.json({ objectKey, publicUrl }, { status: 200 });
   } catch {
     return NextResponse.json(

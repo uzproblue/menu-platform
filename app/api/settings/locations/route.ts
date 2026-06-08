@@ -7,6 +7,7 @@ import {
   getLocationsWithAuthServer,
 } from "@/lib/auth-api";
 import { validateTranslationLangsInput } from "@/lib/menu-translation-langs";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -107,6 +108,10 @@ export async function POST(req: Request) {
       { status: result.status },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.LOCATION_CREATED, {
+    locationId: result.data.location?.id,
+  });
 
   return NextResponse.json(result.data, { status: 201 });
 }

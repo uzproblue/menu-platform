@@ -8,6 +8,7 @@ import {
   patchSeasonalMenuDesignWithAuthServer,
 } from "@/lib/auth-api";
 import { deleteSeasonalMenuDesignFromR2 } from "@/lib/r2-seasonal-menu-design";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 type RouteContext = { params: Promise<{ designId: string }> };
 
@@ -85,6 +86,10 @@ export async function PATCH(req: Request, context: RouteContext) {
     );
   }
 
+  void trackStaffMutation(PlatformEvent.SEASONAL_DESIGN_METADATA_SAVED, {
+    designId,
+  });
+
   return NextResponse.json(result.data, { status: 200 });
 }
 
@@ -107,6 +112,8 @@ export async function DELETE(_req: Request, context: RouteContext) {
   }
 
   await deleteSeasonalMenuDesignFromR2(result.data.r2ObjectKey);
+
+  void trackStaffMutation(PlatformEvent.SEASONAL_DESIGN_DELETED, { designId });
 
   return NextResponse.json(result.data, { status: 200 });
 }

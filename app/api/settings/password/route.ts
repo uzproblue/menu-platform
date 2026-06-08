@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updatePasswordWithAuthServer } from "@/lib/auth-api";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -68,6 +69,8 @@ export async function PATCH(req: Request) {
       { status: result.status },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.ACCOUNT_PASSWORD_CHANGED);
 
   return new NextResponse(null, { status: 204 });
 }

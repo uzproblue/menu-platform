@@ -6,6 +6,7 @@ import {
   createTeammateWithAuthServer,
   getTeammatesWithAuthServer,
 } from "@/lib/auth-api";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -111,6 +112,10 @@ export async function POST(req: Request) {
         { status: result.status },
       );
     }
+    void trackStaffMutation(PlatformEvent.TEAM_TEAMMATE_INVITED, {
+      teammateRole: "CHEF",
+      locationId,
+    });
     return NextResponse.json(result.data, { status: 201 });
   }
 
@@ -154,6 +159,10 @@ export async function POST(req: Request) {
       { status: result.status },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.TEAM_TEAMMATE_INVITED, {
+    teammateRole: rawRole,
+  });
 
   return NextResponse.json(result.data, { status: 201 });
 }

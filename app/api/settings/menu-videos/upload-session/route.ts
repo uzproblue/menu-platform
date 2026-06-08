@@ -6,6 +6,7 @@ import {
   createStreamVideo,
   getBunnyStreamConfig,
 } from "@/lib/bunny-stream";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -41,6 +42,10 @@ export async function POST(req: Request) {
       { status: created.status && created.status >= 400 ? created.status : 502 },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.VIDEO_UPLOAD_SESSION_STARTED, {
+    videoId: created.videoId,
+  });
 
   const sessionPayload = buildTusUploadSession(config, created.videoId);
   return NextResponse.json(sessionPayload);

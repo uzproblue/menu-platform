@@ -11,6 +11,7 @@ import {
   selectedRestaurantCookieOptions,
   SELECTED_RESTAURANT_COOKIE,
 } from "@/lib/restaurant-context";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -83,6 +84,10 @@ export async function POST(req: Request) {
 
   const jar = await cookies();
   jar.set(selectedRestaurantCookieOptions(restaurantId));
+
+  void trackStaffMutation(PlatformEvent.RESTAURANT_CONTEXT_SWITCHED, {
+    restaurantId,
+  });
 
   return NextResponse.json(
     {

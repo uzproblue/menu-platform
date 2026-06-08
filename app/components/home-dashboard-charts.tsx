@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import {
   Area,
   Bar,
@@ -8,7 +8,6 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  LineChart,
   XAxis,
   YAxis,
 } from "recharts";
@@ -18,34 +17,30 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import dashboard from "@/lib/data/home-dashboard.json";
+import type { StaffDashboardData } from "@/lib/analytics/dashboard-data";
 
-const accessConfig = {
-  minutes: {
-    label: "Access time",
+const activityConfig = {
+  events: {
+    label: "Staff actions",
     color: "var(--chart-1)",
   },
-  sessions: {
-    label: "Sessions",
+  pageViews: {
+    label: "Page views",
     color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
 
-const categoryConfig = {
-  views: {
-    label: "Menu views",
+const topActionsConfig = {
+  count: {
+    label: "Actions",
     color: "var(--chart-3)",
   },
 } satisfies ChartConfig;
 
-const funnelConfig = {
-  qrScans: {
-    label: "QR scans",
+const locationConfig = {
+  count: {
+    label: "Location actions",
     color: "var(--chart-4)",
-  },
-  orders: {
-    label: "Orders placed",
-    color: "var(--chart-1)",
   },
 } satisfies ChartConfig;
 
@@ -75,31 +70,84 @@ function ChartCard({
   );
 }
 
+const EMPTY_DASHBOARD: StaffDashboardData = {
+  configured: false,
+  activityLast7Days: [],
+  topActions: [],
+  locationActions: [],
+};
+
 export function HomeDashboardCharts() {
   const gradId = useId().replace(/:/g, "");
-  const access = dashboard.menuAccessLast7Days;
-  const categories = dashboard.menuViewsByCategory;
-  const funnel = dashboard.qrScansVsOrders;
+  const [dashboard, setDashboard] = useState<StaffDashboardData>(EMPTY_DASHBOARD);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/analytics/dashboard")
+      .then(async (res) =>
+        res.ok ? ((await res.json()) as StaffDashboardData) : EMPTY_DASHBOARD,
+      )
+      .then((data) => {
+        if (!cancelled) setDashboard(data);
+      })
+      .catch(() => {
+        if (!cancelled) setDashboard(EMPTY_DASHBOARD);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activity = dashboard.activityLast7Days;
+  const topActions = dashboard.topActions.map((row) => ({
+    action: row.label,
+    count: row.count,
+  }));
+  const locationActions = dashboard.locationActions.map((row) => ({
+    action: row.label,
+    count: row.count,
+  }));
+
+  if (loading) {
+    return (
+      <p className="mt-8 text-sm text-foreground/50">Loading staff activity…</p>
+    );
+  }
+
+  if (!dashboard.configured) {
+    return (
+      <p className="mt-8 rounded-xl border border-foreground/10 bg-background/40 px-4 py-3 text-sm text-foreground/60">
+        Staff analytics will appear here once{" "}
+        <code className="text-xs">CF_ACCOUNT_ID</code> and{" "}
+        <code className="text-xs">CF_ANALYTICS_API_TOKEN</code> are configured on
+        the Worker. Events are already being collected via Analytics Engine.
+      </p>
+    );
+  }
 
   return (
     <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
       <ChartCard
         className="lg:col-span-2"
-        title="Menu access (last 7 days)"
-        description="Total minutes guests spent browsing your menus, and session count per day."
+        title="Staff activity (last 7 days)"
+        description="Total platform actions and page views per day for the selected restaurant."
       >
         <ChartContainer
-          config={accessConfig}
+          config={activityConfig}
           className="h-[min(22rem,55vw)] w-full min-h-[220px] sm:h-80"
         >
           <ComposedChart
             accessibilityLayer
-            data={access}
+            data={activity}
             margin={{ left: 8, right: 8, top: 8, bottom: 0 }}
           >
             <defs>
               <linearGradient
-                id={`fillMinutes-${gradId}`}
+                id={`fillEvents-${gradId}`}
                 x1="0"
                 y1="0"
                 x2="0"
@@ -107,12 +155,12 @@ export function HomeDashboardCharts() {
               >
                 <stop
                   offset="5%"
-                  stopColor="var(--color-minutes)"
+                  stopColor="var(--color-events)"
                   stopOpacity={0.35}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-minutes)"
+                  stopColor="var(--color-events)"
                   stopOpacity={0.02}
                 />
               </linearGradient>
@@ -131,7 +179,6 @@ export function HomeDashboardCharts() {
               axisLine={false}
               width={36}
               tick={{ fontSize: 11 }}
-              tickFormatter={(v) => `${v}`}
             />
             <YAxis
               yAxisId="right"
@@ -155,19 +202,19 @@ export function HomeDashboardCharts() {
             <Area
               yAxisId="left"
               type="monotone"
-              dataKey="minutes"
-              stroke="var(--color-minutes)"
+              dataKey="events"
+              stroke="var(--color-events)"
               strokeWidth={2}
-              fill={`url(#fillMinutes-${gradId})`}
+              fill={`url(#fillEvents-${gradId})`}
               fillOpacity={1}
             />
             <Line
               yAxisId="right"
               type="monotone"
-              dataKey="sessions"
-              stroke="var(--color-sessions)"
+              dataKey="pageViews"
+              stroke="var(--color-pageViews)"
               strokeWidth={2.5}
-              dot={{ r: 3, fill: "var(--color-sessions)", strokeWidth: 0 }}
+              dot={{ r: 3, fill: "var(--color-pageViews)", strokeWidth: 0 }}
               activeDot={{ r: 5 }}
             />
           </ComposedChart>
@@ -175,36 +222,36 @@ export function HomeDashboardCharts() {
       </ChartCard>
 
       <ChartCard
-        title="Menu views by category"
-        description="Static snapshot of which sections drew the most attention this week."
+        title="Top staff actions"
+        description="Most frequent platform events this week."
       >
         <ChartContainer
-          config={categoryConfig}
+          config={topActionsConfig}
           className="h-[min(20rem,50vw)] w-full min-h-[220px] sm:h-72"
         >
           <BarChart
             accessibilityLayer
-            data={categories}
+            data={topActions}
             layout="vertical"
             margin={{ left: 4, right: 12, top: 8, bottom: 0 }}
           >
             <CartesianGrid horizontal={false} strokeDasharray="3 6" />
             <XAxis type="number" hide />
             <YAxis
-              dataKey="category"
+              dataKey="action"
               type="category"
-              width={92}
+              width={120}
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 10 }}
             />
             <ChartTooltip
               cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
               content={<ChartTooltipContent hideLabel />}
             />
             <Bar
-              dataKey="views"
-              fill="var(--color-views)"
+              dataKey="count"
+              fill="var(--color-count)"
               radius={[0, 10, 10, 0]}
               maxBarSize={28}
             />
@@ -213,59 +260,40 @@ export function HomeDashboardCharts() {
       </ChartCard>
 
       <ChartCard
-        title="QR scans vs orders"
-        description="Compare digital menu opens with completed orders — spot conversion trends."
+        title="Location management"
+        description="Location-related staff actions — publishes, toggles, and edits."
       >
         <ChartContainer
-          config={funnelConfig}
+          config={locationConfig}
           className="h-[min(20rem,50vw)] w-full min-h-[220px] sm:h-72"
         >
-          <LineChart
+          <BarChart
             accessibilityLayer
-            data={funnel}
-            margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
+            data={locationActions}
+            layout="vertical"
+            margin={{ left: 4, right: 12, top: 8, bottom: 0 }}
           >
-            <CartesianGrid vertical={false} strokeDasharray="3 6" />
-            <XAxis
-              dataKey="day"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={10}
-              tick={{ fontSize: 11 }}
-            />
+            <CartesianGrid horizontal={false} strokeDasharray="3 6" />
+            <XAxis type="number" hide />
             <YAxis
+              dataKey="action"
+              type="category"
+              width={120}
               tickLine={false}
               axisLine={false}
-              width={40}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 10 }}
             />
             <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { date?: string };
-                    return row?.date ?? "";
-                  }}
-                />
-              }
+              cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
+              content={<ChartTooltipContent hideLabel />}
             />
-            <Line
-              type="monotone"
-              dataKey="qrScans"
-              stroke="var(--color-qrScans)"
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={{ r: 4 }}
+            <Bar
+              dataKey="count"
+              fill="var(--color-count)"
+              radius={[0, 10, 10, 0]}
+              maxBarSize={28}
             />
-            <Line
-              type="monotone"
-              dataKey="orders"
-              stroke="var(--color-orders)"
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-          </LineChart>
+          </BarChart>
         </ChartContainer>
       </ChartCard>
     </div>

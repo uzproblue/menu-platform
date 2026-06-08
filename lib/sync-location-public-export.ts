@@ -17,6 +17,7 @@ import {
   putLocationPublicExportToR2,
 } from "@/lib/r2-location-export";
 import { getR2UploadConfig } from "@/lib/r2-upload";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export type LocationExportMode =
   | { kind: "full" }
@@ -233,6 +234,11 @@ export async function scheduleOrAwaitLocationPublicExport(
   locationId: string,
   mode: LocationExportMode = { kind: "full" },
 ): Promise<LocationExportResult> {
+  void trackStaffMutation(PlatformEvent.PIPELINE_LOCATION_EXPORT_SCHEDULED, {
+    locationId,
+    exportMode: mode.kind,
+  });
+
   if (isLocationExportStrict()) {
     return coalescedSyncAndPurgeLocationPublicExport(accessToken, locationId, mode);
   }
@@ -403,6 +409,13 @@ export async function schedulePostCatalogChangePipeline(
   accessToken: string,
   options: PostCatalogChangeOptions,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
+  void trackStaffMutation(PlatformEvent.PIPELINE_CATALOG_CHANGE_SCHEDULED, {
+    itemId: options.itemId,
+    categoryId: options.categoryId,
+    textFieldsChanged: options.textFieldsChanged,
+    syncTranslations: options.syncTranslations,
+  });
+
   if (isLocationExportStrict()) {
     return runCatalogChangePipeline(accessToken, options);
   }
@@ -424,6 +437,8 @@ export async function schedulePostCatalogChangePipeline(
 export async function scheduleOrAwaitAllRestaurantLocationExports(
   accessToken: string,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
+  void trackStaffMutation(PlatformEvent.PIPELINE_ALL_LOCATIONS_EXPORT_SCHEDULED);
+
   return schedulePostCatalogChangePipeline(accessToken, {
     textFieldsChanged: false,
   });

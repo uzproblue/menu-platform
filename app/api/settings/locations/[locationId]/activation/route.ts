@@ -8,6 +8,7 @@ import {
   scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PATCH(
   req: Request,
@@ -80,6 +81,11 @@ export async function PATCH(
       );
     }
   }
+
+  void trackStaffMutation(
+    rawIsActive ? PlatformEvent.LOCATION_ACTIVATED : PlatformEvent.LOCATION_DEACTIVATED,
+    { locationId: trimmedId, enabled: rawIsActive },
+  );
 
   return NextResponse.json(
     {

@@ -11,6 +11,7 @@ import {
   scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PUT(
   req: Request,
@@ -175,6 +176,11 @@ export async function PUT(
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.LOCATION_MENU_PUBLISHED, {
+    locationId: trimmedId,
+    itemCount: items.length,
+  });
 
   return NextResponse.json(
     {
@@ -420,6 +426,13 @@ export async function PATCH(
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.LOCATION_MENU_ITEMS_BULK_UPDATED, {
+    locationId: trimmedId,
+    added: addParsed.rows.length,
+    updated: updateParsed.rows.length,
+    removed: removeParsed.ids.length,
+  });
 
   return NextResponse.json(
     {

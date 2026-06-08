@@ -8,6 +8,7 @@ import {
   scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PATCH(
   req: Request,
@@ -137,6 +138,12 @@ export async function PATCH(
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.LOCATION_MENU_ITEM_TOGGLED, {
+    locationId: trimmedLocationId,
+    menuItemId: trimmedMenuItemId,
+    enabled: rawEnabled,
+  });
 
   return NextResponse.json({
     ...result.data,

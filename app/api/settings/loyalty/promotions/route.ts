@@ -6,6 +6,7 @@ import {
   listPromotionsWithAuthServer,
 } from "@/lib/loyalty-api";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -51,5 +52,9 @@ export async function POST(req: Request) {
       { status: result.status },
     );
   }
+  void trackStaffMutation(PlatformEvent.LOYALTY_PROMOTION_CREATED, {
+    promotionId: result.data.promotion?.id,
+  });
+
   return NextResponse.json(result.data, { status: 201 });
 }

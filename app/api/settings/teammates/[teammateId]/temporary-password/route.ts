@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { revealTemporaryPasswordWithAuthServer } from "@/lib/auth-api";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function POST(
   _req: Request,
@@ -35,6 +36,10 @@ export async function POST(
       { status: result.status },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.TEAM_TEMPORARY_PASSWORD_REVEALED, {
+    teammateId: trimmedId,
+  });
 
   return NextResponse.json(result.data, { status: 201 });
 }

@@ -9,6 +9,7 @@ import {
   getSeasonalMenuDesignFromR2,
   putSeasonalMenuDesignToR2,
 } from "@/lib/r2-seasonal-menu-design";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 type RouteContext = { params: Promise<{ designId: string }> };
 
@@ -94,6 +95,8 @@ export async function PUT(req: Request, context: RouteContext) {
       { status: putResult.error === "too_large" ? 413 : 400 },
     );
   }
+
+  void trackStaffMutation(PlatformEvent.SEASONAL_DOCUMENT_SAVED, { designId });
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }

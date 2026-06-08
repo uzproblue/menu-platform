@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateMenuItemVideoWithAuthServer } from "@/lib/auth-api";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function PATCH(
   req: Request,
@@ -76,6 +77,11 @@ export async function PATCH(
       { status: result.status },
     );
   }
+
+  void trackStaffMutation(
+    videoId ? PlatformEvent.VIDEO_LINKED_TO_ITEM : PlatformEvent.VIDEO_REMOVED_FROM_ITEM,
+    { itemId: trimmedItemId, videoId },
+  );
 
   return NextResponse.json(result.data, { status: 200 });
 }

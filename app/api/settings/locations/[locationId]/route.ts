@@ -14,6 +14,7 @@ import {
   scheduleOrAwaitLocationPublicExport,
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
+import { PlatformEvent, trackStaffMutation } from "@/lib/analytics";
 
 export async function GET(
   _req: Request,
@@ -241,6 +242,8 @@ export async function PATCH(
     }
   }
 
+  void trackStaffMutation(PlatformEvent.LOCATION_UPDATED, { locationId: trimmedId });
+
   return NextResponse.json(
     {
       ...result.data,
@@ -296,6 +299,8 @@ export async function DELETE(
       );
     }
   }
+
+  void trackStaffMutation(PlatformEvent.LOCATION_DELETED, { locationId: trimmedId });
 
   return new NextResponse(null, { status: 204 });
 }

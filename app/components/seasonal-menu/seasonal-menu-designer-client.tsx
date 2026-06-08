@@ -22,6 +22,7 @@ import { useTemplateFontsReady } from "@/lib/seasonal-menu/use-template-fonts-re
 import type { SeasonalMenuTemplateId, SeasonalMenuTemplateTheme } from "@/lib/seasonal-menu/templates/types";
 import { LAYOUT } from "@/lib/seasonal-menu/templates/types";
 import { useI18n } from "@/app/components/i18n-provider";
+import { PlatformEvent, trackClientEvent } from "@/lib/analytics";
 import { MenuItemsPanel } from "@/app/components/seasonal-menu/menu-items-panel";
 import { SeasonalMenuToolbar } from "@/app/components/seasonal-menu/seasonal-menu-toolbar";
 import {
@@ -272,10 +273,11 @@ export function SeasonalMenuDesignerClient({
     }
     try {
       downloadStageAsA4Pdf(stage, title.trim() || "seasonal-menu");
+      trackClientEvent(PlatformEvent.SEASONAL_PDF_EXPORTED, { designId: design.id });
     } catch {
       setSaveError(t("seasonalMenu.exportFailed"));
     }
-  }, [fontsReady, persist, title, t]);
+  }, [fontsReady, persist, title, t, design.id]);
 
   const handleWizardComplete = useCallback(
     (result: TemplateSetupResult) => {
