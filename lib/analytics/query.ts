@@ -5,14 +5,19 @@ const SQL_API = "https://api.cloudflare.com/client/v4/accounts";
 
 export type AnalyticsSqlRow = Record<string, string | number | null>;
 
-type SqlApiResponse = {
+/** Direct SQL API body — see Cloudflare “Querying from a Worker” docs. */
+type SqlDirectResponse = {
+  meta?: Array<{ name: string; type: string }>;
+  data?: AnalyticsSqlRow[];
+  rows?: number;
+  error?: string;
+};
+
+/** Occasional v4 envelope wrapper (not used by analytics_engine/sql in practice). */
+type SqlV4Response = {
   success?: boolean;
-  errors?: Array<{ message: string }>;
-  result?: {
-    data?: AnalyticsSqlRow[];
-    meta?: Array<{ name: string; type: string }>;
-    rows?: number;
-  };
+  errors?: Array<{ message: string }> | null;
+  result?: SqlDirectResponse;
 };
 
 function escapeSqlString(value: string): string {
@@ -51,13 +56,34 @@ export async function queryAnalyticsEngine(sql: string): Promise<AnalyticsSqlRow
     return [];
   }
 
-  const json = (await res.json()) as SqlApiResponse;
-  if (!json.success) {
+  const json = (await res.json()) as SqlDirectResponse & SqlV4Response;
+
+  // analytics_engine/sql returns { meta, data, rows } at the top level (no success flag).
+  if (Array.isArray(json.data)) {
+    return json.data;
+  }
+
+  if (json.result && Array.isArray(json.result.data)) {
+    return json.result.data;
+  }
+
+  if (json.success === false) {
     console.error("[analytics] SQL API error", json.errors, "sql:", sql.slice(0, 200));
     return [];
   }
 
-  return json.result?.data ?? [];
+  if (typeof json.error === "string" && json.error.length > 0) {
+    console.error("[analytics] SQL API error", json.error, "sql:", sql.slice(0, 200));
+    return [];
+  }
+
+  console.error(
+    "[analytics] SQL API unexpected response",
+    JSON.stringify(json).slice(0, 500),
+    "sql:",
+    sql.slice(0, 200),
+  );
+  return [];
 }
 
 export function restaurantFilter(restaurantId: string | null): string {
