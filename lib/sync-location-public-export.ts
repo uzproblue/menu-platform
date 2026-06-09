@@ -17,7 +17,20 @@ import {
   putLocationPublicExportToR2,
 } from "@/lib/r2-location-export";
 import { getR2UploadConfig } from "@/lib/r2-upload";
+import {
+  EMPTY_CATALOG_PIPELINE_OPTIONS,
+  mergeCatalogPipelineOptions,
+  postCatalogOptionsForCategory,
+  postCatalogOptionsForMenuItem,
+  type PostCatalogChangeOptions,
+} from "@/lib/catalog-pipeline-options";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
+
+export {
+  postCatalogOptionsForCategory,
+  postCatalogOptionsForMenuItem,
+  type PostCatalogChangeOptions,
+} from "@/lib/catalog-pipeline-options";
 
 export type LocationExportMode =
   | { kind: "full" }
@@ -67,54 +80,6 @@ const catalogPipelineRunners = new Set<string>();
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export type PostCatalogChangeOptions = {
-  textFieldsChanged: boolean;
-  /** When set, runs POST sync-translations (Gemini). Merged with OR across debounced saves. */
-  syncTranslations?: boolean;
-  itemId?: string;
-  categoryId?: string;
-};
-
-function shouldSyncItemTranslations(options: PostCatalogChangeOptions): boolean {
-  if (!options.itemId) return false;
-  return options.syncTranslations === true || options.textFieldsChanged === true;
-}
-
-function shouldSyncCategoryTranslations(options: PostCatalogChangeOptions): boolean {
-  if (!options.categoryId) return false;
-  return options.syncTranslations === true || options.textFieldsChanged === true;
-}
-
-/** When name/description changed or the item still has no guest translation rows. */
-export function postCatalogOptionsForMenuItem(
-  itemId: string,
-  item: { translations?: unknown[] },
-  meta?: { textFieldsChanged?: boolean },
-): PostCatalogChangeOptions {
-  const textFieldsChanged = meta?.textFieldsChanged === true;
-  const translationsMissing = (item.translations?.length ?? 0) === 0;
-  return {
-    textFieldsChanged,
-    syncTranslations: textFieldsChanged || translationsMissing,
-    itemId,
-  };
-}
-
-/** When name/description changed or the category still has no guest translation rows. */
-export function postCatalogOptionsForCategory(
-  categoryId: string,
-  category: { translations?: unknown[] },
-  meta?: { textFieldsChanged?: boolean },
-): PostCatalogChangeOptions {
-  const textFieldsChanged = meta?.textFieldsChanged === true;
-  const translationsMissing = (category.translations?.length ?? 0) === 0;
-  return {
-    textFieldsChanged,
-    syncTranslations: textFieldsChanged || translationsMissing,
-    categoryId,
-  };
 }
 
 function makeDeferredBatchExportResult(): SyncAndPurgeAllLocationExportsResult {
@@ -276,52 +241,54 @@ async function runCatalogChangePipeline(
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
   const restaurantId = await getSelectedRestaurantIdFromCookies();
 
-  if (shouldSyncItemTranslations(options)) {
-    const syncRes = await syncMenuItemTranslationsWithAuthServer(
-      accessToken,
-      options.itemId!,
-      restaurantId,
-    );
-    if (!syncRes.ok) {
-      console.error(
-        "[runCatalogChangePipeline] menu item translation sync failed",
-        options.itemId,
-        syncRes.error,
-        syncRes.message,
+  await Promise.all([
+    ...options.itemIdsToSync.map(async (itemId) => {
+      const syncRes = await syncMenuItemTranslationsWithAuthServer(
+        accessToken,
+        itemId,
+        restaurantId,
       );
-    } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
-      console.error(
-        "[runCatalogChangePipeline] menu item translation sync skipped — set CF_AI_GATEWAY_* on menu-server (dynamic route: BASE_URL, DYNAMIC_ROUTE, TOKEN)",
-        options.itemId,
+      if (!syncRes.ok) {
+        console.error(
+          "[runCatalogChangePipeline] menu item translation sync failed",
+          itemId,
+          syncRes.error,
+          syncRes.message,
+        );
+      } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
+        console.error(
+          "[runCatalogChangePipeline] menu item translation sync skipped — set CF_AI_GATEWAY_* on menu-server (dynamic route: BASE_URL, DYNAMIC_ROUTE, TOKEN)",
+          itemId,
+        );
+      } else if ((syncRes.data.meta?.written ?? syncRes.data.translations.length) === 0) {
+        console.warn(
+          "[runCatalogChangePipeline] menu item translation sync returned no rows",
+          itemId,
+          syncRes.data.meta?.skippedReason,
+        );
+      }
+    }),
+    ...options.categoryIdsToSync.map(async (categoryId) => {
+      const syncRes = await syncCategoryTranslationsWithAuthServer(
+        accessToken,
+        categoryId,
+        restaurantId,
       );
-    } else if ((syncRes.data.meta?.written ?? syncRes.data.translations.length) === 0) {
-      console.warn(
-        "[runCatalogChangePipeline] menu item translation sync returned no rows",
-        options.itemId,
-        syncRes.data.meta?.skippedReason,
-      );
-    }
-  }
-  if (shouldSyncCategoryTranslations(options)) {
-    const syncRes = await syncCategoryTranslationsWithAuthServer(
-      accessToken,
-      options.categoryId!,
-      restaurantId,
-    );
-    if (!syncRes.ok) {
-      console.error(
-        "[runCatalogChangePipeline] category translation sync failed",
-        options.categoryId,
-        syncRes.error,
-        syncRes.message,
-      );
-    } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
-      console.error(
-        "[runCatalogChangePipeline] category translation sync skipped — set CF_AI_GATEWAY_* on menu-server (dynamic route: BASE_URL, DYNAMIC_ROUTE, TOKEN)",
-        options.categoryId,
-      );
-    }
-  }
+      if (!syncRes.ok) {
+        console.error(
+          "[runCatalogChangePipeline] category translation sync failed",
+          categoryId,
+          syncRes.error,
+          syncRes.message,
+        );
+      } else if (syncRes.data.meta?.skippedReason === "unconfigured") {
+        console.error(
+          "[runCatalogChangePipeline] category translation sync skipped — set CF_AI_GATEWAY_* on menu-server (dynamic route: BASE_URL, DYNAMIC_ROUTE, TOKEN)",
+          categoryId,
+        );
+      }
+    }),
+  ]);
 
   const exportResult = await syncAndPurgeAllRestaurantLocationExports(accessToken);
   if (!exportResult.ok) {
@@ -331,20 +298,6 @@ async function runCatalogChangePipeline(
     );
   }
   return exportResult;
-}
-
-function mergeCatalogPipelineOptions(
-  current: PostCatalogChangeOptions,
-  next: PostCatalogChangeOptions,
-): PostCatalogChangeOptions {
-  return {
-    textFieldsChanged: current.textFieldsChanged || next.textFieldsChanged,
-    syncTranslations:
-      (current.syncTranslations ?? current.textFieldsChanged) ||
-      (next.syncTranslations ?? next.textFieldsChanged),
-    itemId: next.itemId ?? current.itemId,
-    categoryId: next.categoryId ?? current.categoryId,
-  };
 }
 
 /**
@@ -410,10 +363,8 @@ export async function schedulePostCatalogChangePipeline(
   options: PostCatalogChangeOptions,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
   void trackStaffMutation(PlatformEvent.PIPELINE_CATALOG_CHANGE_SCHEDULED, {
-    itemId: options.itemId,
-    categoryId: options.categoryId,
-    textFieldsChanged: options.textFieldsChanged,
-    syncTranslations: options.syncTranslations,
+    itemIdsToSync: options.itemIdsToSync.length,
+    categoryIdsToSync: options.categoryIdsToSync.length,
   });
 
   if (isLocationExportStrict()) {
@@ -439,9 +390,7 @@ export async function scheduleOrAwaitAllRestaurantLocationExports(
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
   void trackStaffMutation(PlatformEvent.PIPELINE_ALL_LOCATIONS_EXPORT_SCHEDULED);
 
-  return schedulePostCatalogChangePipeline(accessToken, {
-    textFieldsChanged: false,
-  });
+  return schedulePostCatalogChangePipeline(accessToken, EMPTY_CATALOG_PIPELINE_OPTIONS);
 }
 
 /**

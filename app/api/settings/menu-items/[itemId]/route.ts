@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { deleteMenuItemWithAuthServer, updateMenuItemWithAuthServer } from "@/lib/auth-api";
+import { EMPTY_CATALOG_PIPELINE_OPTIONS } from "@/lib/catalog-pipeline-options";
 import {
   isLocationExportStrict,
   postCatalogOptionsForMenuItem,
@@ -170,9 +171,10 @@ export async function DELETE(
     );
   }
 
-  const exportBatchResult = await schedulePostCatalogChangePipeline(token, {
-    textFieldsChanged: false,
-  });
+  const exportBatchResult = await schedulePostCatalogChangePipeline(
+    token,
+    EMPTY_CATALOG_PIPELINE_OPTIONS,
+  );
   if (!exportBatchResult.ok) {
     console.error(
       "[DELETE menu-item] restaurant location export batch failed",

@@ -8,6 +8,7 @@
     "build:next": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --experimental-strip-types --test lib/catalog-pipeline-options.test.ts",
     "cf:build": "opennextjs-cloudflare build",
     "preview": "pnpm run cf:build && opennextjs-cloudflare preview",
     "deploy": "pnpm run cf:build && opennextjs-cloudflare deploy",

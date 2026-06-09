@@ -6,6 +6,7 @@ import {
   deleteCategoryWithAuthServer,
   updateCategoryWithAuthServer,
 } from "@/lib/auth-api";
+import { EMPTY_CATALOG_PIPELINE_OPTIONS } from "@/lib/catalog-pipeline-options";
 import {
   isLocationExportStrict,
   postCatalogOptionsForCategory,
@@ -182,9 +183,10 @@ export async function DELETE(
     );
   }
 
-  const exportBatchResult = await schedulePostCatalogChangePipeline(token, {
-    textFieldsChanged: false,
-  });
+  const exportBatchResult = await schedulePostCatalogChangePipeline(
+    token,
+    EMPTY_CATALOG_PIPELINE_OPTIONS,
+  );
   if (!exportBatchResult.ok) {
     console.error(
       "[DELETE category] restaurant location export batch failed",
