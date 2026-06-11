@@ -250,9 +250,16 @@ export const enMessages: Messages = {
   "restaurants.defaultLocation": "Default",
   "restaurants.toggle": "Toggle",
   "restaurants.qrCode": "QR code",
-  "restaurants.qrModalTitle": "QR code for {name}",
+  "restaurants.qrModalTitle": "Table QR codes for {name}",
   "restaurants.qrModalBody":
-    "Guests scan the code or use the link below to open the public menu for this location.",
+    "Each table has its own QR code. Guests scan a code to open the menu for that table.",
+  "restaurants.qrTablesLoading": "Loading tables...",
+  "restaurants.qrTablesLoadError": "Could not load tables for this location.",
+  "restaurants.qrTablesRetry": "Try again",
+  "restaurants.qrTablesEmpty":
+    "No tables imported for this location yet. Run the dining-tables import script on the server.",
+  "restaurants.qrTableNumber": "Table {number}",
+  "restaurants.qrTableIdLabel": "Table ID",
   "restaurants.qrCopyLink": "Copy link",
   "restaurants.qrLinkCopied": "Copied",
   "restaurants.qrCopyFailed": "Could not copy. Select the link and copy manually.",

@@ -243,9 +243,16 @@ export const uzMessages: Messages = {
   "restaurants.defaultLocation": "Asosiy",
   "restaurants.toggle": "Almashtirish",
   "restaurants.qrCode": "QR kod",
-  "restaurants.qrModalTitle": "{name} uchun QR kod",
+  "restaurants.qrModalTitle": "{name} uchun stol QR kodlari",
   "restaurants.qrModalBody":
-    "Mehmonlar kodni skanerlaydi yoki quyidagi havola orqali bu lokatsiya uchun ochiq menyuni ochadi.",
+    "Har bir stolning o'z QR kodi bor. Mehmonlar shu stol uchun menyuni ochish uchun kodni skanerlaydi.",
+  "restaurants.qrTablesLoading": "Stollar yuklanmoqda...",
+  "restaurants.qrTablesLoadError": "Bu lokatsiya uchun stollarni yuklab bo'lmadi.",
+  "restaurants.qrTablesRetry": "Qayta urinish",
+  "restaurants.qrTablesEmpty":
+    "Bu lokatsiya uchun stollar hali import qilinmagan. Serverda stollar import skriptini ishga tushiring.",
+  "restaurants.qrTableNumber": "Stol {number}",
+  "restaurants.qrTableIdLabel": "Stol ID",
   "restaurants.qrCopyLink": "Havoladan nusxa",
   "restaurants.qrLinkCopied": "Nusxa olindi",
   "restaurants.qrCopyFailed":

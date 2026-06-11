@@ -247,9 +247,16 @@ export const ruMessages: Messages = {
   "restaurants.defaultLocation": "По умолчанию",
   "restaurants.toggle": "Переключатель",
   "restaurants.qrCode": "QR-код",
-  "restaurants.qrModalTitle": "QR-код для {name}",
+  "restaurants.qrModalTitle": "QR-коды столов для {name}",
   "restaurants.qrModalBody":
-    "Гости сканируют код или переходят по ссылке ниже, чтобы открыть публичное меню этой локации.",
+    "У каждого стола свой QR-код. Гости сканируют код, чтобы открыть меню для этого стола.",
+  "restaurants.qrTablesLoading": "Загрузка столов...",
+  "restaurants.qrTablesLoadError": "Не удалось загрузить столы для этой локации.",
+  "restaurants.qrTablesRetry": "Повторить",
+  "restaurants.qrTablesEmpty":
+    "Для этой локации столы ещё не импортированы. Запустите скрипт импорта столов на сервере.",
+  "restaurants.qrTableNumber": "Стол {number}",
+  "restaurants.qrTableIdLabel": "ID стола",
   "restaurants.qrCopyLink": "Копировать ссылку",
   "restaurants.qrLinkCopied": "Скопировано",
   "restaurants.qrCopyFailed":

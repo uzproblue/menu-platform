@@ -35,3 +35,13 @@ export function buildLocationMenuPublicUrl(locationId: string): string {
   if (!base.length) return `/${id}/menu`;
   return `${base}/${id}/menu`;
 }
+
+/** Full URL to a location's guest menu scoped to a dining table (future guest routing). */
+export function buildTableMenuPublicUrl(
+  locationId: string,
+  tableId: string,
+): string {
+  const base = buildLocationMenuPublicUrl(locationId);
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}table=${encodeURIComponent(tableId.trim())}`;
+}

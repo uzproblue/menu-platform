@@ -70,6 +70,21 @@ export type GetLocationResponse = {
   location: Location;
 };
 
+export type LocationDiningTable = {
+  id: string;
+  posId: string;
+  number: number;
+};
+
+export type LocationDiningTablesSection = {
+  sectionName: string;
+  tables: LocationDiningTable[];
+};
+
+export type LocationDiningTablesResponse = {
+  sections: LocationDiningTablesSection[];
+};
+
 export type UpdateLocationDetailsInput = {
   name?: string;
   currency?: string;
