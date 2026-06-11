@@ -6,7 +6,7 @@ import type { LocationDiningTablesSection } from "@/lib/auth-api/types/locations
 import { readErrorMessage } from "./read-error-message";
 import { QrTableRow } from "./qr-table-row";
 
-export type QrLocationRef = { id: string; name: string };
+export type QrLocationRef = { id: string; name: string; logoUrl: string };
 
 type QrLocationModalProps = {
   location: QrLocationRef;
@@ -159,6 +159,7 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
                     <QrTableRow
                       key={table.id}
                       locationId={location.id}
+                      logoUrl={location.logoUrl}
                       table={table}
                     />
                   ))}

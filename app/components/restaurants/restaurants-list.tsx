@@ -24,6 +24,7 @@ export function RestaurantsList() {
   const [qrLocation, setQrLocation] = useState<{
     id: string;
     name: string;
+    logoUrl: string;
   } | null>(null);
   const [deleteLocationTarget, setDeleteLocationTarget] = useState<{
     id: string;

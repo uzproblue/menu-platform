@@ -33,6 +33,12 @@ import { WizardStepCategories } from "./location-wizard/wizard-step-categories";
 import { WizardStepDone } from "./location-wizard/wizard-step-done";
 import { WizardStepMenu } from "./location-wizard/wizard-step-menu";
 import { buildLocationMenuPublicUrl } from "@/lib/location-menu-url";
+import {
+  STYLED_QR_PRINT_WIDTH,
+  STYLED_QR_WIZARD_PREVIEW_WIDTH,
+  downloadStyledQrPng,
+  styledQrToDataUrl,
+} from "@/lib/styled-qr";
 import { WizardStepsNav } from "./location-wizard/wizard-steps-nav";
 
 export type { NewLocationWizardProps };
@@ -604,14 +610,11 @@ export function NewLocationWizard({
     const menuUrl = buildLocationMenuPublicUrl(publishedLocationId);
     setPublicMenuUrl(menuUrl);
     let cancelled = false;
-    import("qrcode")
-      .then((QR) =>
-        QR.toDataURL(menuUrl, {
-          width: 280,
-          margin: 2,
-          errorCorrectionLevel: "M",
-        }),
-      )
+    void styledQrToDataUrl({
+      url: menuUrl,
+      width: STYLED_QR_WIZARD_PREVIEW_WIDTH,
+      logoUrl: logoPreviewSrc || undefined,
+    })
       .then((dataUrl) => {
         if (!cancelled) setQrDataUrl(dataUrl);
       })
@@ -621,18 +624,17 @@ export function NewLocationWizard({
     return () => {
       cancelled = true;
     };
-  }, [step, publishedLocationId]);
+  }, [logoPreviewSrc, publishedLocationId, step]);
 
   const downloadQr = useCallback(() => {
-    if (!qrDataUrl || !publishedLocationId) return;
-    const a = document.createElement("a");
-    a.href = qrDataUrl;
-    a.download = `qr-code-${publishedLocationId}.png`;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, [qrDataUrl, publishedLocationId]);
+    if (!publishedLocationId || !publicMenuUrl) return;
+    void downloadStyledQrPng({
+      url: publicMenuUrl,
+      width: STYLED_QR_PRINT_WIDTH,
+      logoUrl: logoPreviewSrc || undefined,
+      filename: `qr-code-${publishedLocationId}.png`,
+    });
+  }, [logoPreviewSrc, publicMenuUrl, publishedLocationId]);
 
   const selectedSet = useMemo(
     () => new Set(selectedCategoryIds),

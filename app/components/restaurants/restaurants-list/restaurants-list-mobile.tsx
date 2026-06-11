@@ -13,7 +13,7 @@ type RestaurantsListMobileProps = {
   updatingLocationId: string | null;
   onOpenLocationPage: (locationId: string) => void;
   onToggleActive: (locationId: string, nextIsActive: boolean) => void;
-  onOpenQr: (location: { id: string; name: string }) => void;
+  onOpenQr: (location: { id: string; name: string; logoUrl: string }) => void;
   onRequestDelete: (location: { id: string; name: string }) => void;
 };
 
@@ -115,7 +115,11 @@ export function RestaurantsListMobile({
                 <OpenQrButton
                   onClick={(event) => {
                     event.stopPropagation();
-                    onOpenQr({ id: location.id, name: location.name });
+                    onOpenQr({
+                      id: location.id,
+                      name: location.name,
+                      logoUrl: location.logoUrl,
+                    });
                   }}
                   ariaLabel={t("restaurants.openQrModalAria", {
                     name: location.name,

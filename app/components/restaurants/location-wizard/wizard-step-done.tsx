@@ -36,21 +36,24 @@ export function WizardStepDone({
           <Image
             src={qrDataUrl}
             alt={t("restaurants.newWizard.qrAlt")}
-            className="rounded-xl border border-foreground/10 bg-white p-2"
+            className="rounded-xl border border-foreground/10 p-2"
+            style={{ backgroundColor: "#FDFBF3" }}
             width={280}
             height={280}
             unoptimized
             priority
           />
         ) : (
-          <div className="flex h-[280px] w-[280px] items-center justify-center rounded-xl border border-dashed border-foreground/20 text-sm text-foreground/50">
+          <div
+            className="flex h-[280px] w-[280px] items-center justify-center rounded-xl border border-dashed border-foreground/20 text-sm text-foreground/50"
+            style={{ backgroundColor: "#FDFBF3" }}
+          >
             {t("restaurants.newWizard.qrGenerating")}
           </div>
         )}
         <div className="flex flex-wrap justify-center gap-2">
           <button
             type="button"
-            disabled={!qrDataUrl}
             onClick={onDownloadQr}
             className="inline-flex items-center justify-center rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
           >

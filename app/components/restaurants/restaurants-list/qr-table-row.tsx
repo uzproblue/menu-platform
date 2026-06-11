@@ -5,13 +5,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import { buildTableMenuPublicUrl } from "@/lib/location-menu-url";
 import type { LocationDiningTable } from "@/lib/auth-api/types/locations";
+import {
+  STYLED_QR_PREVIEW_WIDTH,
+  STYLED_QR_PRINT_WIDTH,
+  downloadStyledQrPng,
+  styledQrToDataUrl,
+} from "@/lib/styled-qr";
 
 type QrTableRowProps = {
   locationId: string;
+  logoUrl?: string;
   table: LocationDiningTable;
 };
 
-export function QrTableRow({ locationId, table }: QrTableRowProps) {
+export function QrTableRow({ locationId, logoUrl, table }: QrTableRowProps) {
   const { t } = useI18n();
   const rowRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -43,14 +50,11 @@ export function QrTableRow({ locationId, table }: QrTableRowProps) {
     if (!isVisible) return;
 
     let cancelled = false;
-    void import("qrcode")
-      .then((QR) =>
-        QR.toDataURL(menuUrl, {
-          width: 120,
-          margin: 2,
-          errorCorrectionLevel: "M",
-        }),
-      )
+    void styledQrToDataUrl({
+      url: menuUrl,
+      width: STYLED_QR_PREVIEW_WIDTH,
+      logoUrl,
+    })
       .then((dataUrl) => {
         if (!cancelled) setQrDataUrl(dataUrl);
       })
@@ -61,18 +65,16 @@ export function QrTableRow({ locationId, table }: QrTableRowProps) {
     return () => {
       cancelled = true;
     };
-  }, [isVisible, menuUrl]);
+  }, [isVisible, logoUrl, menuUrl]);
 
   const downloadQrPng = useCallback(() => {
-    if (!qrDataUrl) return;
-    const a = document.createElement("a");
-    a.href = qrDataUrl;
-    a.download = `qr-table-${table.number}-${table.id.slice(0, 8)}.png`;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, [qrDataUrl, table.id, table.number]);
+    void downloadStyledQrPng({
+      url: menuUrl,
+      width: STYLED_QR_PRINT_WIDTH,
+      logoUrl,
+      filename: `qr-table-${table.number}-${table.id.slice(0, 8)}.png`,
+    });
+  }, [logoUrl, menuUrl, table.id, table.number]);
 
   async function handleCopyLink() {
     setCopyFailed(false);
@@ -96,13 +98,21 @@ export function QrTableRow({ locationId, table }: QrTableRowProps) {
           <Image
             src={qrDataUrl}
             alt={t("restaurants.qrTableNumber", { number: table.number })}
-            className="rounded-lg border border-foreground/10 bg-white p-1.5"
-            width={120}
-            height={120}
+            className="rounded-lg border border-foreground/10 p-1.5"
+            style={{ backgroundColor: "#FDFBF3" }}
+            width={STYLED_QR_PREVIEW_WIDTH}
+            height={STYLED_QR_PREVIEW_WIDTH}
             unoptimized
           />
         ) : (
-          <div className="flex size-[120px] items-center justify-center rounded-lg border border-dashed border-foreground/20 text-xs text-foreground/50">
+          <div
+            className="flex items-center justify-center rounded-lg border border-dashed border-foreground/20 text-xs text-foreground/50"
+            style={{
+              width: STYLED_QR_PREVIEW_WIDTH,
+              height: STYLED_QR_PREVIEW_WIDTH,
+              backgroundColor: "#FDFBF3",
+            }}
+          >
             {t("restaurants.newWizard.qrGenerating")}
           </div>
         )}
@@ -131,9 +141,8 @@ export function QrTableRow({ locationId, table }: QrTableRowProps) {
           </button>
           <button
             type="button"
-            disabled={!qrDataUrl}
             onClick={() => downloadQrPng()}
-            className="min-h-9 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-9 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90"
           >
             {t("restaurants.newWizard.downloadQr")}
           </button>
