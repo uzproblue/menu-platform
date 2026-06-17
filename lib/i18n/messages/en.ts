@@ -345,6 +345,16 @@ export const enMessages: Messages = {
   "restaurants.newWizard.posOrganizationIdPlaceholder": "e.g. 550e8400-e29b-41d4-a716-446655440000",
   "restaurants.newWizard.posTerminalGroupId": "iiko terminal group ID (optional)",
   "restaurants.newWizard.chefAlertChatId": "Telegram alert chat ID (optional)",
+  "restaurants.newWizard.linksAndOrderingTitle": "Links & ordering",
+  "restaurants.newWizard.linksAndOrderingHint":
+    "Optional social links for the guest menu footer and whether guests can check out from the cart.",
+  "restaurants.newWizard.instagramUrl": "Instagram URL (optional)",
+  "restaurants.newWizard.instagramUrlPlaceholder": "https://www.instagram.com/yourvenue",
+  "restaurants.newWizard.twoGisUrl": "2GIS URL (optional)",
+  "restaurants.newWizard.twoGisUrlPlaceholder": "https://2gis.com/...",
+  "restaurants.newWizard.ordersEnabled": "Enable cart checkout",
+  "restaurants.newWizard.ordersEnabledHint":
+    "When off, guests can browse and add items to the cart but will not see a checkout button.",
   "restaurants.newWizard.logoUrlOrPath": "Logo URL or path",
   "restaurants.newWizard.categoryCoverAlt": "{name} category cover",
   "restaurants.newWizard.previewPlaceholderName": "Your restaurant",

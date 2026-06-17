@@ -64,6 +64,9 @@ export function NewLocationWizard({
   const [posOrganizationId, setPosOrganizationId] = useState("");
   const [posTerminalGroupId, setPosTerminalGroupId] = useState("");
   const [chefAlertChatId, setChefAlertChatId] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [twoGisUrl, setTwoGisUrl] = useState("");
+  const [ordersEnabled, setOrdersEnabled] = useState(false);
   const maxLogoImageSizeBytes = useMemo(
     () => getMaxUploadSizeBytes("location-logo"),
     [],
@@ -149,6 +152,9 @@ export function NewLocationWizard({
         setPosOrganizationId(loc.posOrganizationId ?? "");
         setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
         setChefAlertChatId(loc.chefAlertChatId ?? "");
+        setInstagramUrl(loc.instagramUrl ?? "");
+        setTwoGisUrl(loc.twoGisUrl ?? "");
+        setOrdersEnabled(loc.ordersEnabled ?? false);
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -399,6 +405,9 @@ export function NewLocationWizard({
               posOrganizationId: posOrganizationId.trim() || null,
               posTerminalGroupId: posTerminalGroupId.trim() || null,
               chefAlertChatId: chefAlertChatId.trim() || null,
+              instagramUrl: instagramUrl.trim() || null,
+              twoGisUrl: twoGisUrl.trim() || null,
+              ordersEnabled,
             }),
           },
         );
@@ -420,6 +429,9 @@ export function NewLocationWizard({
         setPosOrganizationId(loc.posOrganizationId ?? "");
         setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
         setChefAlertChatId(loc.chefAlertChatId ?? "");
+        setInstagramUrl(loc.instagramUrl ?? "");
+        setTwoGisUrl(loc.twoGisUrl ?? "");
+        setOrdersEnabled(loc.ordersEnabled ?? false);
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -739,6 +751,12 @@ export function NewLocationWizard({
             setPosTerminalGroupId={setPosTerminalGroupId}
             chefAlertChatId={chefAlertChatId}
             setChefAlertChatId={setChefAlertChatId}
+            instagramUrl={instagramUrl}
+            setInstagramUrl={setInstagramUrl}
+            twoGisUrl={twoGisUrl}
+            setTwoGisUrl={setTwoGisUrl}
+            ordersEnabled={ordersEnabled}
+            setOrdersEnabled={setOrdersEnabled}
             isLoadingLocationEdit={isLoadingLocationEdit}
             editLoadError={editLoadError}
             isSavingStep1={isSavingStep1}

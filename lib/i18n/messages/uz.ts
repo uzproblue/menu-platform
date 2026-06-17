@@ -340,6 +340,16 @@ export const uzMessages: Messages = {
   "restaurants.newWizard.posOrganizationIdPlaceholder": "masalan 550e8400-e29b-41d4-a716-446655440000",
   "restaurants.newWizard.posTerminalGroupId": "iiko terminal guruhi ID (ixtiyoriy)",
   "restaurants.newWizard.chefAlertChatId": "Telegram ogohlantirish chat ID (ixtiyoriy)",
+  "restaurants.newWizard.linksAndOrderingTitle": "Havolalar va buyurtmalar",
+  "restaurants.newWizard.linksAndOrderingHint":
+    "Mehmon menyusi pastki qismi uchun ixtiyoriy havolalar va savatdan buyurtma berish imkoniyati.",
+  "restaurants.newWizard.instagramUrl": "Instagram havolasi (ixtiyoriy)",
+  "restaurants.newWizard.instagramUrlPlaceholder": "https://www.instagram.com/yourvenue",
+  "restaurants.newWizard.twoGisUrl": "2GIS havolasi (ixtiyoriy)",
+  "restaurants.newWizard.twoGisUrlPlaceholder": "https://2gis.com/...",
+  "restaurants.newWizard.ordersEnabled": "Savatdan buyurtma berishni yoqish",
+  "restaurants.newWizard.ordersEnabledHint":
+    "O'chirilgan bo'lsa, mehmonlar menyuni ko'radi va savatga qo'shadi, lekin buyurtma tugmasi ko'rinmaydi.",
   "restaurants.newWizard.logoUrlOrPath": "Logo URL yoki yo'l",
   "restaurants.newWizard.categoryCoverAlt": "{name} kategoriyasi muqovasi",
   "restaurants.newWizard.previewPlaceholderName": "Restoraningiz",

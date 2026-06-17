@@ -96,6 +96,9 @@ export async function PATCH(
     posOrganizationId?: string | null;
     posTerminalGroupId?: string | null;
     chefAlertChatId?: string | null;
+    instagramUrl?: string | null;
+    twoGisUrl?: string | null;
+    ordersEnabled?: boolean;
   } = {};
 
   if ("name" in o) {
@@ -193,6 +196,47 @@ export async function PATCH(
     const v = o.chefAlertChatId === null ? null : (o.chefAlertChatId as string).trim();
     payload.chefAlertChatId = v?.length ? v : null;
   }
+  if ("instagramUrl" in o) {
+    if (o.instagramUrl !== null && typeof o.instagramUrl !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "instagramUrl must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v = o.instagramUrl === null ? null : (o.instagramUrl as string).trim();
+    if (v && v.length > 2048) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "instagramUrl must be at most 2048 characters" },
+        { status: 400 },
+      );
+    }
+    payload.instagramUrl = v?.length ? v : null;
+  }
+  if ("twoGisUrl" in o) {
+    if (o.twoGisUrl !== null && typeof o.twoGisUrl !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "twoGisUrl must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v = o.twoGisUrl === null ? null : (o.twoGisUrl as string).trim();
+    if (v && v.length > 2048) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "twoGisUrl must be at most 2048 characters" },
+        { status: 400 },
+      );
+    }
+    payload.twoGisUrl = v?.length ? v : null;
+  }
+  if ("ordersEnabled" in o) {
+    if (typeof o.ordersEnabled !== "boolean") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "ordersEnabled must be a boolean" },
+        { status: 400 },
+      );
+    }
+    payload.ordersEnabled = o.ordersEnabled;
+  }
 
   if (
     payload.name === undefined &&
@@ -202,13 +246,16 @@ export async function PATCH(
     payload.translationLangs === undefined &&
     payload.posOrganizationId === undefined &&
     payload.posTerminalGroupId === undefined &&
-    payload.chefAlertChatId === undefined
+    payload.chefAlertChatId === undefined &&
+    payload.instagramUrl === undefined &&
+    payload.twoGisUrl === undefined &&
+    payload.ordersEnabled === undefined
   ) {
     return NextResponse.json(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, chefAlertChatId is required",
+          "at least one of name, currency, logoUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled is required",
       },
       { status: 400 },
     );

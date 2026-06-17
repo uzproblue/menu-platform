@@ -29,6 +29,12 @@ type WizardStepBasicsProps = {
   setPosTerminalGroupId: (v: string) => void;
   chefAlertChatId: string;
   setChefAlertChatId: (v: string) => void;
+  instagramUrl: string;
+  setInstagramUrl: (v: string) => void;
+  twoGisUrl: string;
+  setTwoGisUrl: (v: string) => void;
+  ordersEnabled: boolean;
+  setOrdersEnabled: (v: boolean) => void;
   isLoadingLocationEdit: boolean;
   editLoadError: string | null;
   isSavingStep1: boolean;
@@ -62,6 +68,12 @@ export function WizardStepBasics({
   setPosTerminalGroupId,
   chefAlertChatId,
   setChefAlertChatId,
+  instagramUrl,
+  setInstagramUrl,
+  twoGisUrl,
+  setTwoGisUrl,
+  ordersEnabled,
+  setOrdersEnabled,
   isLoadingLocationEdit,
   editLoadError,
   isSavingStep1,
@@ -154,6 +166,60 @@ export function WizardStepBasics({
           disabled={formDisabled}
           className="mt-1 w-full resize-y rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
         />
+      </div>
+      <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-4 space-y-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            {t("restaurants.newWizard.linksAndOrderingTitle")}
+          </p>
+          <p className="mt-1 text-xs text-foreground/55">
+            {t("restaurants.newWizard.linksAndOrderingHint")}
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-foreground/70" htmlFor="nw-instagram">
+              {t("restaurants.newWizard.instagramUrl")}
+            </label>
+            <input
+              id="nw-instagram"
+              type="url"
+              value={instagramUrl}
+              onChange={(e) => setInstagramUrl(e.target.value)}
+              disabled={formDisabled}
+              placeholder={t("restaurants.newWizard.instagramUrlPlaceholder")}
+              className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-foreground/70" htmlFor="nw-2gis">
+              {t("restaurants.newWizard.twoGisUrl")}
+            </label>
+            <input
+              id="nw-2gis"
+              type="url"
+              value={twoGisUrl}
+              onChange={(e) => setTwoGisUrl(e.target.value)}
+              disabled={formDisabled}
+              placeholder={t("restaurants.newWizard.twoGisUrlPlaceholder")}
+              className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="inline-flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={ordersEnabled}
+                onChange={(e) => setOrdersEnabled(e.target.checked)}
+                disabled={formDisabled}
+              />
+              {t("restaurants.newWizard.ordersEnabled")}
+            </label>
+            <p className="mt-1 text-xs text-foreground/55">
+              {t("restaurants.newWizard.ordersEnabledHint")}
+            </p>
+          </div>
+        </div>
       </div>
       <div className="space-y-3">
         <label htmlFor={logoUrlInputId} className="text-sm font-medium text-foreground">

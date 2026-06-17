@@ -13,6 +13,9 @@ export type Location = {
   posTerminalGroupId?: string;
   /** Telegram chat id for staff stop-list alerts. */
   chefAlertChatId?: string;
+  instagramUrl?: string;
+  twoGisUrl?: string;
+  ordersEnabled: boolean;
   isDefault: boolean;
   isActive: boolean;
   categoryCount: number;
@@ -94,6 +97,9 @@ export type UpdateLocationDetailsInput = {
   posOrganizationId?: string | null;
   posTerminalGroupId?: string | null;
   chefAlertChatId?: string | null;
+  instagramUrl?: string | null;
+  twoGisUrl?: string | null;
+  ordersEnabled?: boolean;
 };
 
 export type UpdateLocationDetailsResponse = {
@@ -108,6 +114,9 @@ export type UpdateLocationDetailsResponse = {
     posOrganizationId?: string;
     posTerminalGroupId?: string;
     chefAlertChatId?: string;
+    instagramUrl?: string;
+    twoGisUrl?: string;
+    ordersEnabled: boolean;
     isDefault: boolean;
     isActive: boolean;
     createdAt: string;

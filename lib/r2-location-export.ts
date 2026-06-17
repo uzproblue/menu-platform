@@ -24,6 +24,15 @@ export function makeLocationPublicExportObjectKey(locationId: string): string {
   return `location-public/v1/${safe}.json`;
 }
 
+/** Static cart recommendation snapshot (batch job only; not updated on menu publish). */
+export function makeLocationRecommendationObjectKey(locationId: string): string {
+  const safe = locationId.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!safe.length) {
+    throw new Error("invalid locationId for recommendation object key");
+  }
+  return `location-public/v1/${safe}-recommendation.json`;
+}
+
 export async function getLocationPublicExportFromR2(
   locationId: string,
 ): Promise<LocationPublicExport | null> {

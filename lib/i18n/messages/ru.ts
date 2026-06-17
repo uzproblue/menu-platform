@@ -353,6 +353,16 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.posOrganizationIdPlaceholder": "например 550e8400-e29b-41d4-a716-446655440000",
   "restaurants.newWizard.posTerminalGroupId": "ID группы терминалов iiko (необязательно)",
   "restaurants.newWizard.chefAlertChatId": "Telegram chat ID для оповещений (необязательно)",
+  "restaurants.newWizard.linksAndOrderingTitle": "Ссылки и заказы",
+  "restaurants.newWizard.linksAndOrderingHint":
+    "Необязательные ссылки для подвала гостевого меню и возможность оформления заказа из корзины.",
+  "restaurants.newWizard.instagramUrl": "Ссылка на Instagram (необязательно)",
+  "restaurants.newWizard.instagramUrlPlaceholder": "https://www.instagram.com/yourvenue",
+  "restaurants.newWizard.twoGisUrl": "Ссылка на 2GIS (необязательно)",
+  "restaurants.newWizard.twoGisUrlPlaceholder": "https://2gis.com/...",
+  "restaurants.newWizard.ordersEnabled": "Включить оформление заказа",
+  "restaurants.newWizard.ordersEnabledHint":
+    "Если выключено, гости могут просматривать меню и добавлять в корзину, но кнопки оформления не будет.",
   "restaurants.newWizard.logoUrlOrPath": "URL или путь к логотипу",
   "restaurants.newWizard.categoryCoverAlt": "Обложка категории «{name}»",
   "restaurants.newWizard.previewPlaceholderName": "Ваш ресторан",
