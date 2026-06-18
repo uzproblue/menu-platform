@@ -77,6 +77,7 @@ export type LocationDiningTable = {
   id: string;
   posId: string;
   number: number;
+  chosen: boolean;
 };
 
 export type LocationDiningTablesSection = {
@@ -86,6 +87,10 @@ export type LocationDiningTablesSection = {
 
 export type LocationDiningTablesResponse = {
   sections: LocationDiningTablesSection[];
+};
+
+export type UpdateDiningTableChoicesInput = {
+  chosenTableIds: string[];
 };
 
 export type UpdateLocationDetailsInput = {

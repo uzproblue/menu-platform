@@ -259,6 +259,30 @@ export const uzMessages: Messages = {
     "Nusxa olinmadi. Havolani tanlab qo'lda nusxa oling.",
   "restaurants.qrUrlFieldLabel": "Ochiq menyu havolasi",
   "restaurants.openQrModalAria": "{name} uchun QR kod modalini ochish",
+  "restaurants.qrWizardStepSections": "1-qadam — Zallar",
+  "restaurants.qrWizardStepTables": "2-qadam — Stollar",
+  "restaurants.qrWizardStepCodes": "3-qadam — QR kodlar",
+  "restaurants.qrWizardSectionsTitle": "Restoran zallarini tanlang",
+  "restaurants.qrWizardSectionsSubtitle":
+    "QR kodlari kerak bo'lgan zallarni belgilang.",
+  "restaurants.qrWizardTablesTitle": "«{section}» zalidagi stollarni tanlang",
+  "restaurants.qrWizardTablesProgress": "{section} — {current} / {total}",
+  "restaurants.qrWizardTablesSubtitle":
+    "Bu zalda QR kodi bo'lishi kerak bo'lgan stollarni belgilang.",
+  "restaurants.qrWizardCodesTitle": "Tanlangan stollar QR kodlari",
+  "restaurants.qrWizardCodesSubtitle":
+    "Tanlangan stollar uchun havolalarni yuklab oling yoki nusxa oling.",
+  "restaurants.qrWizardCodesEmpty":
+    "Stollar tanlanmagan. Orqaga qayting va zallar hamda stollarni tanlang.",
+  "restaurants.qrWizardPickSection": "Davom etish uchun kamida bitta zal tanlang.",
+  "restaurants.qrWizardPickTable":
+    "Davom etish uchun bu zalda kamida bitta stol tanlang.",
+  "restaurants.qrWizardSaving": "Tanlov saqlanmoqda…",
+  "restaurants.qrWizardSaveError": "Stol tanlovini saqlab bo'lmadi. Qayta urinib ko'ring.",
+  "restaurants.qrWizardEditSelection": "Tanlovni o'zgartirish",
+  "restaurants.qrWizardNext": "Keyingi",
+  "restaurants.qrWizardFinish": "Tugatish",
+  "restaurants.qrWizardSectionTableCount": "{count} stol",
   "restaurants.loadingLocations": "Lokatsiyalar yuklanmoqda...",
   "restaurants.couldNotLoadLocations": "Lokatsiyalarni yuklab bo'lmadi",
   "restaurants.noLocations": "Hozircha lokatsiyalar yo'q",

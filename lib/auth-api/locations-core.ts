@@ -5,6 +5,7 @@ import type {
   GetLocationResponse,
   LocationDiningTablesResponse,
   LocationsResponse,
+  UpdateDiningTableChoicesInput,
   UpdateLocationActivationResponse,
   UpdateLocationCategoriesResponse,
   UpdateLocationDetailsInput,
@@ -72,6 +73,24 @@ export async function getLocationDiningTablesWithAuthServer(
     method: "GET",
     accessToken,
     restaurantId,
+  });
+}
+
+export async function patchLocationDiningTableChoicesWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  input: UpdateDiningTableChoicesInput,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: LocationDiningTablesResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<LocationDiningTablesResponse>({
+    path: `/api/locations/${encodeURIComponent(locationId)}/dining-tables/choices`,
+    method: "PATCH",
+    accessToken,
+    restaurantId,
+    body: input,
   });
 }
 
