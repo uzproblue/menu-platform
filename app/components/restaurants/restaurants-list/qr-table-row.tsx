@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import { buildTableMenuPublicUrl } from "@/lib/location-menu-url";
 import type { LocationDiningTable } from "@/lib/auth-api/types/locations";
 import {
+  STYLED_QR_PREVIEW_RENDER_WIDTH,
   STYLED_QR_PREVIEW_WIDTH,
   STYLED_QR_PRINT_WIDTH,
   downloadStyledQrPng,
@@ -52,7 +52,7 @@ export function QrTableRow({ locationId, logoUrl, table }: QrTableRowProps) {
     let cancelled = false;
     void styledQrToDataUrl({
       url: menuUrl,
-      width: STYLED_QR_PREVIEW_WIDTH,
+      width: STYLED_QR_PREVIEW_RENDER_WIDTH,
       logoUrl,
     })
       .then((dataUrl) => {
@@ -95,14 +95,16 @@ export function QrTableRow({ locationId, logoUrl, table }: QrTableRowProps) {
     >
       <div className="flex shrink-0 flex-col items-center gap-2">
         {qrDataUrl ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element -- data URL from canvas export
+          <img
             src={qrDataUrl}
             alt={t("restaurants.qrTableNumber", { number: table.number })}
-            className="rounded-lg border border-foreground/10 p-1.5"
-            style={{ backgroundColor: "#FDFBF3" }}
-            width={STYLED_QR_PREVIEW_WIDTH}
-            height={STYLED_QR_PREVIEW_WIDTH}
-            unoptimized
+            className="rounded-lg border border-foreground/10"
+            style={{
+              backgroundColor: "#FDFBF3",
+              width: STYLED_QR_PREVIEW_WIDTH,
+              height: STYLED_QR_PREVIEW_WIDTH,
+            }}
           />
         ) : (
           <div

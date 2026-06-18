@@ -28,20 +28,25 @@ export function getMenuPublicBaseUrlForClient(): string {
   return "";
 }
 
-/** Full URL to a location's guest menu (for QR encoding and copy). */
-export function buildLocationMenuPublicUrl(locationId: string): string {
+/** Base public URL for a location (guest app entry). */
+function buildLocationPublicPath(locationId: string): string {
   const id = locationId.trim();
   const base = getMenuPublicBaseUrlForClient();
-  if (!base.length) return `/${id}/menu`;
-  return `${base}/${id}/menu`;
+  return base.length > 0 ? `${base}/${id}` : `/${id}`;
 }
 
-/** Full URL to a location's guest menu scoped to a dining table (future guest routing). */
+/** Full URL to a location's guest menu (for QR encoding and copy). */
+export function buildLocationMenuPublicUrl(locationId: string): string {
+  return buildLocationPublicPath(locationId);
+}
+
+/** Full URL to a location's guest menu scoped to a dining table. */
 export function buildTableMenuPublicUrl(
   locationId: string,
   tableId: string,
 ): string {
-  const base = buildLocationMenuPublicUrl(locationId);
-  const sep = base.includes("?") ? "&" : "?";
-  return `${base}${sep}table=${encodeURIComponent(tableId.trim())}`;
+  const table = tableId.trim();
+  const path = buildLocationPublicPath(locationId);
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}table=${encodeURIComponent(table)}`;
 }

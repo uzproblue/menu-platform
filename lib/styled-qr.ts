@@ -6,8 +6,11 @@ import { toCanvasMenuImageProxyUrl } from "@/lib/menu-image-proxy";
 const QR_BACKGROUND = "#FDFBF3";
 const QR_FOREGROUND = "#000000";
 
-/** Preview size in the restaurants table QR modal. */
-export const STYLED_QR_PREVIEW_WIDTH = 120;
+/** Display size in the restaurants table QR modal. */
+export const STYLED_QR_PREVIEW_WIDTH = 160;
+
+/** Internal render size for modal previews (scaled down for display). */
+export const STYLED_QR_PREVIEW_RENDER_WIDTH = 280;
 
 /** High-resolution export for print. */
 export const STYLED_QR_PRINT_WIDTH = 1500;
@@ -32,15 +35,39 @@ export function resolveQrLogoUrl(
   return toCanvasMenuImageProxyUrl(trimmed);
 }
 
+function scaledMargin(width: number): number {
+  return Math.max(4, Math.round(width * 0.04));
+}
+
+function scaledImageMargin(width: number): number {
+  return Math.max(2, Math.round(width * 0.03));
+}
+
+export async function preloadQrLogo(
+  logoUrl: string | undefined | null,
+): Promise<void> {
+  const url = resolveQrLogoUrl(logoUrl);
+  if (!url || typeof window === "undefined") return;
+
+  await new Promise<void>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("qr_logo_load_failed"));
+    img.src = url;
+  });
+}
+
 export function createStyledQrCode(config: StyledQrConfig): QRCodeStyling {
   const logo = resolveQrLogoUrl(config.logoUrl);
+  const margin = scaledMargin(config.width);
 
   return new QRCodeStyling({
     width: config.width,
     height: config.width,
     type: "canvas",
     data: config.url,
-    margin: 16,
+    margin,
     qrOptions: {
       errorCorrectionLevel: "H",
     },
@@ -64,7 +91,7 @@ export function createStyledQrCode(config: StyledQrConfig): QRCodeStyling {
           image: logo,
           imageOptions: {
             crossOrigin: "anonymous",
-            margin: 8,
+            margin: scaledImageMargin(config.width),
             imageSize: 0.22,
             hideBackgroundDots: true,
           },
@@ -91,6 +118,14 @@ async function rawPngToDataUrl(raw: Blob | Buffer | null): Promise<string | null
 export async function styledQrToDataUrl(
   config: StyledQrConfig,
 ): Promise<string | null> {
+  if (resolveQrLogoUrl(config.logoUrl)) {
+    try {
+      await preloadQrLogo(config.logoUrl);
+    } catch {
+      // Continue without logo if preload fails.
+    }
+  }
+
   const qr = createStyledQrCode(config);
   const raw = await qr.getRawData("png");
   return rawPngToDataUrl(raw);
@@ -99,6 +134,14 @@ export async function styledQrToDataUrl(
 export async function downloadStyledQrPng(
   config: StyledQrConfig & { filename: string },
 ): Promise<void> {
+  if (resolveQrLogoUrl(config.logoUrl)) {
+    try {
+      await preloadQrLogo(config.logoUrl);
+    } catch {
+      // Continue without logo if preload fails.
+    }
+  }
+
   const qr = createStyledQrCode(config);
   const raw = await qr.getRawData("png");
   if (!raw || !(raw instanceof Blob)) return;

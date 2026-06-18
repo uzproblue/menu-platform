@@ -44,7 +44,7 @@ Optionally set **`NEXTAUTH_URL=https://your-domain.com`** (no trailing slash) as
 
 Set **`MENU_URL`** on the **menu-platform** Worker (Wrangler vars / dashboard) to the **menu-customer** origin with no trailing slash, e.g. `https://menu.example.com`. Each request injects it on `<body data-menu-public-base-url="…">` so QR modals use the guest app URL **without rebuilding** when you only change runtime config.
 
-Location QR codes encode `{MENU_URL}/{locationId}/menu`.
+Location QR codes encode `{MENU_URL}/{locationId}`. Table QRs add `?table={tableId}`.
 
 For local `pnpm dev`, set `MENU_URL` or `NEXT_PUBLIC_MENU_URL` in `.env`. For production you can also add the same value to **Workers Builds → build environment** (or `.env.production`) so it is inlined into the client bundle; runtime `MENU_URL` alone is enough for QR after deploy.
 
