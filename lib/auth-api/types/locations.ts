@@ -4,6 +4,8 @@ export type Location = {
   currency: string;
   address: string;
   logoUrl: string;
+  /** Optional center image for table QR codes; falls back to logoUrl when empty. */
+  qrCenterImageUrl?: string;
   translationLangs: string[];
   /** Menu category ids enabled for this location (subset of restaurant catalog). */
   enabledCategoryIds: string[];
@@ -97,6 +99,7 @@ export type UpdateLocationDetailsInput = {
   name?: string;
   currency?: string;
   logoUrl?: string;
+  qrCenterImageUrl?: string;
   address?: string | null;
   translationLangs?: string[];
   posOrganizationId?: string | null;
@@ -114,6 +117,7 @@ export type UpdateLocationDetailsResponse = {
     currency: string;
     address: string;
     logoUrl: string;
+    qrCenterImageUrl?: string;
     translationLangs: string[];
     enabledCategoryIds: string[];
     posOrganizationId?: string;

@@ -3,17 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import type { LocationDiningTablesSection } from "@/lib/auth-api/types/locations";
+import { resolveQrCenterImageUrl } from "@/lib/styled-qr";
 import { QrTableRow } from "./qr-table-row";
 
 type QrWizardStepCodesProps = {
   locationId: string;
   logoUrl?: string;
+  qrCenterImageUrl?: string;
   sections: LocationDiningTablesSection[];
 };
 
 export function QrWizardStepCodes({
   locationId,
   logoUrl,
+  qrCenterImageUrl,
   sections,
 }: QrWizardStepCodesProps) {
   const { t } = useI18n();
@@ -58,6 +61,8 @@ export function QrWizardStepCodes({
     (sum, section) => sum + section.tables.length,
     0,
   );
+
+  const centerImageUrl = resolveQrCenterImageUrl(qrCenterImageUrl, logoUrl);
 
   return (
     <div className="space-y-4">
@@ -105,7 +110,7 @@ export function QrWizardStepCodes({
                 <QrTableRow
                   key={table.id}
                   locationId={locationId}
-                  logoUrl={logoUrl}
+                  centerImageUrl={centerImageUrl}
                   table={table}
                 />
               ))}

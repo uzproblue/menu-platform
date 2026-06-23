@@ -4,11 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import type { LocationDiningTablesSection } from "@/lib/auth-api/types/locations";
 import { readErrorMessage } from "./read-error-message";
+import { QrCenterImageUpload } from "./qr-center-image-upload";
 import { QrWizardStepCodes } from "./qr-wizard-step-codes";
 import { QrWizardStepSections } from "./qr-wizard-step-sections";
 import { QrWizardStepTables } from "./qr-wizard-step-tables";
 
-export type QrLocationRef = { id: string; name: string; logoUrl: string };
+export type QrLocationRef = {
+  id: string;
+  name: string;
+  logoUrl: string;
+  qrCenterImageUrl: string;
+};
 
 type QrLocationModalProps = {
   location: QrLocationRef;
@@ -64,6 +70,13 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
   );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [qrCenterImageUrl, setQrCenterImageUrl] = useState(
+    () => location.qrCenterImageUrl?.trim() ?? "",
+  );
+
+  useEffect(() => {
+    setQrCenterImageUrl(location.qrCenterImageUrl?.trim() ?? "");
+  }, [location.id, location.qrCenterImageUrl]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -374,11 +387,20 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
           ) : null}
 
           {loadState.status === "ready" && phase.kind === "qrs" ? (
-            <QrWizardStepCodes
-              locationId={location.id}
-              logoUrl={location.logoUrl}
-              sections={sections}
-            />
+            <div className="space-y-4">
+              <QrCenterImageUpload
+                locationId={location.id}
+                qrCenterImageUrl={qrCenterImageUrl}
+                logoUrl={location.logoUrl}
+                onQrCenterImageUrlChange={setQrCenterImageUrl}
+              />
+              <QrWizardStepCodes
+                locationId={location.id}
+                logoUrl={location.logoUrl}
+                qrCenterImageUrl={qrCenterImageUrl}
+                sections={sections}
+              />
+            </div>
           ) : null}
         </div>
 

@@ -14,11 +14,11 @@ import {
 
 type QrTableRowProps = {
   locationId: string;
-  logoUrl?: string;
+  centerImageUrl?: string;
   table: LocationDiningTable;
 };
 
-export function QrTableRow({ locationId, logoUrl, table }: QrTableRowProps) {
+export function QrTableRow({ locationId, centerImageUrl, table }: QrTableRowProps) {
   const { t } = useI18n();
   const rowRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -53,7 +53,7 @@ export function QrTableRow({ locationId, logoUrl, table }: QrTableRowProps) {
     void styledQrToDataUrl({
       url: menuUrl,
       width: STYLED_QR_PREVIEW_RENDER_WIDTH,
-      logoUrl,
+      logoUrl: centerImageUrl,
     })
       .then((dataUrl) => {
         if (!cancelled) setQrDataUrl(dataUrl);
@@ -65,16 +65,16 @@ export function QrTableRow({ locationId, logoUrl, table }: QrTableRowProps) {
     return () => {
       cancelled = true;
     };
-  }, [isVisible, logoUrl, menuUrl]);
+  }, [isVisible, centerImageUrl, menuUrl]);
 
   const downloadQrPng = useCallback(() => {
     void downloadStyledQrPng({
       url: menuUrl,
       width: STYLED_QR_PRINT_WIDTH,
-      logoUrl,
+      logoUrl: centerImageUrl,
       filename: `qr-table-${table.number}-${table.id.slice(0, 8)}.png`,
     });
-  }, [logoUrl, menuUrl, table.id, table.number]);
+  }, [centerImageUrl, menuUrl, table.id, table.number]);
 
   async function handleCopyLink() {
     setCopyFailed(false);

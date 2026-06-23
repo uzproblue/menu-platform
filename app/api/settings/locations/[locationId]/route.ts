@@ -91,6 +91,7 @@ export async function PATCH(
     name?: string;
     currency?: string;
     logoUrl?: string;
+    qrCenterImageUrl?: string;
     address?: string | null;
     translationLangs?: string[];
     posOrganizationId?: string | null;
@@ -127,6 +128,15 @@ export async function PATCH(
       );
     }
     payload.logoUrl = o.logoUrl.trim();
+  }
+  if ("qrCenterImageUrl" in o) {
+    if (typeof o.qrCenterImageUrl !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "qrCenterImageUrl must be a string" },
+        { status: 400 },
+      );
+    }
+    payload.qrCenterImageUrl = o.qrCenterImageUrl.trim();
   }
   if ("address" in o) {
     if (o.address === null) {
@@ -242,6 +252,7 @@ export async function PATCH(
     payload.name === undefined &&
     payload.currency === undefined &&
     payload.logoUrl === undefined &&
+    payload.qrCenterImageUrl === undefined &&
     payload.address === undefined &&
     payload.translationLangs === undefined &&
     payload.posOrganizationId === undefined &&
@@ -255,7 +266,7 @@ export async function PATCH(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled is required",
+          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled is required",
       },
       { status: 400 },
     );

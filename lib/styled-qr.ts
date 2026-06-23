@@ -24,6 +24,17 @@ export type StyledQrConfig = {
   logoUrl?: string | null;
 };
 
+/** Prefer custom QR center image; fall back to restaurant logo when unset. */
+export function resolveQrCenterImageUrl(
+  qrCenterImageUrl: string | undefined | null,
+  logoUrl: string | undefined | null,
+): string | undefined {
+  const custom = qrCenterImageUrl?.trim();
+  if (custom) return custom;
+  const logo = logoUrl?.trim();
+  return logo || undefined;
+}
+
 export function resolveQrLogoUrl(
   logoUrl: string | undefined | null,
 ): string | undefined {

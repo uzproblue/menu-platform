@@ -4,6 +4,7 @@ export type LocationListRow = {
   currency: string;
   address: string;
   logoUrl: string;
+  qrCenterImageUrl: string;
   enabledCategoryIds: string[];
   isDefault: boolean;
   isActive: boolean;
