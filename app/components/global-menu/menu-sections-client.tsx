@@ -1,12 +1,33 @@
 "use client";
 
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import type { TranslationTextApi } from "@/lib/auth-api";
 import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { readLocationExportWarning } from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
+import { SectionTranslationsModal } from "./section-translations-modal";
+
+const EMPTY_SECTION_TRANSLATIONS: TranslationTextApi[] = [];
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as
@@ -22,10 +43,136 @@ function sectionDisplayName(
   return section.kind === "unassigned" ? unassignedLabel : section.name;
 }
 
+function normalizeSections(list: MenuSectionEntity[]): MenuSectionEntity[] {
+  return [...list]
+    .map((s) => ({
+      ...s,
+      translations: Array.isArray(s.translations) ? s.translations : [],
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+}
+
 type SectionEditorState =
   | { mode: "create" }
   | { mode: "edit"; section: MenuSectionEntity }
   | null;
+
+type SortableSectionRowProps = {
+  section: MenuSectionEntity;
+  name: string;
+  countLabel: string;
+  reordering: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onOpenTranslations: () => void;
+  translationsLabel: string;
+  translationsAria: string;
+  dragHandleAria: string;
+  editLabel: string;
+  deleteLabel: string;
+  standardLabel: string;
+  noImageLabel: string;
+};
+
+function SortableSectionRow({
+  section,
+  name,
+  countLabel,
+  reordering,
+  onEdit,
+  onDelete,
+  onOpenTranslations,
+  translationsLabel,
+  translationsAria,
+  dragHandleAria,
+  editLabel,
+  deleteLabel,
+  standardLabel,
+  noImageLabel,
+}: SortableSectionRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: section.id,
+    disabled: reordering,
+  });
+  const count = section.categoriesCount ?? 0;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-background/60 p-4 ring-1 ring-foreground/5 sm:flex-row sm:items-center sm:gap-4"
+    >
+      <button
+        type="button"
+        className="inline-flex size-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-foreground/15 text-foreground/70 hover:bg-foreground/5 disabled:opacity-40"
+        aria-label={dragHandleAria}
+        disabled={reordering}
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="size-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path d="M8 7h2v2H8V7zm6 0h2v2h-2V7zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 4h2v2H8v-2zm6 0h2v2h-2v-2z" />
+        </svg>
+      </button>
+      <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5">
+        {section.backgroundImage ? (
+          <Image
+            src={section.backgroundImage}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="64px"
+            unoptimized={imageSrcIsNonOptimizable(section.backgroundImage)}
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center text-[10px] text-foreground/40">
+            {noImageLabel}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-foreground">{name}</p>
+        <p className="mt-0.5 text-xs text-foreground/55">
+          {standardLabel}
+          {" · "}
+          {count} {countLabel}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onOpenTranslations}
+          disabled={reordering}
+          className="inline-flex min-h-10 items-center rounded-xl border border-foreground/15 px-3 text-sm font-medium text-foreground hover:bg-foreground/5 disabled:opacity-40"
+          aria-label={translationsAria}
+        >
+          {translationsLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={reordering}
+          className="inline-flex min-h-10 items-center rounded-xl border border-foreground/15 px-3 text-sm font-medium text-foreground hover:bg-foreground/5 disabled:opacity-40"
+        >
+          {editLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={reordering}
+          className="inline-flex min-h-10 items-center rounded-xl border border-red-500/30 px-3 text-sm font-medium text-red-700 hover:bg-red-500/10 disabled:opacity-40 dark:text-red-300"
+        >
+          {deleteLabel}
+        </button>
+      </div>
+    </li>
+  );
+}
 
 export function MenuSectionsClient() {
   const { t } = useI18n();
@@ -39,6 +186,13 @@ export function MenuSectionsClient() {
   const [editor, setEditor] = useState<SectionEditorState>(null);
   const [deleteTarget, setDeleteTarget] = useState<MenuSectionEntity | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [translationsModalSection, setTranslationsModalSection] =
+    useState<MenuSectionEntity | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const loadSections = useCallback(async () => {
     setLoadError(null);
@@ -53,11 +207,7 @@ export function MenuSectionsClient() {
       sections?: MenuSectionEntity[];
     };
     const list = Array.isArray(payload.sections) ? payload.sections : [];
-    setSections(
-      [...list].sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-      ),
-    );
+    setSections(normalizeSections(list));
   }, [t]);
 
   useEffect(() => {
@@ -84,44 +234,64 @@ export function MenuSectionsClient() {
     [visibleSections],
   );
 
-  async function handleReorder(sectionId: string, direction: -1 | 1) {
-    const ids = standardSections.map((s) => s.id);
-    const index = ids.indexOf(sectionId);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= ids.length) return;
-    const nextIds = [...ids];
-    [nextIds[index], nextIds[target]] = [nextIds[target], nextIds[index]];
+  const unassignedSection = useMemo(
+    () => visibleSections.find((s) => s.kind === "unassigned") ?? null,
+    [visibleSections],
+  );
 
-    setReordering(true);
-    setRequestError(null);
-    setExportWarning(null);
-    try {
-      const response = await fetch("/api/settings/menu-sections/reorder", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionIds: nextIds }),
-      });
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response, t("sections.errReorder")));
-      }
-      const payload = (await response.json().catch(() => null)) as
-        | ({ sections?: MenuSectionEntity[] } & Record<string, unknown>)
-        | null;
-      setExportWarning(readLocationExportWarning(payload, t));
-      if (Array.isArray(payload?.sections)) {
-        setSections(
-          [...payload.sections].sort(
-            (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-          ),
-        );
-      } else {
+  const persistReorder = useCallback(
+    async (nextIds: string[]) => {
+      setReordering(true);
+      setRequestError(null);
+      setExportWarning(null);
+      try {
+        const response = await fetch("/api/settings/menu-sections/reorder", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionIds: nextIds }),
+        });
+        if (!response.ok) {
+          throw new Error(await readErrorMessage(response, t("sections.errReorder")));
+        }
+        const payload = (await response.json().catch(() => null)) as
+          | ({ sections?: MenuSectionEntity[] } & Record<string, unknown>)
+          | null;
+        setExportWarning(readLocationExportWarning(payload, t));
+        if (Array.isArray(payload?.sections)) {
+          setSections(normalizeSections(payload.sections));
+        } else {
+          await loadSections();
+        }
+      } catch (error) {
+        setRequestError(error instanceof Error ? error.message : t("sections.errReorder"));
         await loadSections();
+      } finally {
+        setReordering(false);
       }
-    } catch (error) {
-      setRequestError(error instanceof Error ? error.message : t("sections.errReorder"));
-    } finally {
-      setReordering(false);
-    }
+    },
+    [loadSections, t],
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || reordering) return;
+    const ids = standardSections.map((s) => s.id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const nextIds = arrayMove(ids, oldIndex, newIndex);
+    setSections((prev) => {
+      const byId = new Map(prev.map((s) => [s.id, s]));
+      const nextStandard = nextIds
+        .map((id, index) => {
+          const row = byId.get(id);
+          return row ? { ...row, sortOrder: index } : null;
+        })
+        .filter((s): s is MenuSectionEntity => s != null);
+      const rest = prev.filter((s) => s.kind !== "standard");
+      return normalizeSections([...nextStandard, ...rest]);
+    });
+    void persistReorder(nextIds);
   }
 
   async function handleConfirmDelete() {
@@ -145,6 +315,41 @@ export function MenuSectionsClient() {
       setDeletingId(null);
     }
   }
+
+  const handleTranslationsSaved = useCallback(
+    (payload: Record<string, unknown> | null) => {
+      setExportWarning(readLocationExportWarning(payload, t));
+      const sectionPayload =
+        payload && typeof payload === "object" && "section" in payload
+          ? (payload.section as MenuSectionEntity | undefined)
+          : undefined;
+      if (sectionPayload && typeof sectionPayload.id === "string") {
+        const translations = Array.isArray(sectionPayload.translations)
+          ? sectionPayload.translations
+          : [];
+        setSections((prev) =>
+          prev.map((s) =>
+            s.id === sectionPayload.id
+              ? {
+                  ...s,
+                  ...sectionPayload,
+                  translations,
+                }
+              : s,
+          ),
+        );
+        setTranslationsModalSection((prev) =>
+          prev && prev.id === sectionPayload.id
+            ? { ...prev, ...sectionPayload, translations }
+            : prev,
+        );
+      } else {
+        void loadSections();
+      }
+      setTranslationsModalSection(null);
+    },
+    [loadSections, t],
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -204,32 +409,54 @@ export function MenuSectionsClient() {
           <p className="mt-2 text-sm text-foreground/60">{t("sections.emptyHelp")}</p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {visibleSections.map((section) => {
-            const isUnassigned = section.kind === "unassigned";
-            const name = sectionDisplayName(section, t("sections.unassigned"));
-            const stdIndex = standardSections.findIndex((s) => s.id === section.id);
-            const canMoveUp = !isUnassigned && stdIndex > 0;
-            const canMoveDown =
-              !isUnassigned && stdIndex >= 0 && stdIndex < standardSections.length - 1;
-            const count = section.categoriesCount ?? 0;
-            const countLabel =
-              count === 1 ? t("sections.categorySingular") : t("sections.categoryPlural");
+        <div className="space-y-3">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={standardSections.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-3">
+                {standardSections.map((section) => {
+                  const name = sectionDisplayName(section, t("sections.unassigned"));
+                  const count = section.categoriesCount ?? 0;
+                  const countLabel =
+                    count === 1 ? t("sections.categorySingular") : t("sections.categoryPlural");
+                  return (
+                    <SortableSectionRow
+                      key={section.id}
+                      section={section}
+                      name={name}
+                      countLabel={countLabel}
+                      reordering={reordering}
+                      onEdit={() => setEditor({ mode: "edit", section })}
+                      onDelete={() => setDeleteTarget(section)}
+                      onOpenTranslations={() => setTranslationsModalSection(section)}
+                      translationsLabel={t("sections.translations")}
+                      translationsAria={t("sections.translationsModal.openAria", { name })}
+                      dragHandleAria={t("sections.dragHandleAria", { name })}
+                      editLabel={t("common.edit")}
+                      deleteLabel={t("common.delete")}
+                      standardLabel={t("sections.standardSection")}
+                      noImageLabel={t("global.noImage")}
+                    />
+                  );
+                })}
+              </ul>
+            </SortableContext>
+          </DndContext>
 
-            return (
-              <li
-                key={section.id}
-                className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-background/60 p-4 ring-1 ring-foreground/5 sm:flex-row sm:items-center sm:gap-4"
-              >
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5">
-                  {section.backgroundImage ? (
+          {unassignedSection ? (
+            <ul className="space-y-3">
+              <li className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-background/60 p-4 ring-1 ring-foreground/5 sm:flex-row sm:items-center sm:gap-4">
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5 sm:ml-12">
+                  {unassignedSection.backgroundImage ? (
                     <Image
-                      src={section.backgroundImage}
+                      src={unassignedSection.backgroundImage}
                       alt=""
                       fill
                       className="object-cover"
                       sizes="64px"
-                      unoptimized={imageSrcIsNonOptimizable(section.backgroundImage)}
+                      unoptimized={imageSrcIsNonOptimizable(unassignedSection.backgroundImage)}
                     />
                   ) : (
                     <div className="flex size-full items-center justify-center text-[10px] text-foreground/40">
@@ -238,57 +465,25 @@ export function MenuSectionsClient() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">{name}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {t("sections.unassigned")}
+                  </p>
                   <p className="mt-0.5 text-xs text-foreground/55">
-                    {isUnassigned ? t("sections.systemSection") : t("sections.standardSection")}
+                    {t("sections.systemSection")}
                     {" · "}
-                    {count} {countLabel}
+                    {unassignedSection.categoriesCount ?? 0}{" "}
+                    {(unassignedSection.categoriesCount ?? 0) === 1
+                      ? t("sections.categorySingular")
+                      : t("sections.categoryPlural")}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {!isUnassigned ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={!canMoveUp || reordering}
-                        onClick={() => void handleReorder(section.id, -1)}
-                        className="inline-flex size-10 items-center justify-center rounded-xl border border-foreground/15 text-foreground hover:bg-foreground/5 disabled:opacity-40"
-                        aria-label={t("sections.moveUpAria", { name })}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!canMoveDown || reordering}
-                        onClick={() => void handleReorder(section.id, 1)}
-                        className="inline-flex size-10 items-center justify-center rounded-xl border border-foreground/15 text-foreground hover:bg-foreground/5 disabled:opacity-40"
-                        aria-label={t("sections.moveDownAria", { name })}
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditor({ mode: "edit", section })}
-                        className="inline-flex min-h-10 items-center rounded-xl border border-foreground/15 px-3 text-sm font-medium text-foreground hover:bg-foreground/5"
-                      >
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(section)}
-                        className="inline-flex min-h-10 items-center rounded-xl border border-red-500/30 px-3 text-sm font-medium text-red-700 hover:bg-red-500/10 dark:text-red-300"
-                      >
-                        {t("common.delete")}
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-foreground/45">{t("sections.unassignedHint")}</span>
-                  )}
+                  <span className="text-xs text-foreground/45">{t("sections.unassignedHint")}</span>
                 </div>
               </li>
-            );
-          })}
-        </ul>
+            </ul>
+          ) : null}
+        </div>
       )}
 
       <SectionEditorModal
@@ -332,6 +527,20 @@ export function MenuSectionsClient() {
             setIsSaving(false);
           }
         }}
+      />
+
+      <SectionTranslationsModal
+        key={translationsModalSection?.id ?? "closed"}
+        open={translationsModalSection != null}
+        sectionId={translationsModalSection?.id ?? null}
+        sectionTitle={
+          translationsModalSection
+            ? sectionDisplayName(translationsModalSection, t("sections.unassigned"))
+            : ""
+        }
+        translations={translationsModalSection?.translations ?? EMPTY_SECTION_TRANSLATIONS}
+        onClose={() => setTranslationsModalSection(null)}
+        onSaved={handleTranslationsSaved}
       />
 
       {deleteTarget ? (

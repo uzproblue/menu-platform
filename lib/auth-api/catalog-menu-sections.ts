@@ -1,5 +1,9 @@
 import { authApiJson, authApiVoid } from "./client";
-import type { MenuSectionEntity } from "./types";
+import type {
+  MenuSectionEntity,
+  SyncMenuSectionTranslationsResponse,
+  TranslationTextApi,
+} from "./types";
 
 export type MenuSectionsResponse = {
   restaurantId: string;
@@ -118,5 +122,41 @@ export async function updateLocationSectionsWithAuthServer(
     accessToken,
     restaurantId,
     body: input,
+  });
+}
+
+export async function putMenuSectionTranslationsWithAuthServer(
+  accessToken: string,
+  sectionId: string,
+  input: { translations: TranslationTextApi[] },
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: MenuSectionResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<MenuSectionResponse>({
+    path: `/api/menu-sections/${encodeURIComponent(sectionId)}/translations`,
+    method: "PUT",
+    accessToken,
+    restaurantId,
+    body: input,
+    timeoutMs: 30_000,
+  });
+}
+
+export async function syncMenuSectionTranslationsWithAuthServer(
+  accessToken: string,
+  sectionId: string,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: SyncMenuSectionTranslationsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<SyncMenuSectionTranslationsResponse>({
+    path: `/api/menu-sections/${encodeURIComponent(sectionId)}/sync-translations`,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    timeoutMs: 30_000,
   });
 }

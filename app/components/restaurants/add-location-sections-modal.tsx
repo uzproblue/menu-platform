@@ -1,6 +1,23 @@
 "use client";
 
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   useEffect,
   useId,
   useMemo,
@@ -19,14 +36,6 @@ function arraysEqual(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
-function moveInOrder(ids: string[], index: number, direction: -1 | 1): string[] {
-  const target = index + direction;
-  if (target < 0 || target >= ids.length) return ids;
-  const next = [...ids];
-  [next[index], next[target]] = [next[target], next[index]];
-  return next;
-}
-
 type AddLocationSectionsModalProps = {
   open: boolean;
   sections: AvailableSection[];
@@ -36,6 +45,50 @@ type AddLocationSectionsModalProps = {
   onClose: () => void;
   onSave: (selectedIds: string[]) => void;
 };
+
+function SortableOrderRow({
+  id,
+  name,
+  dragHandleAria,
+  disabled,
+}: {
+  id: string;
+  name: string;
+  dragHandleAria: string;
+  disabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 rounded-xl border border-foreground/10 px-3 py-2"
+    >
+      <button
+        type="button"
+        className="inline-flex size-9 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-foreground/15 text-foreground/70 disabled:opacity-40"
+        aria-label={dragHandleAria}
+        disabled={disabled}
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="size-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path d="M8 7h2v2H8V7zm6 0h2v2h-2V7zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 4h2v2H8v-2zm6 0h2v2h-2v-2z" />
+        </svg>
+      </button>
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
+    </li>
+  );
+}
 
 export function AddLocationSectionsModal({
   open,
@@ -68,6 +121,11 @@ export function AddLocationSectionsModal({
   const nameById = useMemo(
     () => new Map(sections.map((s) => [s.id, s.name])),
     [sections],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   useEffect(() => {
@@ -104,6 +162,18 @@ export function AddLocationSectionsModal({
         setOrder((o) => (o.includes(id) ? o : [...o, id]));
       }
       return next;
+    });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || saving) return;
+    setOrder((prev) => {
+      const ids = prev.filter((id) => selected.has(id));
+      const oldIndex = ids.indexOf(String(active.id));
+      const newIndex = ids.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(ids, oldIndex, newIndex);
     });
   }
 
@@ -189,40 +259,28 @@ export function AddLocationSectionsModal({
               <p className="text-sm font-medium text-foreground">
                 {t("restaurantDetail.reorderSectionsHeading")}
               </p>
-              <ul className="space-y-2">
-                {orderedSelected.map((id, index) => (
-                  <li
-                    key={id}
-                    className="flex items-center gap-2 rounded-xl border border-foreground/10 px-3 py-2"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                      {nameById.get(id) ?? id}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={saving || index === 0}
-                      onClick={() => setOrder((o) => moveInOrder(o, index, -1))}
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-foreground/15 disabled:opacity-40"
-                      aria-label={t("sections.moveUpAria", {
-                        name: nameById.get(id) ?? id,
-                      })}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      disabled={saving || index === orderedSelected.length - 1}
-                      onClick={() => setOrder((o) => moveInOrder(o, index, 1))}
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-foreground/15 disabled:opacity-40"
-                      aria-label={t("sections.moveDownAria", {
-                        name: nameById.get(id) ?? id,
-                      })}
-                    >
-                      ↓
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={orderedSelected} strategy={verticalListSortingStrategy}>
+                  <ul className="space-y-2">
+                    {orderedSelected.map((id) => {
+                      const name = nameById.get(id) ?? id;
+                      return (
+                        <SortableOrderRow
+                          key={id}
+                          id={id}
+                          name={name}
+                          disabled={saving}
+                          dragHandleAria={t("sections.dragHandleAria", { name })}
+                        />
+                      );
+                    })}
+                  </ul>
+                </SortableContext>
+              </DndContext>
             </div>
           ) : null}
 

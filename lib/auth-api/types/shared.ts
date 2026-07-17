@@ -13,6 +13,7 @@ export type MenuSectionEntity = {
   sortOrder: number;
   kind: MenuSectionKind;
   categoriesCount: number;
+  translations?: TranslationTextApi[];
 };
 
 export type TranslationSyncMeta = {

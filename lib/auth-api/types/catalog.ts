@@ -32,6 +32,11 @@ export type SyncCategoryTranslationsResponse = {
   meta?: TranslationSyncMeta;
 };
 
+export type SyncMenuSectionTranslationsResponse = {
+  translations: TranslationTextApi[];
+  meta?: TranslationSyncMeta;
+};
+
 /** Menu item row from GET /api/global-menu (matches menu-server JSON). */
 export type GlobalMenuItemApi = {
   id: string;

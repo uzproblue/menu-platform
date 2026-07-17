@@ -41,6 +41,7 @@ export const PlatformEvent = {
   CATALOG_MENU_SECTION_UPDATED: "catalog.menu_section_updated",
   CATALOG_MENU_SECTION_DELETED: "catalog.menu_section_deleted",
   CATALOG_MENU_SECTIONS_REORDERED: "catalog.menu_sections_reordered",
+  CATALOG_MENU_SECTION_TRANSLATIONS_UPDATED: "catalog.menu_section_translations_updated",
 
   // Videos
   VIDEO_UPLOAD_SESSION_STARTED: "video.upload_session_started",

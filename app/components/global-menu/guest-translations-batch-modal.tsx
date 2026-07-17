@@ -16,7 +16,9 @@ export type GuestTranslationsBatchModalProps = {
   /** Full URL path, e.g. `/api/settings/categories/…/translations` */
   saveUrl: string;
   nameMaxLength: number;
-  descriptionMaxLength: number;
+  descriptionMaxLength?: number;
+  /** When true, hide description fields and always send `description: null`. */
+  nameOnly?: boolean;
   initialTranslations: TranslationTextApi[];
   onClose: () => void;
   onSaved: (payload: Record<string, unknown> | null) => void;
@@ -49,7 +51,8 @@ export function GuestTranslationsBatchModal({
   title,
   saveUrl,
   nameMaxLength,
-  descriptionMaxLength,
+  descriptionMaxLength = 1000,
+  nameOnly = false,
   initialTranslations,
   onClose,
   onSaved,
@@ -96,7 +99,11 @@ export function GuestTranslationsBatchModal({
             return {
               lang,
               name: row.name,
-              description: row.description.trim() === "" ? null : row.description.trim(),
+              description: nameOnly
+                ? null
+                : row.description.trim() === ""
+                  ? null
+                  : row.description.trim(),
             };
           }),
         };
@@ -120,7 +127,7 @@ export function GuestTranslationsBatchModal({
         setIsSaving(false);
       }
     },
-    [draft, entityId, isSaving, onSaved, saveUrl, t],
+    [draft, entityId, isSaving, nameOnly, onSaved, saveUrl, t],
   );
 
   if (!open || !entityId) return null;
@@ -181,20 +188,22 @@ export function GuestTranslationsBatchModal({
                           className="mt-1 w-full rounded-lg border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-offset-background focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
                         />
                       </div>
-                      <div>
-                        <label htmlFor={descId} className="block text-xs font-medium text-foreground/65">
-                          {t("categories.translationsModal.descriptionLabel")}
-                        </label>
-                        <textarea
-                          id={descId}
-                          value={row.description}
-                          onChange={(e) => setRow(lang, "description", e.target.value)}
-                          disabled={isSaving}
-                          rows={3}
-                          maxLength={descriptionMaxLength}
-                          className="mt-1 w-full resize-y rounded-lg border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-offset-background focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
-                        />
-                      </div>
+                      {!nameOnly ? (
+                        <div>
+                          <label htmlFor={descId} className="block text-xs font-medium text-foreground/65">
+                            {t("categories.translationsModal.descriptionLabel")}
+                          </label>
+                          <textarea
+                            id={descId}
+                            value={row.description}
+                            onChange={(e) => setRow(lang, "description", e.target.value)}
+                            disabled={isSaving}
+                            rows={3}
+                            maxLength={descriptionMaxLength}
+                            className="mt-1 w-full resize-y rounded-lg border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-offset-background focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </fieldset>
                 );

@@ -10,6 +10,7 @@ export type MenuSectionEntity = {
   sortOrder: number;
   kind: MenuSectionKind;
   categoriesCount?: number;
+  translations?: TranslationTextApi[];
 };
 
 /** Shape used by global menu UI (API-backed). */
