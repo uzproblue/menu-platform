@@ -1,11 +1,5 @@
-import type { Metadata } from "next";
-import { GlobalMenuCategoriesClient } from "@/app/components/global-menu/global-menu-categories-client";
+import { redirectLegacyMenuSection } from "@/lib/menu/legacy-section-redirect";
 
-export const metadata: Metadata = {
-  title: "Dishes · Menu categories · Menu Platform",
-  description: "Manage dish categories",
-};
-
-export default function GlobalMenuCategoriesDishesPage() {
-  return <GlobalMenuCategoriesClient menuSection="dishes" />;
+export default async function GlobalMenuCategoriesDishesRedirectPage() {
+  await redirectLegacyMenuSection("dishes", "categories");
 }

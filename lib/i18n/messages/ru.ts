@@ -29,6 +29,7 @@ export const ruMessages: Messages = {
   "nav.globalMenuDishes": "Блюда",
   "nav.globalMenuBeverages": "Напитки",
   "nav.menuCategories": "Категории меню",
+  "nav.sections": "Разделы меню",
   "nav.restaurants": "Рестораны",
   "nav.seasonalMenus": "Сезонные меню",
   "nav.menuItemVideos": "Видео блюд",
@@ -457,6 +458,7 @@ export const ruMessages: Messages = {
   "global.subtitle":
     "Позиции меню сгруппированы по категориям и загружаются из данных вашего ресторана.",
   "global.subtitleDishes": "Категории и позиции еды в каталоге ресторана.",
+  "global.subtitleSection": "Категории и позиции в этом разделе меню.",
   "global.subtitleBeverages": "Категории и позиции напитков в каталоге ресторана.",
   "global.manageCategories": "Управлять категориями",
   "global.addNewItem": "Добавить позицию",
@@ -524,15 +526,52 @@ export const ruMessages: Messages = {
   "categories.title": "Категории меню",
   "categories.titleDishes": "Категории блюд",
   "categories.titleBeverages": "Категории напитков",
+  "categories.titleForSection": "Категории: {name}",
   "categories.subtitleDishes":
     "Управление категориями еды в каталоге. Изменения синхронизируются с",
   "categories.subtitleBeverages":
     "Управление категориями напитков в каталоге. Изменения синхронизируются с",
+  "categories.subtitleForSection":
+    "Управление категориями в этом разделе. Изменения синхронизируются с",
   "categories.menuSection": "Раздел меню",
   "categories.menuSectionDishes": "Блюда",
   "categories.menuSectionBeverages": "Напитки",
   "categories.sectionBadgeDishes": "Блюда",
   "categories.sectionBadgeBeverages": "Напитки",
+
+  "sections.title": "Разделы меню",
+  "sections.subtitle":
+    "Создавайте и упорядочивайте разделы меню. Категории принадлежат разделу; «Без раздела» хранит категории без назначения.",
+  "sections.addSection": "Добавить раздел",
+  "sections.loading": "Загрузка разделов…",
+  "sections.couldNotLoad": "Не удалось загрузить разделы",
+  "sections.emptyTitle": "Разделов пока нет",
+  "sections.emptyHelp": "Создайте первый раздел, чтобы организовать меню.",
+  "sections.unassigned": "Без раздела",
+  "sections.unassignedHint": "Системный раздел — нельзя изменить",
+  "sections.systemSection": "Системный",
+  "sections.standardSection": "Раздел",
+  "sections.categorySingular": "категория",
+  "sections.categoryPlural": "категорий",
+  "sections.createTitle": "Новый раздел меню",
+  "sections.editTitle": "Редактировать раздел",
+  "sections.editorHelp": "Укажите название и при необходимости фоновое изображение.",
+  "sections.backgroundImage": "Фоновое изображение",
+  "sections.backgroundUrlPlaceholder": "/menu/section-bg.jpg or https://...",
+  "sections.saving": "Сохранение…",
+  "sections.deleteQuestion": "Удалить раздел?",
+  "sections.deleteBody":
+    "«{name}» будет удалён. Его категории перейдут в «Без раздела».",
+  "sections.moveUpAria": "Переместить {name} вверх",
+  "sections.moveDownAria": "Переместить {name} вниз",
+  "sections.errLoad": "Не удалось загрузить разделы.",
+  "sections.errLoadNetwork": "Сетевая ошибка при загрузке разделов.",
+  "sections.errAdd": "Не удалось добавить раздел.",
+  "sections.errEdit": "Не удалось обновить раздел.",
+  "sections.errSave": "Не удалось сохранить раздел.",
+  "sections.errDelete": "Не удалось удалить раздел.",
+  "sections.errReorder": "Не удалось изменить порядок разделов.",
+
   "categories.subtitle":
     "Меняйте порядок, переименовывайте, добавляйте и удаляйте категории. Изменения сохраняются в рабочем пространстве ресторана и синхронизируются с",
   "categories.globalMenuLink": "Общим меню",
@@ -653,6 +692,15 @@ export const ruMessages: Messages = {
     "Не удалось обновить категории. Попробуйте ещё раз.",
   "restaurantDetail.addCategoryAria":
     "Переключить категорию «{name}» для этой локации",
+  "restaurantDetail.manageSectionsButton": "Управлять разделами",
+  "restaurantDetail.addSectionsTitle": "Разделы для этой локации",
+  "restaurantDetail.addSectionsHint":
+    "Выберите, какие разделы видят гости, и задайте их порядок.",
+  "restaurantDetail.addSectionsEmptyCatalog":
+    "Разделов пока нет. Сначала создайте их в «Разделы меню».",
+  "restaurantDetail.addSectionsSaveFailed":
+    "Не удалось обновить разделы. Попробуйте ещё раз.",
+  "restaurantDetail.reorderSectionsHeading": "Порядок разделов",
   "restaurantDetail.reorderCategoriesButton": "Изменить порядок категорий",
   "restaurantDetail.reorderCategoriesTitle": "Порядок категорий для этой локации",
   "restaurantDetail.reorderCategoriesHint":

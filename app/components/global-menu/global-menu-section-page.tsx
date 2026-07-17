@@ -2,18 +2,20 @@
 
 import { GlobalMenuPageClient } from "./global-menu-page-client";
 import { useGlobalMenuCatalogLayout } from "./global-menu-catalog-layout-context";
-import type { MenuSection } from "@/lib/data/global-menu-types";
 
 type GlobalMenuSectionPageProps = {
-  menuSection: MenuSection;
+  sectionId: string;
 };
 
-export function GlobalMenuSectionPage({ menuSection }: GlobalMenuSectionPageProps) {
+export function GlobalMenuSectionPage({ sectionId }: GlobalMenuSectionPageProps) {
   const { initialData, loadError } = useGlobalMenuCatalogLayout();
+  const section = initialData.sections?.find((s) => s.id === sectionId);
+  const sectionName = section?.name ?? sectionId;
 
   return (
     <GlobalMenuPageClient
-      menuSection={menuSection}
+      sectionId={sectionId}
+      sectionName={sectionName}
       initialData={initialData}
       loadError={loadError}
     />

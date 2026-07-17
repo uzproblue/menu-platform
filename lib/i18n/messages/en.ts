@@ -31,6 +31,7 @@ export const enMessages: Messages = {
   "nav.globalMenuDishes": "Dishes",
   "nav.globalMenuBeverages": "Beverages",
   "nav.menuCategories": "Menu categories",
+  "nav.sections": "Menu sections",
   "nav.restaurants": "Restaurants",
   "nav.seasonalMenus": "Seasonal menus",
   "nav.menuItemVideos": "Item videos",
@@ -446,6 +447,7 @@ export const enMessages: Messages = {
   "global.subtitle":
     "Menu items are grouped by category and loaded from your restaurant workspace.",
   "global.subtitleDishes": "Food categories and items in your restaurant catalog.",
+  "global.subtitleSection": "Categories and items in this menu section.",
   "global.subtitleBeverages": "Drink categories and items in your restaurant catalog.",
   "global.manageCategories": "Manage categories",
   "global.addNewItem": "Add new item",
@@ -511,15 +513,51 @@ export const enMessages: Messages = {
   "categories.title": "Menu categories",
   "categories.titleDishes": "Dish categories",
   "categories.titleBeverages": "Beverage categories",
+  "categories.titleForSection": "{name} categories",
   "categories.subtitleDishes":
     "Manage food categories for your catalog. Changes sync with",
   "categories.subtitleBeverages":
     "Manage drink categories for your catalog. Changes sync with",
+  "categories.subtitleForSection":
+    "Manage categories in this section. Changes sync with",
   "categories.menuSection": "Menu section",
   "categories.menuSectionDishes": "Dishes",
   "categories.menuSectionBeverages": "Beverages",
   "categories.sectionBadgeDishes": "Dishes",
   "categories.sectionBadgeBeverages": "Beverages",
+
+  "sections.title": "Menu sections",
+  "sections.subtitle":
+    "Create and reorder menu sections. Categories belong to a section; Unassigned holds categories without a section.",
+  "sections.addSection": "Add section",
+  "sections.loading": "Loading sections…",
+  "sections.couldNotLoad": "Could not load sections",
+  "sections.emptyTitle": "No sections yet",
+  "sections.emptyHelp": "Create your first section to organize the menu.",
+  "sections.unassigned": "Unassigned",
+  "sections.unassignedHint": "System section — not editable",
+  "sections.systemSection": "System",
+  "sections.standardSection": "Section",
+  "sections.categorySingular": "category",
+  "sections.categoryPlural": "categories",
+  "sections.createTitle": "New menu section",
+  "sections.editTitle": "Edit menu section",
+  "sections.editorHelp": "Name the section and optionally add a background image.",
+  "sections.backgroundImage": "Background image",
+  "sections.backgroundUrlPlaceholder": "/menu/section-bg.jpg or https://...",
+  "sections.saving": "Saving…",
+  "sections.deleteQuestion": "Delete section?",
+  "sections.deleteBody":
+    "«{name}» will be removed. Its categories move to Unassigned.",
+  "sections.moveUpAria": "Move {name} up",
+  "sections.moveDownAria": "Move {name} down",
+  "sections.errLoad": "Unable to load sections right now.",
+  "sections.errLoadNetwork": "Network error while loading sections.",
+  "sections.errAdd": "Unable to add section.",
+  "sections.errEdit": "Unable to update section.",
+  "sections.errSave": "Unable to save section.",
+  "sections.errDelete": "Unable to delete section.",
+  "sections.errReorder": "Unable to reorder sections.",
   "categories.subtitle":
     "Reorder, rename, add, or remove categories. Changes are saved to your restaurant workspace and stay in sync with",
   "categories.globalMenuLink": "Global Menu",
@@ -638,6 +676,15 @@ export const enMessages: Messages = {
   "restaurantDetail.addCategorySaveFailed":
     "Could not update categories. Try again.",
   "restaurantDetail.addCategoryAria": "Toggle category {name} for this location",
+  "restaurantDetail.manageSectionsButton": "Manage sections",
+  "restaurantDetail.addSectionsTitle": "Sections for this location",
+  "restaurantDetail.addSectionsHint":
+    "Choose which menu sections guests see, and reorder them.",
+  "restaurantDetail.addSectionsEmptyCatalog":
+    "No sections exist yet. Create one under Menu sections first.",
+  "restaurantDetail.addSectionsSaveFailed":
+    "Could not update sections. Try again.",
+  "restaurantDetail.reorderSectionsHeading": "Section order",
   "restaurantDetail.reorderCategoriesButton": "Reorder categories",
   "restaurantDetail.reorderCategoriesTitle": "Reorder categories for this location",
   "restaurantDetail.reorderCategoriesHint":

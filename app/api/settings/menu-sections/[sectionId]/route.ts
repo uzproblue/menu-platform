@@ -3,20 +3,19 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
-  deleteCategoryWithAuthServer,
-  updateCategoryWithAuthServer,
+  deleteMenuSectionWithAuthServer,
+  updateMenuSectionWithAuthServer,
 } from "@/lib/auth-api";
 import { EMPTY_CATALOG_PIPELINE_OPTIONS } from "@/lib/catalog-pipeline-options";
 import {
   isLocationExportStrict,
-  postCatalogOptionsForCategory,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function PATCH(
   req: Request,
-  ctx: { params: Promise<{ categoryId: string }> },
+  ctx: { params: Promise<{ sectionId: string }> },
 ) {
   const session = await getServerSession(authOptions);
   const token = session?.accessToken;
@@ -24,11 +23,11 @@ export async function PATCH(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { categoryId } = await ctx.params;
-  const trimmedId = categoryId?.trim();
+  const { sectionId } = await ctx.params;
+  const trimmedId = sectionId?.trim();
   if (!trimmedId) {
     return NextResponse.json(
-      { error: "invalid_body", message: "categoryId is required" },
+      { error: "invalid_body", message: "sectionId is required" },
       { status: 400 },
     );
   }
@@ -47,38 +46,27 @@ export async function PATCH(
     typeof body === "object" && body !== null && "name" in body
       ? (body as { name?: unknown }).name
       : undefined;
-  const rawDescription =
-    typeof body === "object" && body !== null && "description" in body
-      ? (body as { description?: unknown }).description
-      : undefined;
-  const rawCoverPhoto =
-    typeof body === "object" && body !== null && "coverPhoto" in body
-      ? (body as { coverPhoto?: unknown }).coverPhoto
+  const rawBackgroundImage =
+    typeof body === "object" && body !== null && "backgroundImage" in body
+      ? (body as { backgroundImage?: unknown }).backgroundImage
       : undefined;
   const rawSortOrder =
     typeof body === "object" && body !== null && "sortOrder" in body
       ? (body as { sortOrder?: unknown }).sortOrder
       : undefined;
-  const rawMenuSectionId =
-    typeof body === "object" && body !== null && "menuSectionId" in body
-      ? (body as { menuSectionId?: unknown }).menuSectionId
-      : undefined;
 
   const payload: {
     name?: string;
-    description?: string;
-    coverPhoto?: string;
+    backgroundImage?: string | null;
     sortOrder?: number;
-    menuSectionId?: string;
   } = {};
   if (typeof rawName === "string" && rawName.trim().length) {
     payload.name = rawName.trim();
   }
-  if (typeof rawDescription === "string") {
-    payload.description = rawDescription.trim();
-  }
-  if (typeof rawCoverPhoto === "string") {
-    payload.coverPhoto = rawCoverPhoto.trim();
+  if (rawBackgroundImage === null) {
+    payload.backgroundImage = null;
+  } else if (typeof rawBackgroundImage === "string") {
+    payload.backgroundImage = rawBackgroundImage.trim() || null;
   }
   if (
     typeof rawSortOrder === "number" &&
@@ -87,28 +75,23 @@ export async function PATCH(
   ) {
     payload.sortOrder = rawSortOrder;
   }
-  if (typeof rawMenuSectionId === "string" && rawMenuSectionId.trim().length) {
-    payload.menuSectionId = rawMenuSectionId.trim();
-  }
+
   if (
     payload.name === undefined &&
-    payload.description === undefined &&
-    payload.coverPhoto === undefined &&
-    payload.sortOrder === undefined &&
-    payload.menuSectionId === undefined
+    payload.backgroundImage === undefined &&
+    payload.sortOrder === undefined
   ) {
     return NextResponse.json(
       {
         error: "invalid_body",
-        message:
-          "name, description, coverPhoto, menuSectionId or sortOrder is required",
+        message: "name, backgroundImage or sortOrder is required",
       },
       { status: 400 },
     );
   }
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await updateCategoryWithAuthServer(
+  const result = await updateMenuSectionWithAuthServer(
     token,
     trimmedId,
     payload,
@@ -123,11 +106,11 @@ export async function PATCH(
 
   const exportBatchResult = await schedulePostCatalogChangePipeline(
     token,
-    postCatalogOptionsForCategory(trimmedId, result.data.category, result.data.meta),
+    EMPTY_CATALOG_PIPELINE_OPTIONS,
   );
   if (!exportBatchResult.ok) {
     console.error(
-      "[PATCH category] restaurant location export batch failed",
+      "[PATCH menu-section] restaurant location export batch failed",
       exportBatchResult.failures,
     );
     if (isLocationExportStrict()) {
@@ -143,8 +126,8 @@ export async function PATCH(
     }
   }
 
-  void trackStaffMutation(PlatformEvent.CATALOG_CATEGORY_UPDATED, {
-    categoryId: trimmedId,
+  void trackStaffMutation(PlatformEvent.CATALOG_MENU_SECTION_UPDATED, {
+    sectionId: trimmedId,
   });
 
   return NextResponse.json(
@@ -158,7 +141,7 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  ctx: { params: Promise<{ categoryId: string }> },
+  ctx: { params: Promise<{ sectionId: string }> },
 ) {
   const session = await getServerSession(authOptions);
   const token = session?.accessToken;
@@ -166,17 +149,17 @@ export async function DELETE(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { categoryId } = await ctx.params;
-  const trimmedId = categoryId?.trim();
+  const { sectionId } = await ctx.params;
+  const trimmedId = sectionId?.trim();
   if (!trimmedId) {
     return NextResponse.json(
-      { error: "invalid_body", message: "categoryId is required" },
+      { error: "invalid_body", message: "sectionId is required" },
       { status: 400 },
     );
   }
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await deleteCategoryWithAuthServer(token, trimmedId, restaurantId);
+  const result = await deleteMenuSectionWithAuthServer(token, trimmedId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -190,7 +173,7 @@ export async function DELETE(
   );
   if (!exportBatchResult.ok) {
     console.error(
-      "[DELETE category] restaurant location export batch failed",
+      "[DELETE menu-section] restaurant location export batch failed",
       exportBatchResult.failures,
     );
     if (isLocationExportStrict()) {
@@ -205,8 +188,8 @@ export async function DELETE(
     }
   }
 
-  void trackStaffMutation(PlatformEvent.CATALOG_CATEGORY_DELETED, {
-    categoryId: trimmedId,
+  void trackStaffMutation(PlatformEvent.CATALOG_MENU_SECTION_DELETED, {
+    sectionId: trimmedId,
   });
 
   return new NextResponse(null, { status: 204 });

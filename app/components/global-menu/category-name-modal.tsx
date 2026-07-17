@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
-import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { ItemThumbnail } from "./global-menu-item-row";
 
@@ -13,14 +13,15 @@ type CategoryNameModalProps = {
   initialName: string;
   initialDescription?: string | null;
   initialCoverPhoto?: string | null;
-  initialMenuSection?: MenuSection;
+  initialMenuSectionId?: string;
+  sections: MenuSectionEntity[];
   isSaving: boolean;
   onClose: () => void;
   onSave: (payload: {
     name: string;
     description?: string;
     coverPhoto?: string;
-    menuSection: MenuSection;
+    menuSectionId: string;
   }) => Promise<void>;
 };
 
@@ -31,7 +32,8 @@ export function CategoryNameModal({
   initialName,
   initialDescription,
   initialCoverPhoto,
-  initialMenuSection = "dishes",
+  initialMenuSectionId = "",
+  sections,
   isSaving,
   onClose,
   onSave,
@@ -39,13 +41,13 @@ export function CategoryNameModal({
   const { t } = useI18n();
   const titleId = useId();
   const nameId = useId();
-  const menuSectionId = useId();
+  const menuSectionFieldId = useId();
   const descriptionId = useId();
   const coverPhotoUrlId = useId();
   const coverPhotoUploadId = useId();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
-  const [menuSection, setMenuSection] = useState<MenuSection>("dishes");
+  const [menuSectionId, setMenuSectionId] = useState("");
   const [description, setDescription] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
@@ -55,7 +57,12 @@ export function CategoryNameModal({
   useEffect(() => {
     if (!open) return;
     setName(initialName);
-    setMenuSection(initialMenuSection);
+    const fallback =
+      initialMenuSectionId ||
+      sections.find((s) => s.kind === "standard")?.id ||
+      sections[0]?.id ||
+      "";
+    setMenuSectionId(fallback);
     setDescription(initialDescription ?? "");
     setCoverPhotoUrl(initialCoverPhoto ?? "");
     setSelectedCoverFile(null);
@@ -67,7 +74,7 @@ export function CategoryNameModal({
     if (uploadInputRef.current) {
       uploadInputRef.current.value = "";
     }
-  }, [initialCoverPhoto, initialDescription, initialMenuSection, initialName, mode, open]);
+  }, [initialCoverPhoto, initialDescription, initialMenuSectionId, initialName, mode, open, sections]);
 
   useEffect(() => {
     if (!open) return;
@@ -95,7 +102,7 @@ export function CategoryNameModal({
 
   const title = mode === "create" ? t("newCategory.title") : t("categoryModal.editTitle");
   const help = mode === "create" ? t("newCategory.subtitle") : t("categoryModal.editHelp");
-  const canSave = name.trim().length > 0;
+  const canSave = name.trim().length > 0 && menuSectionId.trim().length > 0;
   const previewPhoto = localCoverPreviewUrl || coverPhotoUrl.trim();
   const controlsDisabled = isSaving;
 
@@ -113,7 +120,7 @@ export function CategoryNameModal({
         name: name.trim(),
         description: description.trim() || undefined,
         coverPhoto,
-        menuSection,
+        menuSectionId,
       });
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t("newCategory.createFailed"));
@@ -181,18 +188,23 @@ export function CategoryNameModal({
             />
           </div>
           <div className="mt-4 space-y-2">
-            <label htmlFor={menuSectionId} className="text-sm font-medium text-foreground">
+            <label htmlFor={menuSectionFieldId} className="text-sm font-medium text-foreground">
               {t("categories.menuSection")}
             </label>
             <select
-              id={menuSectionId}
-              value={menuSection}
-              onChange={(e) => setMenuSection(e.target.value as MenuSection)}
-              disabled={controlsDisabled}
+              id={menuSectionFieldId}
+              value={menuSectionId}
+              onChange={(e) => setMenuSectionId(e.target.value)}
+              disabled={controlsDisabled || sections.length === 0}
               className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
             >
-              <option value="dishes">{t("categories.menuSectionDishes")}</option>
-              <option value="beverages">{t("categories.menuSectionBeverages")}</option>
+              {sections.map((section) => (
+                <option key={section.id} value={section.id}>
+                  {section.kind === "unassigned"
+                    ? t("sections.unassigned")
+                    : section.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="mt-4 space-y-2">

@@ -1,7 +1,7 @@
 import type {
   CatalogChangeMeta,
   CatalogPriceApi,
-  MenuSection,
+  MenuSectionEntity,
   TranslationSyncMeta,
   TranslationTextApi,
 } from "./shared";
@@ -12,7 +12,7 @@ export type Category = {
   description?: string | null;
   coverPhoto?: string | null;
   sortOrder: number;
-  menuSection: MenuSection;
+  menuSectionId: string;
   itemsCount: number;
   translations: TranslationTextApi[];
 };
@@ -52,13 +52,22 @@ export type GlobalMenuCategoryWithItemsApi = {
   description?: string;
   coverPhoto?: string | null;
   sortOrder: number;
-  menuSection?: MenuSection;
+  menuSectionId: string;
   translations: TranslationTextApi[];
   items: GlobalMenuItemApi[];
 };
 
+export type GlobalMenuSectionApi = {
+  id: string;
+  name: string;
+  backgroundImage: string | null;
+  sortOrder: number;
+  kind: MenuSectionEntity["kind"];
+};
+
 export type GlobalMenuResponse = {
   restaurantId: string;
+  sections: GlobalMenuSectionApi[];
   categories: GlobalMenuCategoryWithItemsApi[];
 };
 

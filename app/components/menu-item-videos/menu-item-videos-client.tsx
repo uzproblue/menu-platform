@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as tus from "tus-js-client";
 import { useI18n } from "@/app/components/i18n-provider";
-import type { GlobalMenuData, MenuItem, MenuSection } from "@/lib/data/global-menu-types";
+import type { GlobalMenuData, MenuItem, MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { mapGlobalMenuResponseToData } from "@/lib/menu/map-global-menu-response";
 import type { GlobalMenuResponse } from "@/lib/auth-api";
 
@@ -11,18 +11,17 @@ const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 
 type FlatMenuItem = MenuItem & {
   categoryName: string;
-  menuSection: MenuSection;
+  menuSectionId: string;
 };
 
 function flattenMenuItems(data: GlobalMenuData): FlatMenuItem[] {
   const out: FlatMenuItem[] = [];
   for (const cat of data.categories) {
-    const section: MenuSection = cat.menuSection === "beverages" ? "beverages" : "dishes";
     for (const item of cat.items) {
       out.push({
         ...item,
         categoryName: cat.name,
-        menuSection: section,
+        menuSectionId: cat.menuSectionId,
       });
     }
   }
@@ -73,10 +72,11 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
   const { t } = useI18n();
 
   const [items, setItems] = useState<FlatMenuItem[]>([]);
+  const [sections, setSections] = useState<MenuSectionEntity[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [section, setSection] = useState<"all" | MenuSection>("all");
+  const [section, setSection] = useState<"all" | string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -99,10 +99,17 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
         return;
       }
       const api = (await res.json()) as GlobalMenuResponse;
-      setItems(flattenMenuItems(mapGlobalMenuResponseToData(api)));
+      const data = mapGlobalMenuResponseToData(api);
+      setItems(flattenMenuItems(data));
+      setSections(
+        (data.sections ?? [])
+          .filter((s) => s.kind === "standard")
+          .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+      );
     } catch {
       setMenuError(t("menuItemVideos.loadError"));
       setItems([]);
+      setSections([]);
     } finally {
       setLoadingMenu(false);
     }
@@ -115,7 +122,7 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
-      if (section !== "all" && item.menuSection !== section) return false;
+      if (section !== "all" && item.menuSectionId !== section) return false;
       if (!q) return true;
       return (
         item.name.toLowerCase().includes(q) ||
@@ -243,22 +250,29 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
             className="w-full rounded-lg border border-foreground/15 bg-background px-2 py-2 text-sm"
           />
           <div className="mt-2 flex flex-wrap gap-1">
-            {(["all", "dishes", "beverages"] as const).map((s) => (
+            <button
+              type="button"
+              onClick={() => setSection("all")}
+              className={`rounded-lg px-2 py-1 text-xs font-medium ${
+                section === "all"
+                  ? "bg-foreground text-background"
+                  : "bg-foreground/10 text-foreground/70"
+              }`}
+            >
+              {t("menuItemVideos.sectionAll")}
+            </button>
+            {sections.map((s) => (
               <button
-                key={s}
+                key={s.id}
                 type="button"
-                onClick={() => setSection(s)}
+                onClick={() => setSection(s.id)}
                 className={`rounded-lg px-2 py-1 text-xs font-medium ${
-                  section === s
+                  section === s.id
                     ? "bg-foreground text-background"
                     : "bg-foreground/10 text-foreground/70"
                 }`}
               >
-                {s === "all"
-                  ? t("menuItemVideos.sectionAll")
-                  : s === "dishes"
-                    ? t("nav.globalMenuDishes")
-                    : t("nav.globalMenuBeverages")}
+                {s.name}
               </button>
             ))}
           </div>

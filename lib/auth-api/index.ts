@@ -8,6 +8,7 @@ export * from "./auth";
 export * from "./teammates";
 export * from "./catalog-read";
 export * from "./catalog-categories";
+export * from "./catalog-menu-sections";
 export * from "./catalog-menu-items";
 export * from "./locations-core";
 export * from "./location-menu";

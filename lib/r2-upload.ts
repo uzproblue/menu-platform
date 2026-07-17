@@ -22,6 +22,7 @@ const targetFolderMap: Record<UploadTarget, string> = {
   "location-logo": "locations",
   "qr-center-image": "qr-center-images",
   "category-cover": "category-covers",
+  "section-background": "section-backgrounds",
 };
 
 const allowedMimeTypes = new Set([

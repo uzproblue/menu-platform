@@ -1,11 +1,5 @@
-import type { Metadata } from "next";
-import { GlobalMenuCategoriesClient } from "@/app/components/global-menu/global-menu-categories-client";
+import { redirectLegacyMenuSection } from "@/lib/menu/legacy-section-redirect";
 
-export const metadata: Metadata = {
-  title: "Beverages · Menu categories · Menu Platform",
-  description: "Manage beverage categories",
-};
-
-export default function GlobalMenuCategoriesBeveragesPage() {
-  return <GlobalMenuCategoriesClient menuSection="beverages" />;
+export default async function GlobalMenuCategoriesBeveragesRedirectPage() {
+  await redirectLegacyMenuSection("beverages", "categories");
 }

@@ -1,6 +1,16 @@
 import type { TranslationTextApi } from "@/lib/auth-api";
 
-export type MenuSection = "dishes" | "beverages";
+export type MenuSectionKind = "standard" | "unassigned";
+
+/** Restaurant menu section entity from menu-server. */
+export type MenuSectionEntity = {
+  id: string;
+  name: string;
+  backgroundImage: string | null;
+  sortOrder: number;
+  kind: MenuSectionKind;
+  categoriesCount?: number;
+};
 
 /** Shape used by global menu UI (API-backed). */
 export type CatalogPriceRow = {
@@ -43,11 +53,12 @@ export type MenuCategory = {
   /** Catalog description; guest copy may come from `translations` per locale. */
   description?: string | null;
   coverPhoto?: string | null;
-  menuSection?: MenuSection;
+  menuSectionId: string;
   translations?: TranslationTextApi[];
   items: MenuItem[];
 };
 
 export type GlobalMenuData = {
+  sections?: MenuSectionEntity[];
   categories: MenuCategory[];
 };

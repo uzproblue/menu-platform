@@ -11,6 +11,7 @@ import type {
   GetLocationResponse,
   GlobalMenuItemApi,
   GlobalMenuResponse,
+  MenuSectionEntity,
   UpdateLocationDetailsResponse,
 } from "@/lib/auth-api";
 import { useI18n } from "../i18n-provider";
@@ -85,6 +86,7 @@ export function NewLocationWizard({
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [menuSections, setMenuSections] = useState<MenuSectionEntity[]>([]);
 
   const [selectedItems, setSelectedItems] = useState<Record<string, SelectedItemRow>>(
     {},
@@ -185,9 +187,10 @@ export function NewLocationWizard({
       setCategoriesLoadError(null);
       setMenuLoadError(null);
       try {
-        const [cRes, mRes] = await Promise.all([
+        const [cRes, mRes, sRes] = await Promise.all([
           fetch("/api/settings/categories", { cache: "no-store" }),
           fetch("/api/settings/global-menu", { cache: "no-store" }),
+          fetch("/api/settings/menu-sections", { cache: "no-store" }),
         ]);
         if (cancelled) return;
         if (cRes.ok) {
@@ -209,6 +212,10 @@ export function NewLocationWizard({
               ? t("restaurants.newWizard.catalogUnauthorized")
               : t("restaurants.newWizard.menuLoadFailed"),
           );
+        }
+        if (sRes.ok) {
+          const secPayload = (await sRes.json()) as { sections?: MenuSectionEntity[] };
+          setMenuSections(Array.isArray(secPayload.sections) ? secPayload.sections : []);
         }
       } catch {
         if (!cancelled) {
@@ -269,7 +276,12 @@ export function NewLocationWizard({
   }, [allCategories, catalogLoading, categoriesLoadError]);
 
   const handleCreateCategorySave = useCallback(
-    async (payload: { name: string; description?: string; coverPhoto?: string }) => {
+    async (payload: {
+      name: string;
+      description?: string;
+      coverPhoto?: string;
+      menuSectionId: string;
+    }) => {
       setIsCreatingCategory(true);
       try {
         const res = await fetch("/api/settings/categories", {
@@ -279,6 +291,7 @@ export function NewLocationWizard({
             name: payload.name,
             description: payload.description,
             coverPhoto: payload.coverPhoto,
+            menuSectionId: payload.menuSectionId,
           }),
         });
         if (!res.ok) {
@@ -830,6 +843,7 @@ export function NewLocationWizard({
         initialName=""
         initialDescription=""
         initialCoverPhoto=""
+        sections={menuSections}
         isSaving={isCreatingCategory}
         onClose={() => {
           if (!isCreatingCategory) setCreateCategoryModalOpen(false);

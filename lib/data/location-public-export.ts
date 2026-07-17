@@ -12,8 +12,9 @@ export type LocationPublicExport = {
   exportedAt: string;
   restaurantId: string;
   location: Location;
-  /** Published categories + items (same as GET /api/locations/:id/menu `categories`). */
+  /** Published sections + categories + items (same as GET /api/locations/:id/menu). */
   menu: {
+    sections: GlobalMenuResponse["sections"];
     categories: GlobalMenuResponse["categories"];
   };
 };
@@ -30,8 +31,16 @@ function expandLocationLogoForExport(
 function expandMenuForExport(
   menu: GlobalMenuResponse,
   publicBaseUrl: string,
-): GlobalMenuResponse["categories"] {
-  return menu.categories.map((cat) => ({
+): {
+  sections: GlobalMenuResponse["sections"];
+  categories: GlobalMenuResponse["categories"];
+} {
+  const sections = (menu.sections ?? []).map((s) => ({
+    ...s,
+    backgroundImage:
+      expandR2AssetToPublicUrl(s.backgroundImage, publicBaseUrl) ?? s.backgroundImage,
+  }));
+  const categories = menu.categories.map((cat) => ({
     ...cat,
     coverPhoto:
       expandR2AssetToPublicUrl(cat.coverPhoto, publicBaseUrl) ?? cat.coverPhoto,
@@ -41,6 +50,7 @@ function expandMenuForExport(
         expandR2AssetToPublicUrl(item.image, publicBaseUrl) ?? item.image,
     })),
   }));
+  return { sections, categories };
 }
 
 /**
@@ -57,6 +67,6 @@ export function buildLocationPublicExport(
     exportedAt: new Date().toISOString(),
     restaurantId: menu.restaurantId,
     location: expandLocationLogoForExport(location, base),
-    menu: { categories: expandMenuForExport(menu, base) },
+    menu: expandMenuForExport(menu, base),
   };
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth/next";
 import { NewGlobalMenuItemClient } from "@/app/components/global-menu/new-global-menu-item-client";
-import type { MenuSection } from "@/lib/data/global-menu-types";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { getCategoriesWithAuthServer } from "@/lib/auth-api";
@@ -15,9 +14,9 @@ type NewGlobalMenuItemPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function parseMenuSection(raw: string | string[] | undefined): MenuSection {
+function parseSectionId(raw: string | string[] | undefined): string {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return value === "beverages" ? "beverages" : "dishes";
+  return typeof value === "string" ? value.trim() : "";
 }
 
 export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalMenuItemPageProps) {
@@ -25,7 +24,7 @@ export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalM
   const token = session?.accessToken;
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const menuSection = parseMenuSection(resolvedSearchParams?.section);
+  const sectionId = parseSectionId(resolvedSearchParams?.section);
 
   let initialCategories: { id: string; name: string }[] = [];
   let categoriesLoadError: string | null = null;
@@ -37,7 +36,7 @@ export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalM
     const result = await getCategoriesWithAuthServer(token, restaurantId);
     if (result.ok) {
       initialCategories = result.data.categories
-        .filter((c) => c.menuSection === menuSection)
+        .filter((c) => !sectionId || c.menuSectionId === sectionId)
         .map((c) => ({
           id: c.id,
           name: c.name,
@@ -57,7 +56,7 @@ export default async function NewGlobalMenuItemPage({ searchParams }: NewGlobalM
       initialCategories={initialCategories}
       categoriesLoadError={categoriesLoadError}
       preselectedCategoryId={preselectedCategoryId}
-      menuSection={menuSection}
+      sectionId={sectionId}
     />
   );
 }

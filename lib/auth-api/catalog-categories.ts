@@ -1,14 +1,18 @@
 import { authApiJson, authApiVoid } from "./client";
 import type {
   CategoryResponse,
-  MenuSection,
   SyncCategoryTranslationsResponse,
   TranslationTextApi,
 } from "./types";
 
 export async function createCategoryWithAuthServer(
   accessToken: string,
-  input: { name: string; description?: string; coverPhoto?: string; menuSection?: MenuSection },
+  input: {
+    name: string;
+    description?: string;
+    coverPhoto?: string;
+    menuSectionId?: string;
+  },
   restaurantId?: string,
 ): Promise<
   | { ok: true; data: CategoryResponse }
@@ -31,7 +35,7 @@ export async function updateCategoryWithAuthServer(
     description?: string;
     coverPhoto?: string;
     sortOrder?: number;
-    menuSection?: MenuSection;
+    menuSectionId?: string;
   },
   restaurantId?: string,
 ): Promise<

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import type { CategoryShape } from "@/lib/pending-mutations";
 import { getCategoryDisplayForLocale } from "@/lib/category-locale-display";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
@@ -9,6 +10,7 @@ import { useI18n } from "@/app/components/i18n-provider";
 
 type GlobalMenuCategoriesTableProps = {
   categories: CategoryShape[];
+  sections: MenuSectionEntity[];
   locale: Locale;
   onOpenTranslations: (category: CategoryShape) => void;
   onEdit: (categoryId: string) => void;
@@ -47,6 +49,7 @@ function CategoryTableThumbnail({
 
 export function GlobalMenuCategoriesTable({
   categories,
+  sections,
   locale,
   onOpenTranslations,
   onEdit,
@@ -96,10 +99,11 @@ export function GlobalMenuCategoriesTable({
               cat.translations,
               locale,
             );
+            const section = sections.find((s) => s.id === cat.menuSectionId);
             const sectionLabel =
-              cat.menuSection === "beverages"
-                ? t("categories.sectionBadgeBeverages")
-                : t("categories.sectionBadgeDishes");
+              section?.kind === "unassigned"
+                ? t("sections.unassigned")
+                : (section?.name ?? "—");
 
             return (
               <tr

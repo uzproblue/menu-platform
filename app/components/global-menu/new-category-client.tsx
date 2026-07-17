@@ -19,26 +19,29 @@ import {
   readLocationExportWarning,
 } from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
-import type { MenuSection } from "@/lib/data/global-menu-types";
+import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 
 type NewCategoryClientProps = {
-  initialMenuSection?: MenuSection;
+  initialMenuSectionId?: string;
 };
 
-export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategoryClientProps) {
+export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClientProps) {
   const { t } = useI18n();
   const router = useRouter();
   const nameId = useId();
-  const menuSectionId = useId();
+  const menuSectionFieldId = useId();
   const descriptionId = useId();
   const coverPhotoUrlId = useId();
   const coverPhotoUploadId = useId();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState("");
-  const [menuSection, setMenuSection] = useState<MenuSection>(initialMenuSection);
-  const categoriesListPath = `/global-menu/categories/${menuSection}`;
+  const [sections, setSections] = useState<MenuSectionEntity[]>([]);
+  const [menuSectionId, setMenuSectionId] = useState(initialMenuSectionId);
+  const categoriesListPath = menuSectionId
+    ? `/global-menu/categories/section/${encodeURIComponent(menuSectionId)}`
+    : "/global-menu/categories";
   const [description, setDescription] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
@@ -48,20 +51,47 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/settings/menu-sections", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          sections?: MenuSectionEntity[];
+        };
+        const list = Array.isArray(payload.sections) ? payload.sections : [];
+        setSections(list);
+        setMenuSectionId((prev) => {
+          if (prev && list.some((s) => s.id === prev)) return prev;
+          return (
+            list.find((s) => s.kind === "standard")?.id ||
+            list[0]?.id ||
+            ""
+          );
+        });
+      } catch {
+        /* non-fatal */
+      }
+    })();
+  }, []);
+
   const previewName = name.trim() || t("newCategory.previewUntitled");
   const previewDescription =
     description.trim() || t("newCategory.previewNoDescription");
   const previewPhoto = localCoverPreviewUrl || coverPhotoUrl.trim();
 
   const canSave = useMemo(
-    () => name.trim().length > 0 && !isSaving,
-    [isSaving, name],
+    () => name.trim().length > 0 && menuSectionId.trim().length > 0 && !isSaving,
+    [isSaving, menuSectionId, name],
   );
   const controlsDisabled = isSaving;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!name.trim().length || isSaving) return;
+    if (!name.trim().length || !menuSectionId.trim().length || isSaving) return;
 
     setSubmitError(null);
     setIsSaving(true);
@@ -78,7 +108,7 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
           name: name.trim(),
           description: description.trim() || undefined,
           coverPhoto,
-          menuSection,
+          menuSectionId,
         }),
       });
 
@@ -98,7 +128,7 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
               description?: unknown;
               coverPhoto?: unknown;
               sortOrder?: unknown;
-              menuSection?: unknown;
+              menuSectionId?: unknown;
               itemsCount?: unknown;
               translations?: unknown;
             };
@@ -115,6 +145,10 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
         const translations = Array.isArray(created.translations)
           ? (created.translations as TranslationTextApi[])
           : undefined;
+        const resolvedSectionId =
+          typeof created.menuSectionId === "string"
+            ? created.menuSectionId
+            : menuSectionId;
         appendCategoryMutation({
           kind: "upsert",
           value: {
@@ -129,8 +163,7 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
                 ? created.coverPhoto
                 : null,
             sortOrder: created.sortOrder,
-            menuSection:
-              created.menuSection === "beverages" ? "beverages" : menuSection,
+            menuSectionId: resolvedSectionId,
             itemsCount: created.itemsCount,
             ...(translations !== undefined ? { translations } : {}),
           },
@@ -140,7 +173,7 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
       persistPendingLocationExportWarning(
         readLocationExportWarning(successPayload, t),
       );
-      router.push(`/global-menu/categories/${menuSection}`);
+      router.push(categoriesListPath);
     } catch {
       setSubmitError(t("newCategory.createFailed"));
     } finally {
@@ -222,24 +255,25 @@ export function NewCategoryClient({ initialMenuSection = "dishes" }: NewCategory
 
             <div className="space-y-2">
               <label
-                htmlFor={menuSectionId}
+                htmlFor={menuSectionFieldId}
                 className="text-sm font-medium text-foreground"
               >
                 {t("categories.menuSection")}
               </label>
               <select
-                id={menuSectionId}
-                value={menuSection}
-                onChange={(e) => setMenuSection(e.target.value as MenuSection)}
-                disabled={controlsDisabled}
+                id={menuSectionFieldId}
+                value={menuSectionId}
+                onChange={(e) => setMenuSectionId(e.target.value)}
+                disabled={controlsDisabled || sections.length === 0}
                 className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
               >
-                <option value="dishes">
-                  {t("categories.menuSectionDishes")}
-                </option>
-                <option value="beverages">
-                  {t("categories.menuSectionBeverages")}
-                </option>
+                {sections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.kind === "unassigned"
+                      ? t("sections.unassigned")
+                      : section.name}
+                  </option>
+                ))}
               </select>
             </div>
 

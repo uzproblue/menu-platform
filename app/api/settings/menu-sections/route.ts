@@ -3,12 +3,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import {
-  createCategoryWithAuthServer,
-  getCategoriesWithAuthServer,
+  createMenuSectionWithAuthServer,
+  getMenuSectionsWithAuthServer,
 } from "@/lib/auth-api";
 import {
+  EMPTY_CATALOG_PIPELINE_OPTIONS,
+} from "@/lib/catalog-pipeline-options";
+import {
   isLocationExportStrict,
-  postCatalogOptionsForCategory,
   schedulePostCatalogChangePipeline,
 } from "@/lib/sync-location-public-export";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
@@ -21,7 +23,7 @@ export async function GET() {
   }
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await getCategoriesWithAuthServer(token, restaurantId);
+  const result = await getMenuSectionsWithAuthServer(token, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -53,59 +55,49 @@ export async function POST(req: Request) {
     typeof body === "object" && body !== null && "name" in body
       ? (body as { name?: unknown }).name
       : undefined;
-  const rawDescription =
-    typeof body === "object" && body !== null && "description" in body
-      ? (body as { description?: unknown }).description
+  const rawBackgroundImage =
+    typeof body === "object" && body !== null && "backgroundImage" in body
+      ? (body as { backgroundImage?: unknown }).backgroundImage
       : undefined;
-  const rawCoverPhoto =
-    typeof body === "object" && body !== null && "coverPhoto" in body
-      ? (body as { coverPhoto?: unknown }).coverPhoto
+  const rawSortOrder =
+    typeof body === "object" && body !== null && "sortOrder" in body
+      ? (body as { sortOrder?: unknown }).sortOrder
       : undefined;
-  const rawMenuSectionId =
-    typeof body === "object" && body !== null && "menuSectionId" in body
-      ? (body as { menuSectionId?: unknown }).menuSectionId
-      : undefined;
+
   if (typeof rawName !== "string" || !rawName.trim().length) {
     return NextResponse.json(
       { error: "invalid_body", message: "name is required" },
       { status: 400 },
     );
   }
-  if (rawDescription !== undefined && typeof rawDescription !== "string") {
-    return NextResponse.json(
-      { error: "invalid_body", message: "description must be a string" },
-      { status: 400 },
-    );
-  }
-  if (rawCoverPhoto !== undefined && typeof rawCoverPhoto !== "string") {
-    return NextResponse.json(
-      { error: "invalid_body", message: "coverPhoto must be a string" },
-      { status: 400 },
-    );
-  }
   if (
-    rawMenuSectionId !== undefined &&
-    (typeof rawMenuSectionId !== "string" || !rawMenuSectionId.trim().length)
+    rawBackgroundImage !== undefined &&
+    rawBackgroundImage !== null &&
+    typeof rawBackgroundImage !== "string"
   ) {
     return NextResponse.json(
-      { error: "invalid_body", message: "menuSectionId must be a non-empty string" },
+      { error: "invalid_body", message: "backgroundImage must be a string" },
       { status: 400 },
     );
   }
 
-  const description = typeof rawDescription === "string" ? rawDescription.trim() : "";
-  const coverPhoto = typeof rawCoverPhoto === "string" ? rawCoverPhoto.trim() : "";
-  const menuSectionId =
-    typeof rawMenuSectionId === "string" ? rawMenuSectionId.trim() : undefined;
-
   const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await createCategoryWithAuthServer(
+  const result = await createMenuSectionWithAuthServer(
     token,
     {
       name: rawName.trim(),
-      description: description || undefined,
-      coverPhoto: coverPhoto || undefined,
-      menuSectionId,
+      backgroundImage:
+        typeof rawBackgroundImage === "string"
+          ? rawBackgroundImage.trim() || null
+          : rawBackgroundImage === null
+            ? null
+            : undefined,
+      sortOrder:
+        typeof rawSortOrder === "number" &&
+        Number.isInteger(rawSortOrder) &&
+        rawSortOrder >= 0
+          ? rawSortOrder
+          : undefined,
     },
     restaurantId,
   );
@@ -116,16 +108,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const categoryId = result.data.category.id;
   const exportBatchResult = await schedulePostCatalogChangePipeline(
     token,
-    postCatalogOptionsForCategory(categoryId, result.data.category, {
-      textFieldsChanged: result.data.meta?.textFieldsChanged !== false,
-    }),
+    EMPTY_CATALOG_PIPELINE_OPTIONS,
   );
   if (!exportBatchResult.ok) {
     console.error(
-      "[POST categories] restaurant location export batch failed",
+      "[POST menu-sections] restaurant location export batch failed",
       exportBatchResult.failures,
     );
     if (isLocationExportStrict()) {
@@ -141,9 +130,8 @@ export async function POST(req: Request) {
     }
   }
 
-  void trackStaffMutation(PlatformEvent.CATALOG_CATEGORY_CREATED, {
-    categoryId,
-    menuSectionId,
+  void trackStaffMutation(PlatformEvent.CATALOG_MENU_SECTION_CREATED, {
+    sectionId: result.data.section.id,
   });
 
   return NextResponse.json(

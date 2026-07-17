@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import type {
   GlobalMenuItemApi,
@@ -13,7 +13,7 @@ import type {
   GlobalMenuData,
   MenuCategory,
   MenuItem,
-  MenuSection,
+  MenuSectionEntity,
 } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { GlobalMenuCategorySection } from "@/app/components/global-menu/global-menu-category-section";
@@ -32,6 +32,10 @@ import {
   AddLocationCategoriesModal,
   type AvailableCategory,
 } from "./add-location-categories-modal";
+import {
+  AddLocationSectionsModal,
+  type AvailableSection,
+} from "./add-location-sections-modal";
 import { ReorderLocationCategoriesModal } from "./reorder-location-categories-modal";
 
 export type CategoryCatalogEntry = {
@@ -39,29 +43,31 @@ export type CategoryCatalogEntry = {
   name: string;
   sortOrder: number;
   itemsCount: number;
-  menuSection: MenuSection;
+  menuSectionId: string;
 };
 
-function resolveCategoryMenuSection(
+function resolveCategoryMenuSectionId(
   id: string,
   catalogEntry?: CategoryCatalogEntry,
   globalCategory?: MenuCategory,
-): MenuSection {
-  if (catalogEntry?.menuSection === "beverages") return "beverages";
-  if (globalCategory?.menuSection === "beverages") return "beverages";
-  return "dishes";
+): string {
+  return (
+    catalogEntry?.menuSectionId ||
+    globalCategory?.menuSectionId ||
+    ""
+  );
 }
 
 function mergeSectionCategoryOrder(
   fullOrder: string[],
-  section: MenuSection,
+  sectionId: string,
   newSectionOrder: string[],
-  sectionOf: (id: string) => MenuSection,
+  sectionOf: (id: string) => string,
 ): string[] {
   const result: string[] = [];
   let insertedSection = false;
   for (const id of fullOrder) {
-    if (sectionOf(id) !== section) {
+    if (sectionOf(id) !== sectionId) {
       result.push(id);
       continue;
     }
@@ -76,13 +82,36 @@ function mergeSectionCategoryOrder(
   return result;
 }
 
+async function patchLocationSections(
+  locationId: string,
+  sectionIds: string[],
+): Promise<{ ok: true } | { ok: false; message?: string }> {
+  const response = await fetch(
+    `/api/settings/locations/${encodeURIComponent(locationId)}/sections`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sectionIds }),
+    },
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { message?: string }
+      | null;
+    return { ok: false, message: payload?.message };
+  }
+  return { ok: true };
+}
+
 type RestaurantDetailClientProps = {
   restaurant: RestaurantDisplayInfo;
   initialCatalog: GlobalMenuData;
   initialGlobalMenu: GlobalMenuResponse | null;
   initialManageItems: LocationMenuItemRow[];
   enabledCategoryIds: string[];
+  enabledSectionIds: string[];
   categoriesCatalog: CategoryCatalogEntry[];
+  menuSections: MenuSectionEntity[];
 };
 
 type AddCategoryState = {
@@ -201,7 +230,9 @@ export function RestaurantDetailClient({
   initialGlobalMenu,
   initialManageItems,
   enabledCategoryIds: initialEnabledCategoryIds,
+  enabledSectionIds: initialEnabledSectionIds,
   categoriesCatalog,
+  menuSections,
 }: RestaurantDetailClientProps) {
   const { t } = useI18n();
   const enqueueToggle = useSerializedAsyncQueue();
@@ -213,6 +244,9 @@ export function RestaurantDetailClient({
   const [toasts, setToasts] = useState<ToastEntry[]>([]);
   const [enabledCategoryIds, setEnabledCategoryIds] = useState<string[]>(
     () => initialEnabledCategoryIds,
+  );
+  const [enabledSectionIds, setEnabledSectionIds] = useState<string[]>(
+    () => initialEnabledSectionIds,
   );
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [catalogState, setCatalogState] = useState<CatalogState>(() =>
@@ -232,7 +266,24 @@ export function RestaurantDetailClient({
     saving: false,
     error: null,
   });
-  const [menuTab, setMenuTab] = useState<MenuSection>("dishes");
+  const [sectionsModal, setSectionsModal] = useState<AddCategoryState>({
+    open: false,
+    saving: false,
+    error: null,
+  });
+  const standardSections = useMemo(
+    () =>
+      menuSections
+        .filter((s) => s.kind === "standard")
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+    [menuSections],
+  );
+  const [menuTab, setMenuTab] = useState<string>(() => {
+    const enabled = initialEnabledSectionIds.filter((id) =>
+      menuSections.some((s) => s.id === id && s.kind === "standard"),
+    );
+    return enabled[0] ?? standardSections[0]?.id ?? "";
+  });
 
   const displayName = restaurant.name.trim().length
     ? restaurant.name
@@ -312,14 +363,32 @@ export function RestaurantDetailClient({
   ]);
 
   const sectionOfCategoryId = useCallback(
-    (id: string): MenuSection =>
-      resolveCategoryMenuSection(
+    (id: string): string =>
+      resolveCategoryMenuSectionId(
         id,
         catalogById.get(id),
         catalogCategoriesById.get(id),
       ),
     [catalogById, catalogCategoriesById],
   );
+
+  const locationSectionTabs = useMemo(() => {
+    const byId = new Map(standardSections.map((s) => [s.id, s]));
+    const ordered = enabledSectionIds
+      .map((id) => byId.get(id))
+      .filter((s): s is MenuSectionEntity => s != null);
+    return ordered.length > 0 ? ordered : standardSections;
+  }, [enabledSectionIds, standardSections]);
+
+  useEffect(() => {
+    if (!menuTab && locationSectionTabs[0]) {
+      setMenuTab(locationSectionTabs[0].id);
+      return;
+    }
+    if (menuTab && !locationSectionTabs.some((s) => s.id === menuTab)) {
+      setMenuTab(locationSectionTabs[0]?.id ?? "");
+    }
+  }, [locationSectionTabs, menuTab]);
 
   const enabledCategoryIdsInTab = useMemo(
     () => enabledCategoryIds.filter((id) => sectionOfCategoryId(id) === menuTab),
@@ -341,7 +410,7 @@ export function RestaurantDetailClient({
 
   const modalCategories: AvailableCategory[] = useMemo(() => {
     return categoriesCatalog
-      .filter((c) => c.menuSection === menuTab)
+      .filter((c) => c.menuSectionId === menuTab)
       .map((c) => ({ id: c.id, name: c.name, itemsCount: c.itemsCount }))
       .sort(
         (a, b) =>
@@ -350,6 +419,16 @@ export function RestaurantDetailClient({
           a.name.localeCompare(b.name),
       );
   }, [categoriesCatalog, catalogById, menuTab]);
+
+  const modalSections: AvailableSection[] = useMemo(
+    () =>
+      standardSections.map((s) => ({
+        id: s.id,
+        name: s.name,
+        categoriesCount: s.categoriesCount ?? 0,
+      })),
+    [standardSections],
+  );
 
   const canShowAddButton = modalCategories.length > 0;
   const canReorderCategories = enabledCategoryIdsInTab.length >= 2;
@@ -835,6 +914,44 @@ export function RestaurantDetailClient({
     [enabledCategoryIds, menuTab, restaurant.id, sectionOfCategoryId, t],
   );
 
+  const handleOpenSectionsModal = useCallback(() => {
+    setSectionsModal({ open: true, saving: false, error: null });
+  }, []);
+
+  const handleCloseSectionsModal = useCallback(() => {
+    setSectionsModal((prev) =>
+      prev.saving ? prev : { ...prev, open: false, error: null },
+    );
+  }, []);
+
+  const handleSaveSections = useCallback(
+    async (selectedIds: string[]) => {
+      const unchanged =
+        selectedIds.length === enabledSectionIds.length &&
+        selectedIds.every((id, i) => id === enabledSectionIds[i]);
+      if (unchanged) {
+        setSectionsModal((prev) => ({ ...prev, open: false, error: null }));
+        return;
+      }
+      setSectionsModal((prev) => ({ ...prev, saving: true, error: null }));
+      const result = await patchLocationSections(restaurant.id, selectedIds);
+      if (!result.ok) {
+        setSectionsModal({
+          open: true,
+          saving: false,
+          error: result.message ?? t("restaurantDetail.addSectionsSaveFailed"),
+        });
+        return;
+      }
+      setEnabledSectionIds(selectedIds);
+      if (selectedIds.length > 0 && !selectedIds.includes(menuTab)) {
+        setMenuTab(selectedIds[0]!);
+      }
+      setSectionsModal({ open: false, saving: false, error: null });
+    },
+    [enabledSectionIds, menuTab, restaurant.id, t],
+  );
+
   const renderEditButton = useCallback(
     (categoryId: string, name: string) => (
       <button
@@ -933,6 +1050,13 @@ export function RestaurantDetailClient({
             {t("restaurantDetail.menuHeading")}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenSectionsModal}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            >
+              {t("restaurantDetail.manageSectionsButton")}
+            </button>
             {canReorderCategories ? (
               <button
                 type="button"
@@ -982,20 +1106,18 @@ export function RestaurantDetailClient({
           </div>
         </div>
         <div className="flex flex-wrap gap-1">
-          {(["dishes", "beverages"] as const).map((section) => (
+          {locationSectionTabs.map((section) => (
             <button
-              key={section}
+              key={section.id}
               type="button"
-              onClick={() => setMenuTab(section)}
+              onClick={() => setMenuTab(section.id)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                menuTab === section
+                menuTab === section.id
                   ? "bg-foreground text-background"
                   : "bg-foreground/10 text-foreground/70"
               }`}
             >
-              {section === "dishes"
-                ? t("nav.globalMenuDishes")
-                : t("nav.globalMenuBeverages")}
+              {section.name}
             </button>
           ))}
         </div>
@@ -1007,6 +1129,7 @@ export function RestaurantDetailClient({
                 category={{
                   id: section.id,
                   name: section.name,
+                  menuSectionId: menuTab,
                   items: section.items,
                 }}
                 onEditItem={noopEdit}
@@ -1055,6 +1178,16 @@ export function RestaurantDetailClient({
         saveError={addState.error}
         onClose={handleCloseAdd}
         onSave={handleSaveAddCategories}
+      />
+
+      <AddLocationSectionsModal
+        open={sectionsModal.open}
+        sections={modalSections}
+        initialSelectedIds={enabledSectionIds}
+        saving={sectionsModal.saving}
+        saveError={sectionsModal.error}
+        onClose={handleCloseSectionsModal}
+        onSave={handleSaveSections}
       />
 
       <ReorderLocationCategoriesModal

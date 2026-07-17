@@ -13,7 +13,6 @@ import {
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
-import type { MenuSection } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { ItemThumbnail } from "./global-menu-item-row";
 
@@ -25,7 +24,7 @@ type NewGlobalMenuItemClientProps = {
   initialCategories: NewItemCategoryOption[];
   categoriesLoadError: string | null;
   preselectedCategoryId?: string;
-  menuSection?: MenuSection;
+  sectionId?: string;
 };
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -39,7 +38,7 @@ export function NewGlobalMenuItemClient({
   initialCategories,
   categoriesLoadError,
   preselectedCategoryId,
-  menuSection = "dishes",
+  sectionId = "",
 }: NewGlobalMenuItemClientProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -90,17 +89,17 @@ export function NewGlobalMenuItemClient({
       return;
     }
     const data = (await res.json()) as {
-      categories?: Array<{ id: string; name: string; menuSection?: string }>;
+      categories?: Array<{ id: string; name: string; menuSectionId?: string }>;
     };
     const next = (Array.isArray(data.categories) ? data.categories : []).filter(
-      (c) => (c.menuSection === "beverages" ? "beverages" : "dishes") === menuSection,
+      (c) => !sectionId || c.menuSectionId === sectionId,
     );
     setCategories(next.map((c) => ({ id: c.id, name: c.name })));
     setCategoryId((prev) => {
       if (next.some((c) => c.id === prev)) return prev;
       return next[0]?.id ?? "";
     });
-  }, [menuSection, t]);
+  }, [sectionId, t]);
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),
@@ -345,7 +344,11 @@ export function NewGlobalMenuItemClient({
           <div className="mt-5 rounded-xl border border-foreground/15 bg-foreground/5 px-4 py-4 text-sm text-foreground/80">
             <p>{t("newItem.noCategories")}</p>
             <Link
-              href="/global-menu/categories/dishes"
+              href={
+                sectionId
+                  ? `/global-menu/categories/section/${encodeURIComponent(sectionId)}`
+                  : "/global-menu/categories"
+              }
               className="mt-2 inline-block font-medium text-foreground underline decoration-foreground/30 underline-offset-2"
             >
               {t("newItem.manageCategoriesLink")}

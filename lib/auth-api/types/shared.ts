@@ -4,7 +4,16 @@ export type TranslationTextApi = {
   description?: string | null;
 };
 
-export type MenuSection = "dishes" | "beverages";
+export type MenuSectionKind = "standard" | "unassigned";
+
+export type MenuSectionEntity = {
+  id: string;
+  name: string;
+  backgroundImage: string | null;
+  sortOrder: number;
+  kind: MenuSectionKind;
+  categoriesCount: number;
+};
 
 export type TranslationSyncMeta = {
   written: number;

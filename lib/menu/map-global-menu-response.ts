@@ -1,9 +1,5 @@
 import type { CreatedMenuItemApi, GlobalMenuItemApi, GlobalMenuResponse } from "@/lib/auth-api";
-import type { GlobalMenuData, MenuItem, MenuSection } from "@/lib/data/global-menu-types";
-
-function normalizeMenuSection(value: string | undefined): MenuSection {
-  return value === "beverages" ? "beverages" : "dishes";
-}
+import type { GlobalMenuData, MenuItem, MenuSectionEntity } from "@/lib/data/global-menu-types";
 
 export function mapGlobalMenuItemApiToMenuItem(i: GlobalMenuItemApi | CreatedMenuItemApi): MenuItem {
   const item: MenuItem = {
@@ -26,13 +22,24 @@ export function mapGlobalMenuItemApiToMenuItem(i: GlobalMenuItemApi | CreatedMen
 }
 
 export function mapGlobalMenuResponseToData(api: GlobalMenuResponse): GlobalMenuData {
+  const sections: MenuSectionEntity[] = Array.isArray(api.sections)
+    ? api.sections.map((s) => ({
+        id: s.id,
+        name: s.name,
+        backgroundImage: s.backgroundImage,
+        sortOrder: s.sortOrder,
+        kind: s.kind === "unassigned" ? "unassigned" : "standard",
+      }))
+    : [];
+
   return {
+    sections,
     categories: api.categories.map((c) => ({
       id: c.id,
       name: c.name,
       description: c.description ?? null,
       coverPhoto: c.coverPhoto ?? null,
-      menuSection: normalizeMenuSection(c.menuSection),
+      menuSectionId: typeof c.menuSectionId === "string" ? c.menuSectionId : "",
       translations: Array.isArray(c.translations) ? c.translations : [],
       items: c.items.map((i): MenuItem => mapGlobalMenuItemApiToMenuItem(i)),
     })),

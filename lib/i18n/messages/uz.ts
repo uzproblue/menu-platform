@@ -29,6 +29,7 @@ export const uzMessages: Messages = {
   "nav.globalMenuDishes": "Taomlar",
   "nav.globalMenuBeverages": "Ichimliklar",
   "nav.menuCategories": "Menyu kategoriyalari",
+  "nav.sections": "Menyu bo'limlari",
   "nav.restaurants": "Restoranlar",
   "nav.seasonalMenus": "Mavsumiy menyular",
   "nav.menuItemVideos": "Taom videolari",
@@ -442,6 +443,7 @@ export const uzMessages: Messages = {
   "global.subtitle":
     "Menyu elementlari kategoriyalar bo'yicha guruhlangan va restoraningiz ma'lumotlaridan yuklanadi.",
   "global.subtitleDishes": "Restoran katalogidagi taom kategoriyalari va elementlari.",
+  "global.subtitleSection": "Ushbu menyu bo'limidagi kategoriyalar va elementlar.",
   "global.subtitleBeverages": "Restoran katalogidagi ichimlik kategoriyalari va elementlari.",
   "global.manageCategories": "Kategoriyalarni boshqarish",
   "global.addNewItem": "Yangi element qo'shish",
@@ -508,15 +510,52 @@ export const uzMessages: Messages = {
   "categories.title": "Menyu kategoriyalari",
   "categories.titleDishes": "Taom kategoriyalari",
   "categories.titleBeverages": "Ichimlik kategoriyalari",
+  "categories.titleForSection": "{name} kategoriyalari",
   "categories.subtitleDishes":
     "Katalogdagi taom kategoriyalarini boshqaring. O'zgarishlar",
   "categories.subtitleBeverages":
     "Katalogdagi ichimlik kategoriyalarini boshqaring. O'zgarishlar",
+  "categories.subtitleForSection":
+    "Ushbu bo'limdagi kategoriyalarni boshqaring. O'zgarishlar",
   "categories.menuSection": "Menyu bo'limi",
   "categories.menuSectionDishes": "Taomlar",
   "categories.menuSectionBeverages": "Ichimliklar",
   "categories.sectionBadgeDishes": "Taomlar",
   "categories.sectionBadgeBeverages": "Ichimliklar",
+
+  "sections.title": "Menyu bo'limlari",
+  "sections.subtitle":
+    "Menyu bo'limlarini yarating va tartiblang. Kategoriyalar bo'limga tegishli; «Biriktirilmagan» bo'limsiz kategoriyalarni saqlaydi.",
+  "sections.addSection": "Bo'lim qo'shish",
+  "sections.loading": "Bo'limlar yuklanmoqda…",
+  "sections.couldNotLoad": "Bo'limlarni yuklab bo'lmadi",
+  "sections.emptyTitle": "Hozircha bo'limlar yo'q",
+  "sections.emptyHelp": "Menyuni tartiblash uchun birinchi bo'limni yarating.",
+  "sections.unassigned": "Biriktirilmagan",
+  "sections.unassignedHint": "Tizim bo'limi — tahrirlanmaydi",
+  "sections.systemSection": "Tizim",
+  "sections.standardSection": "Bo'lim",
+  "sections.categorySingular": "kategoriya",
+  "sections.categoryPlural": "kategoriya",
+  "sections.createTitle": "Yangi menyu bo'limi",
+  "sections.editTitle": "Bo'limni tahrirlash",
+  "sections.editorHelp": "Bo'lim nomini kiriting va ixtiyoriy fon rasmini qo'shing.",
+  "sections.backgroundImage": "Fon rasmi",
+  "sections.backgroundUrlPlaceholder": "/menu/section-bg.jpg or https://...",
+  "sections.saving": "Saqlanmoqda…",
+  "sections.deleteQuestion": "Bo'lim o'chirilsinmi?",
+  "sections.deleteBody":
+    "«{name}» o'chiriladi. Uning kategoriyalari «Biriktirilmagan» ga o'tadi.",
+  "sections.moveUpAria": "{name} ni yuqoriga ko'chirish",
+  "sections.moveDownAria": "{name} ni pastga ko'chirish",
+  "sections.errLoad": "Bo'limlarni yuklab bo'lmadi.",
+  "sections.errLoadNetwork": "Bo'limlarni yuklashda tarmoq xatosi.",
+  "sections.errAdd": "Bo'lim qo'shib bo'lmadi.",
+  "sections.errEdit": "Bo'limni yangilab bo'lmadi.",
+  "sections.errSave": "Bo'limni saqlab bo'lmadi.",
+  "sections.errDelete": "Bo'limni o'chirib bo'lmadi.",
+  "sections.errReorder": "Bo'limlar tartibini o'zgartirib bo'lmadi.",
+
   "categories.subtitle":
     "Kategoriyalarni tartiblash, nomini o'zgartirish, qo'shish yoki o'chirish mumkin. O'zgarishlar restoran ish maydonida saqlanadi va",
   "categories.globalMenuLink": "Umumiy menyu",
@@ -634,6 +673,15 @@ export const uzMessages: Messages = {
     "Bo'limlarni yangilab bo'lmadi. Qayta urinib ko'ring.",
   "restaurantDetail.addCategoryAria":
     "«{name}» bo'limini ushbu lokatsiya uchun yoqish/o'chirish",
+  "restaurantDetail.manageSectionsButton": "Bo'limlarni boshqarish",
+  "restaurantDetail.addSectionsTitle": "Ushbu lokatsiya uchun bo'limlar",
+  "restaurantDetail.addSectionsHint":
+    "Mehmonlar ko'radigan bo'limlarni tanlang va tartiblang.",
+  "restaurantDetail.addSectionsEmptyCatalog":
+    "Hali bo'limlar yo'q. Avval «Menyu bo'limlari» da yarating.",
+  "restaurantDetail.addSectionsSaveFailed":
+    "Bo'limlarni yangilab bo'lmadi. Qayta urinib ko'ring.",
+  "restaurantDetail.reorderSectionsHeading": "Bo'limlar tartibi",
   "restaurantDetail.reorderCategoriesButton": "Bo'limlar tartibini o'zgartirish",
   "restaurantDetail.reorderCategoriesTitle": "Ushbu lokatsiya uchun bo'limlar tartibi",
   "restaurantDetail.reorderCategoriesHint":

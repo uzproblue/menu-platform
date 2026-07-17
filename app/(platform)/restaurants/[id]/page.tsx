@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { RestaurantDetailClient, type CategoryCatalogEntry } from "@/app/components/restaurants/restaurant-detail-client";
-import type { GlobalMenuData } from "@/lib/data/global-menu-types";
+import type { GlobalMenuData, MenuSectionEntity } from "@/lib/data/global-menu-types";
 import type { RestaurantDisplayInfo } from "@/lib/data/restaurant-detail";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
@@ -10,6 +10,7 @@ import {
   getGlobalMenuWithAuthServer,
   getLocationMenuItemsWithAuthServer,
   getLocationWithAuthServer,
+  getMenuSectionsWithAuthServer,
 } from "@/lib/auth-api";
 import type { GlobalMenuResponse } from "@/lib/auth-api";
 import type { LocationMenuItemRow } from "@/lib/auth-api";
@@ -74,10 +75,11 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
 
-  const [locResult, manageResult, catalogResult] = await Promise.all([
+  const [locResult, manageResult, catalogResult, sectionsResult] = await Promise.all([
     getLocationWithAuthServer(token, decoded, restaurantId),
     getLocationMenuItemsWithAuthServer(token, decoded, restaurantId),
     getGlobalMenuWithAuthServer(token, restaurantId),
+    getMenuSectionsWithAuthServer(token, restaurantId),
   ]);
 
   if (!locResult.ok) {
@@ -88,6 +90,7 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
 
   const restaurant = locationToDisplayInfo(locResult.data.location);
   const enabledCategoryIds = locResult.data.location.enabledCategoryIds ?? [];
+  const enabledSectionIds = locResult.data.location.enabledSectionIds ?? [];
 
   const initialGlobalMenu: GlobalMenuResponse | null = catalogResult.ok
     ? catalogResult.data
@@ -101,6 +104,17 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     ? manageResult.data.items
     : [];
 
+  const menuSections: MenuSectionEntity[] = sectionsResult.ok
+    ? sectionsResult.data.sections
+    : (initialGlobalMenu?.sections ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        backgroundImage: s.backgroundImage,
+        sortOrder: s.sortOrder,
+        kind: s.kind === "unassigned" ? "unassigned" : "standard",
+        categoriesCount: 0,
+      }));
+
   const categoriesCatalog: CategoryCatalogEntry[] = (
     initialGlobalMenu?.categories ?? []
   ).map((c) => ({
@@ -108,7 +122,7 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     name: c.name,
     sortOrder: c.sortOrder,
     itemsCount: c.items.length,
-    menuSection: c.menuSection === "beverages" ? "beverages" : "dishes",
+    menuSectionId: c.menuSectionId,
   }));
 
   return (
@@ -119,7 +133,9 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
         initialGlobalMenu={initialGlobalMenu}
         initialManageItems={initialManageItems}
         enabledCategoryIds={enabledCategoryIds}
+        enabledSectionIds={enabledSectionIds}
         categoriesCatalog={categoriesCatalog}
+        menuSections={menuSections}
       />
     </div>
   );

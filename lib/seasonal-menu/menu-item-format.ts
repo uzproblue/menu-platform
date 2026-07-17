@@ -7,12 +7,12 @@ export function formatMenuItemPrice(item: MenuItem): string {
 }
 
 export function flattenMenuItems(
-  categories: Array<{ items: MenuItem[]; menuSection?: string }>,
-  section?: "dishes" | "beverages",
+  categories: Array<{ items: MenuItem[]; menuSectionId?: string }>,
+  sectionId?: string,
 ): MenuItem[] {
   const out: MenuItem[] = [];
   for (const cat of categories) {
-    if (section && cat.menuSection && cat.menuSection !== section) continue;
+    if (sectionId && cat.menuSectionId && cat.menuSectionId !== sectionId) continue;
     for (const item of cat.items) {
       if (item.active === false) continue;
       out.push(item);

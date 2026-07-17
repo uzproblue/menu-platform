@@ -20,7 +20,7 @@ import {
   consumePendingLocationExportWarning,
   readLocationExportWarning,
 } from "@/lib/location-export-warning";
-import type { MenuSection } from "@/lib/data/global-menu-types";
+import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
 import { CategoryNameModal } from "./category-name-modal";
 import { CategoryTranslationsModal } from "./category-translations-modal";
@@ -43,13 +43,14 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 }
 
 type GlobalMenuCategoriesClientProps = {
-  menuSection: MenuSection;
+  sectionId: string;
 };
 
-export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategoriesClientProps) {
+export function GlobalMenuCategoriesClient({ sectionId }: GlobalMenuCategoriesClientProps) {
   const { t, locale } = useI18n();
   const [viewMode, setViewMode] = useMenuCatalogView(MENU_CATEGORIES_VIEW_STORAGE_KEY);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sections, setSections] = useState<MenuSectionEntity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -74,34 +75,42 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
     return categories.find((c) => c.id === nameModal.categoryId) ?? null;
   }, [categories, nameModal]);
 
+  const sectionName = useMemo(() => {
+    const section = sections.find((s) => s.id === sectionId);
+    if (!section) return sectionId;
+    return section.kind === "unassigned" ? t("sections.unassigned") : section.name;
+  }, [sectionId, sections, t]);
+
   const visibleCategories = useMemo(
-    () => categories.filter((c) => c.menuSection === menuSection),
-    [categories, menuSection],
+    () => categories.filter((c) => c.menuSectionId === sectionId),
+    [categories, sectionId],
   );
 
-  const pageTitle =
-    menuSection === "beverages" ? t("categories.titleBeverages") : t("categories.titleDishes");
-  const pageSubtitle =
-    menuSection === "beverages"
-      ? t("categories.subtitleBeverages")
-      : t("categories.subtitleDishes");
+  const pageTitle = t("categories.titleForSection", { name: sectionName });
+  const pageSubtitle = t("categories.subtitleForSection");
 
   const loadCategories = useCallback(async () => {
     setLoadError(null);
-    const response = await fetch("/api/settings/categories", {
-      method: "GET",
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      throw new Error(await readErrorMessage(response, t("categories.errLoad")));
+    const [catResponse, secResponse] = await Promise.all([
+      fetch("/api/settings/categories", { method: "GET", cache: "no-store" }),
+      fetch("/api/settings/menu-sections", { method: "GET", cache: "no-store" }),
+    ]);
+    if (!catResponse.ok) {
+      throw new Error(await readErrorMessage(catResponse, t("categories.errLoad")));
+    }
+    if (secResponse.ok) {
+      const secPayload = (await secResponse.json()) as {
+        sections?: MenuSectionEntity[];
+      };
+      setSections(Array.isArray(secPayload.sections) ? secPayload.sections : []);
     }
 
-    const payload = (await response.json()) as {
+    const payload = (await catResponse.json()) as {
       categories?: Array<{
         id: string;
         name: string;
         sortOrder: number;
-        menuSection?: string;
+        menuSectionId?: string;
         itemsCount: number;
         description?: string | null;
         coverPhoto?: string | null;
@@ -114,7 +123,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
       id: c.id,
       name: c.name,
       sortOrder: c.sortOrder,
-      menuSection: c.menuSection === "beverages" ? "beverages" : "dishes",
+      menuSectionId: typeof c.menuSectionId === "string" ? c.menuSectionId : "",
       itemsCount: c.itemsCount,
       description: c.description ?? null,
       coverPhoto: c.coverPhoto ?? null,
@@ -154,7 +163,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
       name: string;
       description?: string;
       coverPhoto?: string;
-      menuSection: "dishes" | "beverages";
+      menuSectionId: string;
     }) => {
       if (!nameModal) return;
       const previous = categories.find((c) => c.id === nameModal.categoryId);
@@ -191,7 +200,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
                 description?: unknown;
                 coverPhoto?: unknown;
                 sortOrder?: unknown;
-                menuSection?: unknown;
+                menuSectionId?: unknown;
                 itemsCount?: unknown;
                 translations?: unknown;
               };
@@ -219,8 +228,10 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
             coverPhoto:
               typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
             sortOrder: updated.sortOrder,
-            menuSection:
-              updated.menuSection === "beverages" ? "beverages" : payload.menuSection,
+            menuSectionId:
+              typeof updated.menuSectionId === "string"
+                ? updated.menuSectionId
+                : payload.menuSectionId,
             itemsCount: updated.itemsCount,
             ...(translations !== undefined ? { translations } : {}),
           };
@@ -260,7 +271,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
             description?: unknown;
             coverPhoto?: unknown;
             sortOrder?: unknown;
-            menuSection?: unknown;
+            menuSectionId?: unknown;
             itemsCount?: unknown;
             translations?: unknown;
           }
@@ -275,10 +286,10 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
         const translationsList = Array.isArray(updated.translations)
           ? (updated.translations as TranslationTextApi[])
           : undefined;
-        const section =
-          updated.menuSection === "beverages"
-            ? "beverages"
-            : (translationsModalCategory?.menuSection ?? "dishes");
+        const resolvedSectionId =
+          typeof updated.menuSectionId === "string"
+            ? updated.menuSectionId
+            : (translationsModalCategory?.menuSectionId ?? sectionId);
         appendCategoryMutation({
           kind: "upsert",
           value: {
@@ -289,7 +300,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
             coverPhoto:
               typeof updated.coverPhoto === "string" ? updated.coverPhoto : null,
             sortOrder: updated.sortOrder,
-            menuSection: section,
+            menuSectionId: resolvedSectionId,
             itemsCount: updated.itemsCount,
             ...(translationsList !== undefined ? { translations: translationsList } : {}),
           },
@@ -298,7 +309,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
       setTranslationsModalCategory(null);
       void loadCategories();
     },
-    [loadCategories, t],
+    [loadCategories, sectionId, t, translationsModalCategory?.menuSectionId],
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -342,7 +353,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
           <p className="mt-2 text-sm text-foreground/60">
             {pageSubtitle}{" "}
             <Link
-              href={menuSection === "beverages" ? "/global-menu/beverages" : "/global-menu/dishes"}
+              href={`/global-menu/sections/${encodeURIComponent(sectionId)}`}
               className="font-medium text-foreground underline-offset-2 hover:underline"
             >
               {t("categories.globalMenuLink")}
@@ -353,7 +364,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           <MenuCatalogViewToggle value={viewMode} onChange={setViewMode} />
           <Link
-            href={`/global-menu/categories/new?section=${menuSection}`}
+            href={`/global-menu/categories/new?section=${encodeURIComponent(sectionId)}`}
             aria-disabled={isLoading}
             className="inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
@@ -416,6 +427,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
       ) : viewMode === "table" ? (
         <GlobalMenuCategoriesTable
           categories={visibleCategories}
+          sections={sections}
           locale={locale}
           onOpenTranslations={setTranslationsModalCategory}
           onEdit={(categoryId) => setNameModal({ mode: "edit", categoryId })}
@@ -430,6 +442,11 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
               cat.translations,
               locale,
             );
+            const section = sections.find((s) => s.id === cat.menuSectionId);
+            const sectionLabel =
+              section?.kind === "unassigned"
+                ? t("sections.unassigned")
+                : (section?.name ?? sectionName);
             return (
             <li
               key={cat.id}
@@ -496,9 +513,7 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
                       t("categories.translationsModal.noDescription")}
                   </p>
                   <p className="mt-3 text-xs font-medium uppercase tracking-wide text-white/75">
-                    {cat.menuSection === "beverages"
-                      ? t("categories.sectionBadgeBeverages")
-                      : t("categories.sectionBadgeDishes")}
+                    {sectionLabel}
                     {" · "}
                     {cat.itemsCount} {t("common.items")}
                   </p>
@@ -538,7 +553,8 @@ export function GlobalMenuCategoriesClient({ menuSection }: GlobalMenuCategories
         initialName={editingCategory?.name ?? ""}
         initialDescription={editingCategory?.description ?? ""}
         initialCoverPhoto={editingCategory?.coverPhoto ?? ""}
-        initialMenuSection={editingCategory?.menuSection ?? "dishes"}
+        initialMenuSectionId={editingCategory?.menuSectionId ?? sectionId}
+        sections={sections}
         isSaving={isSaving}
         onClose={() => setNameModal(null)}
         onSave={handleSaveName}

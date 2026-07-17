@@ -15,6 +15,7 @@ export const PlatformEvent = {
   LOCATION_ACTIVATED: "location.activated",
   LOCATION_DEACTIVATED: "location.deactivated",
   LOCATION_CATEGORIES_ASSIGNED: "location.categories_assigned",
+  LOCATION_SECTIONS_ASSIGNED: "location.sections_assigned",
   LOCATION_MENU_PUBLISHED: "location.menu_published",
   LOCATION_MENU_ITEMS_BULK_UPDATED: "location.menu_items_bulk_updated",
   LOCATION_MENU_ITEM_TOGGLED: "location.menu_item_toggled",
@@ -34,6 +35,12 @@ export const PlatformEvent = {
   CATALOG_CATEGORY_UPDATED: "catalog.category_updated",
   CATALOG_CATEGORY_DELETED: "catalog.category_deleted",
   CATALOG_CATEGORY_TRANSLATIONS_UPDATED: "catalog.category_translations_updated",
+
+  // Catalog — menu sections
+  CATALOG_MENU_SECTION_CREATED: "catalog.menu_section_created",
+  CATALOG_MENU_SECTION_UPDATED: "catalog.menu_section_updated",
+  CATALOG_MENU_SECTION_DELETED: "catalog.menu_section_deleted",
+  CATALOG_MENU_SECTIONS_REORDERED: "catalog.menu_sections_reordered",
 
   // Videos
   VIDEO_UPLOAD_SESSION_STARTED: "video.upload_session_started",

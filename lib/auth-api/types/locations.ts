@@ -9,6 +9,8 @@ export type Location = {
   translationLangs: string[];
   /** Menu category ids enabled for this location (subset of restaurant catalog). */
   enabledCategoryIds: string[];
+  /** Menu section ids enabled for this location (standard sections only). */
+  enabledSectionIds: string[];
   /** iikoCloud organization UUID for stop-list webhook routing. */
   posOrganizationId?: string;
   /** Optional iiko terminal group UUID. */
@@ -71,6 +73,14 @@ export type UpdateLocationCategoriesResponse = {
   };
 };
 
+export type UpdateLocationSectionsResponse = {
+  location: {
+    id: string;
+    enabledSectionIds: string[];
+    updatedAt: string;
+  };
+};
+
 export type GetLocationResponse = {
   location: Location;
 };
@@ -120,6 +130,7 @@ export type UpdateLocationDetailsResponse = {
     qrCenterImageUrl?: string;
     translationLangs: string[];
     enabledCategoryIds: string[];
+    enabledSectionIds: string[];
     posOrganizationId?: string;
     posTerminalGroupId?: string;
     chefAlertChatId?: string;

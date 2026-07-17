@@ -2,16 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { useI18n } from "./i18n-provider";
 
 type NavLinkItem = {
   href: string;
-  labelKey: string;
+  label: string;
   match: (pathname: string, searchParams: URLSearchParams) => boolean;
 };
 
-const topLinks: NavLinkItem[] = [
+const topLinks: Array<{
+  href: string;
+  labelKey: string;
+  match: (pathname: string, searchParams: URLSearchParams) => boolean;
+}> = [
   { href: "/", labelKey: "nav.home", match: (p) => p === "/" },
   {
     href: "/restaurants",
@@ -40,54 +45,21 @@ const topLinks: NavLinkItem[] = [
   },
 ];
 
-const globalMenuChildren: NavLinkItem[] = [
-  {
-    href: "/global-menu/dishes",
-    labelKey: "nav.globalMenuDishes",
-    match: (p, _sp) =>
-      p === "/global-menu/dishes" ||
-      p.startsWith("/global-menu/dishes/") ||
-      p === "/global-menu" ||
-      (p.startsWith("/global-menu/") &&
-        !p.startsWith("/global-menu/beverages") &&
-        !p.startsWith("/global-menu/categories")),
-  },
-  {
-    href: "/global-menu/beverages",
-    labelKey: "nav.globalMenuBeverages",
-    match: (p, _sp) =>
-      p === "/global-menu/beverages" || p.startsWith("/global-menu/beverages/"),
-  },
-];
-
-const menuCategoriesChildren: NavLinkItem[] = [
-  {
-    href: "/global-menu/categories/dishes",
-    labelKey: "nav.globalMenuDishes",
-    match: (p, sp) =>
-      p === "/global-menu/categories/dishes" ||
-      p.startsWith("/global-menu/categories/dishes/") ||
-      p === "/global-menu/categories" ||
-      (p === "/global-menu/categories/new" && sp.get("section") !== "beverages"),
-  },
-  {
-    href: "/global-menu/categories/beverages",
-    labelKey: "nav.globalMenuBeverages",
-    match: (p, sp) =>
-      p === "/global-menu/categories/beverages" ||
-      p.startsWith("/global-menu/categories/beverages/") ||
-      (p === "/global-menu/categories/new" && sp.get("section") === "beverages"),
-  },
-];
-
 function isGlobalMenuGroupPath(pathname: string): boolean {
+  if (pathname === "/global-menu/sections") return false;
+  if (pathname.startsWith("/global-menu/sections/")) return true;
   return (
-    pathname.startsWith("/global-menu") && !pathname.startsWith("/global-menu/categories")
+    pathname.startsWith("/global-menu") &&
+    !pathname.startsWith("/global-menu/categories")
   );
 }
 
 function isMenuCategoriesGroupPath(pathname: string): boolean {
   return pathname.startsWith("/global-menu/categories");
+}
+
+function isSectionsManagePath(pathname: string): boolean {
+  return pathname === "/global-menu/sections";
 }
 
 const settingsItem = {
@@ -97,7 +69,7 @@ const settingsItem = {
 } as const;
 
 type NavExpandableGroupProps = {
-  labelKey: string;
+  label: string;
   expanded: boolean;
   onToggle: () => void;
   groupActive: boolean;
@@ -107,11 +79,10 @@ type NavExpandableGroupProps = {
   onNavigate?: () => void;
   navItemBaseClass: string;
   childNavItemClass: string;
-  labelForKey: (key: string) => string;
 };
 
 function NavExpandableGroup({
-  labelKey,
+  label,
   expanded,
   onToggle,
   groupActive,
@@ -121,7 +92,6 @@ function NavExpandableGroup({
   onNavigate,
   navItemBaseClass,
   childNavItemClass,
-  labelForKey,
 }: NavExpandableGroupProps) {
   return (
     <div className="flex flex-col gap-0.5">
@@ -135,7 +105,7 @@ function NavExpandableGroup({
             : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
         }`}
       >
-        <span>{labelForKey(labelKey)}</span>
+        <span>{label}</span>
         <svg
           className={`size-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
           fill="none"
@@ -148,7 +118,7 @@ function NavExpandableGroup({
       </button>
       {expanded ? (
         <div className="flex flex-col gap-0.5 pb-0.5">
-          {children.map(({ href, labelKey: childKey, match }) => {
+          {children.map(({ href, label: childLabel, match }) => {
             const active = match(pathname, searchParams);
             return (
               <Link
@@ -161,7 +131,7 @@ function NavExpandableGroup({
                     : "text-foreground/65 hover:bg-foreground/5 hover:text-foreground"
                 }`}
               >
-                {labelForKey(childKey)}
+                {childLabel}
               </Link>
             );
           })}
@@ -179,6 +149,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { t } = useI18n();
+  const [sections, setSections] = useState<MenuSectionEntity[]>([]);
   const [globalMenuExpanded, setGlobalMenuExpanded] = useState(() =>
     isGlobalMenuGroupPath(pathname),
   );
@@ -198,9 +169,61 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
     }
   }, [pathname]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/settings/menu-sections", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          sections?: MenuSectionEntity[];
+        };
+        if (cancelled) return;
+        const list = Array.isArray(payload.sections) ? payload.sections : [];
+        setSections(
+          list
+            .filter((s) => s.kind === "standard")
+            .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+        );
+      } catch {
+        /* non-fatal — nav falls back to manage link only */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const globalMenuChildren: NavLinkItem[] = useMemo(() => {
+    return sections.map((section) => ({
+      href: `/global-menu/sections/${encodeURIComponent(section.id)}`,
+      label: section.name,
+      match: (p) =>
+        p === `/global-menu/sections/${encodeURIComponent(section.id)}` ||
+        p === `/global-menu/sections/${section.id}` ||
+        (p === "/global-menu" && sections[0]?.id === section.id),
+    }));
+  }, [sections]);
+
+  const menuCategoriesChildren: NavLinkItem[] = useMemo(() => {
+    return sections.map((section) => ({
+      href: `/global-menu/categories/section/${encodeURIComponent(section.id)}`,
+      label: section.name,
+      match: (p, sp) =>
+        p === `/global-menu/categories/section/${encodeURIComponent(section.id)}` ||
+        p === `/global-menu/categories/section/${section.id}` ||
+        (p === "/global-menu/categories" && sections[0]?.id === section.id) ||
+        (p === "/global-menu/categories/new" && sp.get("section") === section.id),
+    }));
+  }, [sections]);
+
   const settingsActive = settingsItem.match(pathname);
   const globalMenuGroupActive = isGlobalMenuGroupPath(pathname);
   const menuCategoriesGroupActive = isMenuCategoriesGroupPath(pathname);
+  const sectionsManageActive = isSectionsManagePath(pathname);
   const navItemBaseClass =
     "block w-full min-h-11 touch-manipulation rounded-xl px-3 py-3 text-sm font-medium leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-0 sm:py-2.5";
   const childNavItemClass =
@@ -224,7 +247,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
         </Link>
 
         <NavExpandableGroup
-          labelKey="nav.globalMenu"
+          label={labelForKey("nav.globalMenu")}
           expanded={globalMenuExpanded}
           onToggle={() => setGlobalMenuExpanded((v) => !v)}
           groupActive={globalMenuGroupActive}
@@ -234,11 +257,10 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
           onNavigate={onNavigate}
           navItemBaseClass={navItemBaseClass}
           childNavItemClass={childNavItemClass}
-          labelForKey={labelForKey}
         />
 
         <NavExpandableGroup
-          labelKey="nav.menuCategories"
+          label={labelForKey("nav.menuCategories")}
           expanded={menuCategoriesExpanded}
           onToggle={() => setMenuCategoriesExpanded((v) => !v)}
           groupActive={menuCategoriesGroupActive}
@@ -248,8 +270,19 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
           onNavigate={onNavigate}
           navItemBaseClass={navItemBaseClass}
           childNavItemClass={childNavItemClass}
-          labelForKey={labelForKey}
         />
+
+        <Link
+          href="/global-menu/sections"
+          onClick={() => onNavigate?.()}
+          className={`${navItemBaseClass} ${
+            sectionsManageActive
+              ? "bg-foreground/10 text-foreground"
+              : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+          }`}
+        >
+          {labelForKey("nav.sections")}
+        </Link>
 
         {topLinks.slice(1).map(({ href, labelKey, match }) => {
           const active = match(pathname, searchParams);

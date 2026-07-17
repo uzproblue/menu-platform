@@ -8,7 +8,7 @@ import {
   getMenuItemDisplayForLocale,
   withMenuItemDisplayTranslationsSynced,
 } from "@/lib/category-locale-display";
-import type { GlobalMenuData, MenuItem, MenuSection } from "@/lib/data/global-menu-types";
+import type { GlobalMenuData, MenuItem } from "@/lib/data/global-menu-types";
 import { mapGlobalMenuItemApiToMenuItem } from "@/lib/menu/map-global-menu-response";
 import { usePersistedGlobalMenu } from "@/hooks/use-persisted-global-menu";
 import {
@@ -92,7 +92,8 @@ function replaceItemInCatalog(
 }
 
 type GlobalMenuPageClientProps = {
-  menuSection: MenuSection;
+  sectionId: string;
+  sectionName: string;
   initialData: GlobalMenuData;
   /** Error code or message from server when menu could not be loaded. */
   loadError?: string | null;
@@ -100,9 +101,9 @@ type GlobalMenuPageClientProps = {
 
 function categoryMatchesSection(
   category: GlobalMenuData["categories"][number],
-  menuSection: MenuSection,
+  sectionId: string,
 ): boolean {
-  return (category.menuSection ?? "dishes") === menuSection;
+  return category.menuSectionId === sectionId;
 }
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -113,7 +114,8 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 }
 
 export function GlobalMenuPageClient({
-  menuSection,
+  sectionId,
+  sectionName,
   initialData,
   loadError,
 }: GlobalMenuPageClientProps) {
@@ -179,8 +181,8 @@ export function GlobalMenuPageClient({
   const isEditorSaving = editor ? isItemBusy(editor.itemId) : false;
 
   const visibleCategories = useMemo(
-    () => data.categories.filter((c) => categoryMatchesSection(c, menuSection)),
-    [data.categories, menuSection],
+    () => data.categories.filter((c) => categoryMatchesSection(c, sectionId)),
+    [data.categories, sectionId],
   );
 
   const flatItemRows: GlobalMenuItemTableRowData[] = useMemo(
@@ -633,11 +635,6 @@ export function GlobalMenuPageClient({
       </div>
     ) : null;
 
-  const pageTitle =
-    menuSection === "beverages" ? t("global.titleBeverages") : t("global.titleDishes");
-  const pageSubtitle =
-    menuSection === "beverages" ? t("global.subtitleBeverages") : t("global.subtitleDishes");
-
   const emptyState =
     loadError == null && visibleCategories.length === 0 ? (
       <div className="rounded-2xl border border-foreground/10 bg-background/40 px-5 py-12 text-center text-sm text-foreground/70">
@@ -651,18 +648,18 @@ export function GlobalMenuPageClient({
       {exportWarningBanner}
       <div className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-6">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{pageTitle}</h1>
-          <p className="mt-2 text-sm text-foreground/60">{pageSubtitle}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{sectionName}</h1>
+          <p className="mt-2 text-sm text-foreground/60">{t("global.subtitleSection")}</p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end sm:pt-0.5">
           <MenuCatalogViewToggle value={viewMode} onChange={setViewMode} />
           <Link
-            href="/global-menu/categories/dishes"
+            href={`/global-menu/categories/section/${encodeURIComponent(sectionId)}`}
             className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-xl border border-foreground/15 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/5 transition-colors hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
             {t("global.manageCategories")}
           </Link>
-          <AddMenuItemButton menuSection={menuSection} />
+          <AddMenuItemButton sectionId={sectionId} />
         </div>
       </div>
 
