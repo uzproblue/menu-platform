@@ -7,11 +7,11 @@ import {
   useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
   type FormEvent,
 } from "react";
 import type { TranslationTextApi } from "@/lib/auth-api";
+import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { appendCategoryMutation } from "@/lib/pending-mutations";
 import {
@@ -19,8 +19,11 @@ import {
   readLocationExportWarning,
 } from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
-import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { useI18n } from "../i18n-provider";
+import {
+  CatalogImageField,
+  type CatalogImageFieldValue,
+} from "./catalog-image-field";
 
 type NewCategoryClientProps = {
   initialMenuSectionId?: string;
@@ -32,9 +35,6 @@ export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClie
   const nameId = useId();
   const menuSectionFieldId = useId();
   const descriptionId = useId();
-  const coverPhotoUrlId = useId();
-  const coverPhotoUploadId = useId();
-  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState("");
   const [sections, setSections] = useState<MenuSectionEntity[]>([]);
@@ -43,11 +43,11 @@ export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClie
     ? `/global-menu/categories/section/${encodeURIComponent(menuSectionId)}`
     : "/global-menu/categories";
   const [description, setDescription] = useState("");
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
-  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
-  const [localCoverPreviewUrl, setLocalCoverPreviewUrl] = useState<
-    string | null
-  >(null);
+  const [imageValue, setImageValue] = useState<CatalogImageFieldValue>({
+    url: "",
+    file: null,
+  });
+  const [livePreviewUrl, setLivePreviewUrl] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -78,10 +78,19 @@ export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClie
     })();
   }, []);
 
+  useEffect(() => {
+    if (imageValue.file) {
+      const url = URL.createObjectURL(imageValue.file);
+      setLivePreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setLivePreviewUrl(imageValue.url.trim());
+  }, [imageValue]);
+
   const previewName = name.trim() || t("newCategory.previewUntitled");
   const previewDescription =
     description.trim() || t("newCategory.previewNoDescription");
-  const previewPhoto = localCoverPreviewUrl || coverPhotoUrl.trim();
+  const previewPhoto = livePreviewUrl;
 
   const canSave = useMemo(
     () => name.trim().length > 0 && menuSectionId.trim().length > 0 && !isSaving,
@@ -96,9 +105,9 @@ export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClie
     setSubmitError(null);
     setIsSaving(true);
     try {
-      let coverPhoto = coverPhotoUrl.trim() || undefined;
-      if (selectedCoverFile) {
-        coverPhoto = await uploadFileToR2(selectedCoverFile, "category-cover");
+      let coverPhoto = imageValue.url.trim() || undefined;
+      if (imageValue.file) {
+        coverPhoto = await uploadFileToR2(imageValue.file, "category-cover");
       }
 
       const response = await fetch("/api/settings/categories", {
@@ -178,26 +187,6 @@ export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClie
       setSubmitError(t("newCategory.createFailed"));
     } finally {
       setIsSaving(false);
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (localCoverPreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(localCoverPreviewUrl);
-      }
-    };
-  }, [localCoverPreviewUrl]);
-
-  function clearCoverPhoto() {
-    setCoverPhotoUrl("");
-    setSelectedCoverFile(null);
-    setLocalCoverPreviewUrl((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return null;
-    });
-    if (uploadInputRef.current) {
-      uploadInputRef.current.value = "";
     }
   }
 
@@ -299,82 +288,13 @@ export function NewCategoryClient({ initialMenuSectionId = "" }: NewCategoryClie
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                {t("newCategory.coverPhoto")}{" "}
-                <span className="text-foreground/50">
-                  {t("newCategory.optionalSuffix")}
-                </span>
-              </label>
-              <div className="space-y-3 rounded-xl border border-foreground/15 bg-foreground/3 p-3">
-                <div className="space-y-2">
-                  <label
-                    htmlFor={coverPhotoUrlId}
-                    className="text-xs font-medium uppercase tracking-wide text-foreground/60"
-                  >
-                    {t("newCategory.coverPhotoUrlLabel")}
-                  </label>
-                  <input
-                    id={coverPhotoUrlId}
-                    type="url"
-                    value={coverPhotoUrl}
-                    onChange={(e) => setCoverPhotoUrl(e.target.value)}
-                    maxLength={500}
-                    disabled={controlsDisabled}
-                    className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
-                    placeholder={t("newCategory.coverPhotoUrlPlaceholder")}
-                  />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-foreground/15" />
-                  <span className="text-xs font-medium uppercase tracking-wide text-foreground/45">
-                    {t("newCategory.or")}
-                  </span>
-                  <div className="h-px flex-1 bg-foreground/15" />
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor={coverPhotoUploadId}
-                    className="text-xs font-medium uppercase tracking-wide text-foreground/60"
-                  >
-                    {t("newCategory.coverPhotoUploadLabel")}
-                  </label>
-                  <input
-                    ref={uploadInputRef}
-                    id={coverPhotoUploadId}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const nextFile = e.target.files?.[0];
-                      if (!nextFile) return;
-                      setSelectedCoverFile(nextFile);
-                      setLocalCoverPreviewUrl((prev) => {
-                        if (prev?.startsWith("blob:"))
-                          URL.revokeObjectURL(prev);
-                        return URL.createObjectURL(nextFile);
-                      });
-                    }}
-                    disabled={controlsDisabled}
-                    className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground hover:file:bg-foreground/15"
-                  />
-                  <div className="flex items-center justify-end">
-                    <button
-                      type="button"
-                      onClick={clearCoverPhoto}
-                      disabled={
-                        controlsDisabled ||
-                        (!coverPhotoUrl.trim() && !selectedCoverFile)
-                      }
-                      className="inline-flex min-h-9 items-center justify-center rounded-lg border border-foreground/20 px-3 text-xs font-medium text-foreground hover:bg-foreground/5 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {t("newCategory.clearPhoto")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <CatalogImageField
+              label={`${t("newCategory.coverPhoto")} ${t("newCategory.optionalSuffix")}`}
+              value={imageValue}
+              onChange={setImageValue}
+              uploadTarget="category-cover"
+              disabled={controlsDisabled}
+            />
 
             <div className="flex flex-col-reverse gap-2 border-t border-foreground/10 pt-5 sm:flex-row sm:justify-end">
               <Link

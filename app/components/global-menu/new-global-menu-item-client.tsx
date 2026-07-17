@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import type { TranslationTextApi } from "@/lib/auth-api";
-import { getImageFileFromClipboardEvent } from "@/lib/clipboard-paste-image";
 import { appendMenuItemMutation } from "@/lib/pending-mutations";
 import {
   persistPendingLocationExportWarning,
@@ -14,7 +13,10 @@ import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { useI18n } from "../i18n-provider";
-import { ItemThumbnail } from "./global-menu-item-row";
+import {
+  CatalogImageField,
+  type CatalogImageFieldValue,
+} from "./catalog-image-field";
 
 type CatalogPriceFormRow = { price: string; currency: string };
 
@@ -46,7 +48,6 @@ export function NewGlobalMenuItemClient({
   const nameId = useId();
   const descId = useId();
   const grammId = useId();
-  const imageId = useId();
   const activeId = useId();
 
   const [categories, setCategories] = useState(initialCategories);
@@ -68,14 +69,14 @@ export function NewGlobalMenuItemClient({
   const [catalogPrices, setCatalogPrices] = useState<CatalogPriceFormRow[]>([
     { price: "", currency: "UZS" },
   ]);
-  const [imageUrlInput, setImageUrlInput] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imageValue, setImageValue] = useState<CatalogImageFieldValue>({
+    url: "",
+    file: null,
+  });
   const [active, setActive] = useState(true);
 
   const [reloadError, setReloadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const maxMenuImageSizeBytes = getMaxUploadSizeBytes("menu-item");
 
@@ -106,16 +107,6 @@ export function NewGlobalMenuItemClient({
     [categories],
   );
 
-  const previewSrc = imagePreviewUrl ?? imageUrlInput.trim();
-
-  useEffect(() => {
-    return () => {
-      if (imagePreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-    };
-  }, [imagePreviewUrl]);
-
   const pricesValid = useMemo(() => {
     const seen = new Set<string>();
     for (const row of catalogPrices) {
@@ -136,55 +127,16 @@ export function NewGlobalMenuItemClient({
   const controlsDisabled = sortedCategories.length === 0 || submitting;
   const hasCategorySelected = categoryId.length > 0;
 
-  const applyImageFile = useCallback(
-    (file: File) => {
-      if (file.size > maxMenuImageSizeBytes) {
-        setImageFile(null);
-        setImagePreviewUrl((prev) => {
-          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-          return null;
-        });
-        setImageError(
-          t("newItem.imageTooLarge", {
-            maxMb: String(Math.round(maxMenuImageSizeBytes / (1024 * 1024))),
-          }),
-        );
-        return;
-      }
-      setImageFile(file);
-      setImageError(null);
-      setSubmitError(null);
-      setImageUrlInput("");
-      setImagePreviewUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(file);
-      });
-    },
-    [maxMenuImageSizeBytes, t],
-  );
-
-  const onImagePaste = useCallback(
-    (e: ClipboardEvent<HTMLDivElement | HTMLInputElement>) => {
-      if (controlsDisabled) return;
-      const file = getImageFileFromClipboardEvent(e.nativeEvent);
-      if (!file) return;
-      e.preventDefault();
-      applyImageFile(file);
-    },
-    [applyImageFile, controlsDisabled],
-  );
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitError(null);
-    setImageError(null);
     setSubmitting(true);
     try {
       let imageUrl: string | undefined;
-      if (imageFile) {
-        if (imageFile.size > maxMenuImageSizeBytes) {
-          setImageError(
+      if (imageValue.file) {
+        if (imageValue.file.size > maxMenuImageSizeBytes) {
+          setSubmitError(
             t("newItem.imageTooLarge", {
               maxMb: String(Math.round(maxMenuImageSizeBytes / (1024 * 1024))),
             }),
@@ -192,7 +144,7 @@ export function NewGlobalMenuItemClient({
           return;
         }
         try {
-          imageUrl = await uploadFileToR2(imageFile, "menu-item");
+          imageUrl = await uploadFileToR2(imageValue.file, "menu-item");
         } catch (uploadErr) {
           setSubmitError(
             uploadErr instanceof Error && uploadErr.message.trim().length
@@ -201,8 +153,8 @@ export function NewGlobalMenuItemClient({
           );
           return;
         }
-      } else if (imageUrlInput.trim()) {
-        imageUrl = imageUrlInput.trim();
+      } else if (imageValue.url.trim()) {
+        imageUrl = imageValue.url.trim();
       }
 
       const res = await fetch("/api/settings/menu-items", {
@@ -522,91 +474,13 @@ export function NewGlobalMenuItemClient({
                 </ul>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor={imageId} className="text-sm font-medium text-foreground">
-                  {t("global.imageUrlOrPath")}
-                </label>
-                <div
-                  className="rounded-2xl border border-foreground/12 bg-foreground/[0.03] p-3 ring-1 ring-foreground/5 sm:p-4 outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
-                  tabIndex={controlsDisabled ? -1 : 0}
-                  onPaste={onImagePaste}
-                >
-                  <div className="grid gap-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start">
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-foreground/60">
-                        {t("global.imagePreviewAlt")}
-                      </p>
-                      <div className="relative size-28 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5 ring-1 ring-foreground/5">
-                        {previewSrc ? (
-                          <ItemThumbnail
-                            src={previewSrc}
-                            alt={t("global.imagePreviewAlt")}
-                            sizes="112px"
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center text-center text-xs text-foreground/45">
-                            {t("global.noImage")}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <input
-                        value={imageUrlInput}
-                        onChange={(e) => {
-                          setImageUrlInput(e.target.value);
-                          if (imageFile) {
-                            setImageFile(null);
-                            setImagePreviewUrl((prev) => {
-                              if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-                              return null;
-                            });
-                          }
-                        }}
-                        onPaste={onImagePaste}
-                        disabled={controlsDisabled}
-                        className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
-                        placeholder={t("global.imagePlaceholder")}
-                      />
-                      <div className="flex items-center gap-2">
-                        <div className="h-px flex-1 bg-foreground/15" />
-                        <span className="text-[11px] font-medium uppercase tracking-wide text-foreground/45">
-                          or
-                        </span>
-                        <div className="h-px flex-1 bg-foreground/15" />
-                      </div>
-                      <input
-                        id={imageId}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] ?? null;
-                          if (!file) {
-                            setImageFile(null);
-                            setImageError(null);
-                            setSubmitError(null);
-                            setImagePreviewUrl((prev) => {
-                              if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-                              return null;
-                            });
-                            e.currentTarget.value = "";
-                            return;
-                          }
-                          applyImageFile(file);
-                          e.currentTarget.value = "";
-                        }}
-                        disabled={controlsDisabled}
-                        className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground hover:file:bg-foreground/15 disabled:opacity-60"
-                      />
-                      {imageError ? (
-                        <p className="text-xs text-red-600 dark:text-red-300">{imageError}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-foreground/50">{t("global.leaveEmptyNoPhoto")}</p>
-                <p className="text-xs text-foreground/50">{t("global.imagePasteHint")}</p>
-              </div>
+              <CatalogImageField
+                label={t("global.imageUrlOrPath")}
+                value={imageValue}
+                onChange={setImageValue}
+                uploadTarget="menu-item"
+                disabled={controlsDisabled}
+              />
 
               <div className="flex items-start gap-3 rounded-xl border border-foreground/10 bg-foreground/3 px-4 py-3">
                 <input

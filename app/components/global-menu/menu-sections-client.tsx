@@ -18,13 +18,17 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import type { TranslationTextApi } from "@/lib/auth-api";
 import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { readLocationExportWarning } from "@/lib/location-export-warning";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { useI18n } from "../i18n-provider";
+import {
+  CatalogImageField,
+  type CatalogImageFieldValue,
+} from "./catalog-image-field";
 import { SectionTranslationsModal } from "./section-translations-modal";
 
 const EMPTY_SECTION_TRANSLATIONS: TranslationTextApi[] = [];
@@ -607,26 +611,18 @@ function SectionEditorModal({
   const { t } = useI18n();
   const titleId = useId();
   const nameId = useId();
-  const bgUrlId = useId();
-  const bgUploadId = useId();
-  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
-  const [backgroundUrl, setBackgroundUrl] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const [imageValue, setImageValue] = useState<CatalogImageFieldValue>({
+    url: "",
+    file: null,
+  });
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setName(initial?.name ?? "");
-    setBackgroundUrl(initial?.backgroundImage ?? "");
-    setSelectedFile(null);
-    setLocalPreviewUrl((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return null;
-    });
+    setImageValue({ url: initial?.backgroundImage ?? "", file: null });
     setSubmitError(null);
-    if (uploadInputRef.current) uploadInputRef.current.value = "";
   }, [initial, mode, open]);
 
   useEffect(() => {
@@ -643,15 +639,8 @@ function SectionEditorModal({
     };
   }, [open, isSaving, onClose]);
 
-  useEffect(() => {
-    return () => {
-      if (localPreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(localPreviewUrl);
-    };
-  }, [localPreviewUrl]);
-
   if (!open) return null;
 
-  const preview = localPreviewUrl || backgroundUrl.trim();
   const canSave = name.trim().length > 0 && !isSaving;
 
   async function handleSubmit(e: FormEvent) {
@@ -659,9 +648,9 @@ function SectionEditorModal({
     if (!canSave) return;
     setSubmitError(null);
     try {
-      let backgroundImage: string | null | undefined = backgroundUrl.trim() || null;
-      if (selectedFile) {
-        backgroundImage = await uploadFileToR2(selectedFile, "section-background");
+      let backgroundImage: string | null | undefined = imageValue.url.trim() || null;
+      if (imageValue.file) {
+        backgroundImage = await uploadFileToR2(imageValue.file, "section-background");
       }
       await onSave({ name: name.trim(), backgroundImage });
     } catch (error) {
@@ -684,7 +673,7 @@ function SectionEditorModal({
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          className="pointer-events-auto max-h-[min(92vh,calc(100dvh-1rem))] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl border border-foreground/10 bg-background/95 shadow-2xl ring-1 ring-foreground/10 backdrop-blur-md sm:rounded-2xl"
+          className="pointer-events-auto max-h-[min(92vh,calc(100dvh-1rem))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-foreground/10 bg-background/95 shadow-2xl ring-1 ring-foreground/10 backdrop-blur-md sm:rounded-2xl"
         >
           <div className="border-b border-foreground/10 px-4 py-4 sm:px-5">
             <h2 id={titleId} className="text-lg font-semibold tracking-tight text-foreground">
@@ -713,49 +702,13 @@ function SectionEditorModal({
                 autoFocus
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                {t("sections.backgroundImage")}{" "}
-                <span className="text-foreground/50">{t("newCategory.optionalSuffix")}</span>
-              </label>
-              <div className="relative mb-2 size-20 overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5">
-                {preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview} alt="" className="size-full object-cover" />
-                ) : (
-                  <div className="flex size-full items-center justify-center text-[10px] text-foreground/40">
-                    {t("global.noImage")}
-                  </div>
-                )}
-              </div>
-              <input
-                id={bgUrlId}
-                type="url"
-                value={backgroundUrl}
-                onChange={(e) => setBackgroundUrl(e.target.value)}
-                disabled={isSaving}
-                className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
-                placeholder={t("sections.backgroundUrlPlaceholder")}
-              />
-              <input
-                ref={uploadInputRef}
-                id={bgUploadId}
-                type="file"
-                accept="image/*"
-                disabled={isSaving}
-                onChange={(e) => {
-                  const nextFile = e.target.files?.[0];
-                  if (!nextFile) return;
-                  setSelectedFile(nextFile);
-                  setLocalPreviewUrl((prev) => {
-                    if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-                    return URL.createObjectURL(nextFile);
-                  });
-                  e.currentTarget.value = "";
-                }}
-                className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground"
-              />
-            </div>
+            <CatalogImageField
+              label={`${t("sections.backgroundImage")} ${t("newCategory.optionalSuffix")}`}
+              value={imageValue}
+              onChange={setImageValue}
+              uploadTarget="section-background"
+              disabled={isSaving}
+            />
             <div className="flex gap-2 border-t border-foreground/10 pt-4">
               <button
                 type="button"
