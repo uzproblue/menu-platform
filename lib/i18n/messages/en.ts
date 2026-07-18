@@ -696,7 +696,7 @@ export const enMessages: Messages = {
   "restaurantDetail.reorderCategoriesButton": "Reorder categories",
   "restaurantDetail.reorderCategoriesTitle": "Reorder categories for this location",
   "restaurantDetail.reorderCategoriesHint":
-    "Use the arrows to change the order guests see on the menu. Save when done.",
+    "Drag categories to change the order guests see on the menu. Save when done.",
   "restaurantDetail.reorderCategoriesSaveFailed":
     "Could not save category order. Try again.",
   "restaurantDetail.reorderCategoriesNeedTwo":

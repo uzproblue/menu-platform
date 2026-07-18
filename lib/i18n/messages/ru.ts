@@ -712,7 +712,7 @@ export const ruMessages: Messages = {
   "restaurantDetail.reorderCategoriesButton": "Изменить порядок категорий",
   "restaurantDetail.reorderCategoriesTitle": "Порядок категорий для этой локации",
   "restaurantDetail.reorderCategoriesHint":
-    "Стрелками измените порядок, в котором категории видят гости. Нажмите «Сохранить», когда закончите.",
+    "Перетащите категории, чтобы изменить порядок, в котором их видят гости. Нажмите «Сохранить», когда закончите.",
   "restaurantDetail.reorderCategoriesSaveFailed":
     "Не удалось сохранить порядок категорий. Попробуйте ещё раз.",
   "restaurantDetail.reorderCategoriesNeedTwo":

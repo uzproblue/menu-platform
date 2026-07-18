@@ -1,6 +1,23 @@
 "use client";
 
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   useEffect,
   useId,
   useMemo,
@@ -18,12 +35,56 @@ function arraysEqual(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
-function moveInOrder(ids: string[], index: number, direction: -1 | 1): string[] {
-  const target = index + direction;
-  if (target < 0 || target >= ids.length) return ids;
-  const next = [...ids];
-  [next[index], next[target]] = [next[target], next[index]];
-  return next;
+function SortableCategoryRow({
+  id,
+  name,
+  index,
+  dragHandleAria,
+  disabled,
+}: {
+  id: string;
+  name: string;
+  index: number;
+  dragHandleAria: string;
+  disabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 rounded-2xl border border-foreground/10 bg-background/70 px-3 py-2.5 ring-1 ring-foreground/5"
+    >
+      <button
+        type="button"
+        className="inline-flex size-9 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-foreground/15 text-foreground/70 disabled:opacity-40"
+        aria-label={dragHandleAria}
+        disabled={disabled}
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="size-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path d="M8 7h2v2H8V7zm6 0h2v2h-2V7zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 4h2v2H8v-2zm6 0h2v2h-2v-2z" />
+        </svg>
+      </button>
+      <span
+        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-medium text-foreground/70"
+        aria-hidden
+      >
+        {index + 1}
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{name}</span>
+    </li>
+  );
 }
 
 type ReorderLocationCategoriesModalProps = {
@@ -67,6 +128,11 @@ export function ReorderLocationCategoriesModal({
     setOrder([...initialOrderIds]);
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -85,6 +151,18 @@ export function ReorderLocationCategoriesModal({
 
   const hasChanges = !arraysEqual(order, initialOrderIds);
   const canSave = !saving && hasChanges;
+
+  function handleDragEnd(event: DragEndEvent) {
+    if (saving) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setOrder((prev) => {
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -125,75 +203,29 @@ export function ReorderLocationCategoriesModal({
               {t("restaurantDetail.menuEmptyHint")}
             </p>
           ) : (
-            <ol className="grid grid-cols-1 gap-2">
-              {order.map((id, index) => {
-                const name = nameById.get(id) ?? id;
-                const moveBtn =
-                  "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-foreground/15 bg-background text-foreground transition-colors hover:bg-foreground/5 disabled:cursor-not-allowed disabled:opacity-40";
-                return (
-                  <li
-                    key={id}
-                    className="flex items-center gap-2 rounded-2xl border border-foreground/10 bg-background/70 px-3 py-2.5 ring-1 ring-foreground/5"
-                  >
-                    <span
-                      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-medium text-foreground/70"
-                      aria-hidden
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
-                      {name}
-                    </span>
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        type="button"
-                        className={moveBtn}
-                        disabled={saving || index === 0}
-                        aria-label={t("categories.moveUpAria", { name })}
-                        onClick={() => setOrder((prev) => moveInOrder(prev, index, -1))}
-                      >
-                        <svg
-                          className="size-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 15l7-7 7 7"
-                          />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className={moveBtn}
-                        disabled={saving || index === order.length - 1}
-                        aria-label={t("categories.moveDownAria", { name })}
-                        onClick={() => setOrder((prev) => moveInOrder(prev, index, 1))}
-                      >
-                        <svg
-                          className="size-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={order} strategy={verticalListSortingStrategy}>
+                <ol className="grid grid-cols-1 gap-2">
+                  {order.map((id, index) => {
+                    const name = nameById.get(id) ?? id;
+                    return (
+                      <SortableCategoryRow
+                        key={id}
+                        id={id}
+                        name={name}
+                        index={index}
+                        disabled={saving}
+                        dragHandleAria={t("sections.dragHandleAria", { name })}
+                      />
+                    );
+                  })}
+                </ol>
+              </SortableContext>
+            </DndContext>
           )}
 
           {saveError ? (

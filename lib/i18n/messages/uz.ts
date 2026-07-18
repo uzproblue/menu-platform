@@ -693,7 +693,7 @@ export const uzMessages: Messages = {
   "restaurantDetail.reorderCategoriesButton": "Bo'limlar tartibini o'zgartirish",
   "restaurantDetail.reorderCategoriesTitle": "Ushbu lokatsiya uchun bo'limlar tartibi",
   "restaurantDetail.reorderCategoriesHint":
-    "Mehmonlar ko'radigan tartibni o'zgartirish uchun strelkalardan foydalaning. Tugagach saqlang.",
+    "Mehmonlar ko'radigan tartibni o'zgartirish uchun bo'limlarni tortib joylashtiring. Tugagach saqlang.",
   "restaurantDetail.reorderCategoriesSaveFailed":
     "Bo'limlar tartibini saqlab bo'lmadi. Qayta urinib ko'ring.",
   "restaurantDetail.reorderCategoriesNeedTwo":
