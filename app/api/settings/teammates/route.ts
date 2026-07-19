@@ -119,6 +119,50 @@ export async function POST(req: Request) {
     return NextResponse.json(result.data, { status: 201 });
   }
 
+  if (rawRole === "HOSTESS") {
+    const rawLocationId = o.locationId;
+    if (typeof rawLocationId !== "string") {
+      return NextResponse.json(
+        {
+          error: "invalid_body",
+          message: "locationId is required for HOSTESS",
+        },
+        { status: 400 },
+      );
+    }
+    const locationId = rawLocationId.trim();
+    if (!locationId.length) {
+      return NextResponse.json(
+        {
+          error: "invalid_body",
+          message: "locationId is required for HOSTESS",
+        },
+        { status: 400 },
+      );
+    }
+
+    const result = await createTeammateWithAuthServer(
+      token,
+      {
+        name,
+        role: "HOSTESS",
+        locationId,
+      },
+      restaurantId,
+    );
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error, message: result.message },
+        { status: result.status },
+      );
+    }
+    void trackStaffMutation(PlatformEvent.TEAM_TEAMMATE_INVITED, {
+      teammateRole: "HOSTESS",
+      locationId,
+    });
+    return NextResponse.json(result.data, { status: 201 });
+  }
+
   const rawEmail = o.email;
   if (typeof rawEmail !== "string" || (rawRole !== "ADMIN" && rawRole !== "USER")) {
     return NextResponse.json(

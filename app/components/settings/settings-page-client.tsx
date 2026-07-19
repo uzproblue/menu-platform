@@ -9,7 +9,7 @@ type SettingsPageClientProps = {
   initialEmail: string | null;
 };
 
-type RoleType = "ADMIN" | "USER" | "CHEF";
+type RoleType = "ADMIN" | "USER" | "CHEF" | "HOSTESS";
 
 type Teammate = {
   id: string;
@@ -20,8 +20,13 @@ type Teammate = {
   telegramPhone?: string | null;
   chefInviteStatus?: string | null;
   telegramLinked?: boolean;
+  hostessInviteStatus?: string | null;
   locationName?: string | null;
 };
+
+function isPinStaffRole(role: RoleType): boolean {
+  return role === "CHEF" || role === "HOSTESS";
+}
 
 type LocationOption = {
   id: string;
@@ -93,7 +98,7 @@ export function SettingsPageClient({
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!addOpen || teammateRole !== "CHEF") return;
+    if (!addOpen || !isPinStaffRole(teammateRole)) return;
     let cancelled = false;
     async function loadLocations() {
       setLocationsPending(true);
@@ -118,7 +123,7 @@ export function SettingsPageClient({
   }, [addOpen, teammateRole]);
 
   useEffect(() => {
-    if (!addOpen || !isOwner || teammateRole === "CHEF") return;
+    if (!addOpen || !isOwner || isPinStaffRole(teammateRole)) return;
     let cancelled = false;
     async function loadInviteRestaurants() {
       setInviteRestaurantsPending(true);
@@ -328,6 +333,13 @@ export function SettingsPageClient({
         return;
       }
       body = { name, role: "CHEF", telegramPhone, locationId };
+    } else if (teammateRole === "HOSTESS") {
+      const locationId = teammateLocationId.trim();
+      if (!locationId.length) {
+        setTeammateError(t("settings.errLocationRequired"));
+        return;
+      }
+      body = { name, role: "HOSTESS", locationId };
     } else {
       const email = teammateEmail.trim().toLowerCase();
       if (!email.length || !email.includes("@")) {
@@ -362,6 +374,7 @@ export function SettingsPageClient({
         temporaryPassword?: string | null;
         inviteEmailSent?: boolean;
         chefInvite?: { pinCode: string };
+        hostessInvite?: { pinCode: string };
         message?: string;
       } | null;
       if (!res.ok) {
@@ -380,6 +393,12 @@ export function SettingsPageClient({
       if (payload?.chefInvite?.pinCode) {
         setTeammateSaved(
           t("settings.chefAddedCode", { code: payload.chefInvite.pinCode }),
+        );
+      } else if (payload?.hostessInvite?.pinCode) {
+        setTeammateSaved(
+          t("settings.hostessAddedCode", {
+            code: payload.hostessInvite.pinCode,
+          }),
         );
       } else if (payload?.temporaryPassword) {
         const invitedEmail = payload.teammate?.email?.trim();
@@ -757,6 +776,20 @@ export function SettingsPageClient({
                               {t("settings.chefTelegramNotLinked")}
                             </span>
                           )}
+                          {teammate.locationName ? (
+                            <span className="mt-0.5 block text-xs text-foreground/50">
+                              {teammate.locationName}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : teammate.role === "HOSTESS" ? (
+                        <span className="block">
+                          <span>{t("settings.hostessPinLogin")}</span>
+                          {teammate.locationName ? (
+                            <span className="mt-0.5 block text-xs text-foreground/50">
+                              {teammate.locationName}
+                            </span>
+                          ) : null}
                         </span>
                       ) : (
                         teammate.email
@@ -767,14 +800,16 @@ export function SettingsPageClient({
                         ? t("settings.admin")
                         : teammate.role === "CHEF"
                           ? t("settings.chef")
-                          : t("settings.user")}
+                          : teammate.role === "HOSTESS"
+                            ? t("settings.hostess")
+                            : t("settings.user")}
                     </td>
                     <td className="px-4 py-3.5 text-foreground/70">
                       {formatLastLogin(teammate.lastLoginAt, t("settings.neverLoggedIn"))}
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex justify-end gap-2">
-                        {teammate.lastLoginAt ? null : (
+                        {teammate.lastLoginAt || isPinStaffRole(teammate.role) ? null : (
                           <button
                             type="button"
                             onClick={() =>
@@ -879,7 +914,7 @@ export function SettingsPageClient({
               onSubmit={handleAddTeammateSubmit}
               className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-5"
             >
-              {teammateRole !== "CHEF" ? (
+              {!isPinStaffRole(teammateRole) ? (
                 <div className="space-y-2">
                   <label
                     className="text-sm font-medium text-foreground"
@@ -938,9 +973,10 @@ export function SettingsPageClient({
                   <option value="USER">{t("settings.user")}</option>
                   <option value="ADMIN">{t("settings.admin")}</option>
                   <option value="CHEF">{t("settings.chef")}</option>
+                  <option value="HOSTESS">{t("settings.hostess")}</option>
                 </select>
               </div>
-              {isOwner && teammateRole !== "CHEF" ? (
+              {isOwner && !isPinStaffRole(teammateRole) ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-foreground">
                     {t("settings.inviteRestaurants")}
@@ -979,60 +1015,60 @@ export function SettingsPageClient({
                 </div>
               ) : null}
               {teammateRole === "CHEF" ? (
-                <>
-                  <div className="space-y-2">
-                    <label
-                      className="text-sm font-medium text-foreground"
-                      htmlFor="teammate-telegram-phone"
-                    >
-                      {t("settings.telegramPhone")}
-                    </label>
-                    <input
-                      id="teammate-telegram-phone"
-                      type="tel"
-                      value={teammateTelegramPhone}
-                      onChange={(e) => {
-                        setTeammateTelegramPhone(e.target.value);
-                        if (teammateError) setTeammateError(null);
-                        if (teammateSaved) setTeammateSaved(null);
-                      }}
-                      required
-                      className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
-                      placeholder={t("settings.telegramPhonePlaceholder")}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      className="text-sm font-medium text-foreground"
-                      htmlFor="teammate-location"
-                    >
-                      {t("settings.branchLocation")}
-                    </label>
-                    <select
-                      id="teammate-location"
-                      value={teammateLocationId}
-                      onChange={(e) => {
-                        setTeammateLocationId(e.target.value);
-                        if (teammateError) setTeammateError(null);
-                        if (teammateSaved) setTeammateSaved(null);
-                      }}
-                      required
-                      disabled={locationsPending}
-                      className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
-                    >
-                      <option value="">
-                        {locationsPending
-                          ? t("settings.loadingLocations")
-                          : t("settings.selectLocation")}
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-foreground"
+                    htmlFor="teammate-telegram-phone"
+                  >
+                    {t("settings.telegramPhone")}
+                  </label>
+                  <input
+                    id="teammate-telegram-phone"
+                    type="tel"
+                    value={teammateTelegramPhone}
+                    onChange={(e) => {
+                      setTeammateTelegramPhone(e.target.value);
+                      if (teammateError) setTeammateError(null);
+                      if (teammateSaved) setTeammateSaved(null);
+                    }}
+                    required
+                    className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+                    placeholder={t("settings.telegramPhonePlaceholder")}
+                  />
+                </div>
+              ) : null}
+              {isPinStaffRole(teammateRole) ? (
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-foreground"
+                    htmlFor="teammate-location"
+                  >
+                    {t("settings.branchLocation")}
+                  </label>
+                  <select
+                    id="teammate-location"
+                    value={teammateLocationId}
+                    onChange={(e) => {
+                      setTeammateLocationId(e.target.value);
+                      if (teammateError) setTeammateError(null);
+                      if (teammateSaved) setTeammateSaved(null);
+                    }}
+                    required
+                    disabled={locationsPending}
+                    className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-60"
+                  >
+                    <option value="">
+                      {locationsPending
+                        ? t("settings.loadingLocations")
+                        : t("settings.selectLocation")}
+                    </option>
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
                       </option>
-                      {locationOptions.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
+                    ))}
+                  </select>
+                </div>
               ) : null}
               {teammateError ? (
                 <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">

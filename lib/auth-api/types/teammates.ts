@@ -1,26 +1,29 @@
+export type RestaurantStaffRole = "ADMIN" | "USER" | "CHEF" | "HOSTESS";
+
 export type MyRestaurantsResponse = {
   isOwner: boolean;
   restaurants: Array<{
     id: string;
     name: string;
-    role: "ADMIN" | "USER" | "CHEF";
+    role: RestaurantStaffRole;
   }>;
   currentRestaurantId: string | null;
 };
 
 export type TeammatesResponse = {
   restaurantId: string;
-  currentUserRole: "ADMIN" | "USER" | "CHEF";
+  currentUserRole: RestaurantStaffRole;
   isOwner: boolean;
   teammates: Array<{
     id: string;
     email: string;
     name: string;
-    role: "ADMIN" | "USER" | "CHEF";
+    role: RestaurantStaffRole;
     lastLoginAt: string | null;
     telegramPhone?: string | null;
     chefInviteStatus?: string | null;
     telegramLinked?: boolean;
+    hostessInviteStatus?: string | null;
     locationName?: string | null;
   }>;
 };
@@ -30,12 +33,18 @@ export type CreateTeammateResponse = {
     id: string;
     email: string;
     name: string;
-    role: "ADMIN" | "USER" | "CHEF";
+    role: RestaurantStaffRole;
     lastLoginAt: string | null;
   };
   temporaryPassword: string | null;
   inviteEmailSent?: boolean;
   chefInvite?: {
+    inviteId: string;
+    pinCode: string;
+    locationId: string;
+    locationName: string;
+  };
+  hostessInvite?: {
     inviteId: string;
     pinCode: string;
     locationId: string;
@@ -49,6 +58,11 @@ export type CreateTeammateInput =
       name: string;
       role: "CHEF";
       telegramPhone: string;
+      locationId: string;
+    }
+  | {
+      name: string;
+      role: "HOSTESS";
       locationId: string;
     };
 
