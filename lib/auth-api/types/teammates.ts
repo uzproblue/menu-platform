@@ -47,6 +47,7 @@ export type CreateTeammateResponse = {
   hostessInvite?: {
     inviteId: string;
     pinCode: string;
+    username: string;
     locationId: string;
     locationName: string;
   };
@@ -64,6 +65,7 @@ export type CreateTeammateInput =
       name: string;
       role: "HOSTESS";
       locationId: string;
+      username: string;
     };
 
 export type RevealTemporaryPasswordResponse = {

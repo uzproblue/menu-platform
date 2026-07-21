@@ -83,6 +83,7 @@ export function SettingsPageClient({
   const [teammateName, setTeammateName] = useState("");
   const [teammateRole, setTeammateRole] = useState<RoleType>("USER");
   const [teammateTelegramPhone, setTeammateTelegramPhone] = useState("");
+  const [teammateUsername, setTeammateUsername] = useState("");
   const [teammateLocationId, setTeammateLocationId] = useState("");
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
   const [locationsPending, setLocationsPending] = useState(false);
@@ -335,11 +336,20 @@ export function SettingsPageClient({
       body = { name, role: "CHEF", telegramPhone, locationId };
     } else if (teammateRole === "HOSTESS") {
       const locationId = teammateLocationId.trim();
+      const username = teammateUsername.trim().toLowerCase();
+      if (!username.length) {
+        setTeammateError(t("settings.errUsernameRequired"));
+        return;
+      }
+      if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+        setTeammateError(t("settings.errUsernameInvalid"));
+        return;
+      }
       if (!locationId.length) {
         setTeammateError(t("settings.errLocationRequired"));
         return;
       }
-      body = { name, role: "HOSTESS", locationId };
+      body = { name, role: "HOSTESS", locationId, username };
     } else {
       const email = teammateEmail.trim().toLowerCase();
       if (!email.length || !email.includes("@")) {
@@ -374,7 +384,7 @@ export function SettingsPageClient({
         temporaryPassword?: string | null;
         inviteEmailSent?: boolean;
         chefInvite?: { pinCode: string };
-        hostessInvite?: { pinCode: string };
+        hostessInvite?: { pinCode: string; username?: string };
         message?: string;
       } | null;
       if (!res.ok) {
@@ -386,6 +396,7 @@ export function SettingsPageClient({
       setTeammateName("");
       setTeammateRole("USER");
       setTeammateTelegramPhone("");
+      setTeammateUsername("");
       setTeammateLocationId("");
       setSelectedInviteRestaurantIds(
         inviteRestaurantOptions.map((r) => r.id),
@@ -398,6 +409,7 @@ export function SettingsPageClient({
         setTeammateSaved(
           t("settings.hostessAddedCode", {
             code: payload.hostessInvite.pinCode,
+            username: payload.hostessInvite.username ?? "",
           }),
         );
       } else if (payload?.temporaryPassword) {
@@ -1034,6 +1046,36 @@ export function SettingsPageClient({
                     required
                     className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
                     placeholder={t("settings.telegramPhonePlaceholder")}
+                  />
+                </div>
+              ) : null}
+              {teammateRole === "HOSTESS" ? (
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-foreground"
+                    htmlFor="teammate-username"
+                  >
+                    {t("settings.hostessUsername")}
+                  </label>
+                  <input
+                    id="teammate-username"
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={teammateUsername}
+                    onChange={(e) => {
+                      setTeammateUsername(
+                        e.target.value.toLowerCase().replace(/\s+/g, ""),
+                      );
+                      if (teammateError) setTeammateError(null);
+                      if (teammateSaved) setTeammateSaved(null);
+                    }}
+                    required
+                    minLength={3}
+                    maxLength={32}
+                    pattern="[a-z0-9._\-]{3,32}"
+                    className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
+                    placeholder={t("settings.hostessUsernamePlaceholder")}
                   />
                 </div>
               ) : null}

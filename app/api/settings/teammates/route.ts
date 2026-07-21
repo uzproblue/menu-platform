@@ -121,6 +121,7 @@ export async function POST(req: Request) {
 
   if (rawRole === "HOSTESS") {
     const rawLocationId = o.locationId;
+    const rawUsername = o.username;
     if (typeof rawLocationId !== "string") {
       return NextResponse.json(
         {
@@ -140,6 +141,25 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    if (typeof rawUsername !== "string") {
+      return NextResponse.json(
+        {
+          error: "invalid_body",
+          message: "username is required for HOSTESS",
+        },
+        { status: 400 },
+      );
+    }
+    const username = rawUsername.trim();
+    if (!username.length) {
+      return NextResponse.json(
+        {
+          error: "invalid_body",
+          message: "username is required for HOSTESS",
+        },
+        { status: 400 },
+      );
+    }
 
     const result = await createTeammateWithAuthServer(
       token,
@@ -147,6 +167,7 @@ export async function POST(req: Request) {
         name,
         role: "HOSTESS",
         locationId,
+        username,
       },
       restaurantId,
     );
