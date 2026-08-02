@@ -161,6 +161,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const rawManager = o.manager;
+    const manager =
+      rawManager === true ||
+      rawManager === 1 ||
+      rawManager === "1" ||
+      rawManager === "true";
+
     const result = await createTeammateWithAuthServer(
       token,
       {
@@ -168,6 +175,7 @@ export async function POST(req: Request) {
         role: "HOSTESS",
         locationId,
         username,
+        manager,
       },
       restaurantId,
     );

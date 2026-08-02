@@ -25,6 +25,7 @@ export type TeammatesResponse = {
     telegramLinked?: boolean;
     hostessInviteStatus?: string | null;
     locationName?: string | null;
+    manager?: 0 | 1;
   }>;
 };
 
@@ -66,6 +67,7 @@ export type CreateTeammateInput =
       role: "HOSTESS";
       locationId: string;
       username: string;
+      manager?: boolean;
     };
 
 export type RevealTemporaryPasswordResponse = {

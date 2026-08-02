@@ -185,6 +185,9 @@ export const enMessages: Messages = {
   "settings.hostessPinLogin": "PIN login (Hostess app)",
   "settings.hostessUsername": "Username",
   "settings.hostessUsernamePlaceholder": "e.g. anna.hostess",
+  "settings.hostessManager": "Manager (rewards)",
+  "settings.hostessManagerHelp":
+    "Can open the Hostess rewards page and add waiter points.",
   "settings.telegramPhone": "Telegram phone",
   "settings.telegramPhonePlaceholder": "+998901234567",
   "settings.branchLocation": "Branch / location",

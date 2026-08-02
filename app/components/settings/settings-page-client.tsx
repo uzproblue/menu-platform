@@ -22,6 +22,7 @@ type Teammate = {
   telegramLinked?: boolean;
   hostessInviteStatus?: string | null;
   locationName?: string | null;
+  manager?: 0 | 1;
 };
 
 function isPinStaffRole(role: RoleType): boolean {
@@ -84,6 +85,7 @@ export function SettingsPageClient({
   const [teammateRole, setTeammateRole] = useState<RoleType>("USER");
   const [teammateTelegramPhone, setTeammateTelegramPhone] = useState("");
   const [teammateUsername, setTeammateUsername] = useState("");
+  const [teammateManager, setTeammateManager] = useState(false);
   const [teammateLocationId, setTeammateLocationId] = useState("");
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
   const [locationsPending, setLocationsPending] = useState(false);
@@ -321,7 +323,7 @@ export function SettingsPageClient({
       return;
     }
 
-    let body: Record<string, string | string[]>;
+    let body: Record<string, string | string[] | boolean>;
     if (teammateRole === "CHEF") {
       const telegramPhone = teammateTelegramPhone.trim();
       const locationId = teammateLocationId.trim();
@@ -349,7 +351,13 @@ export function SettingsPageClient({
         setTeammateError(t("settings.errLocationRequired"));
         return;
       }
-      body = { name, role: "HOSTESS", locationId, username };
+      body = {
+        name,
+        role: "HOSTESS",
+        locationId,
+        username,
+        manager: teammateManager,
+      };
     } else {
       const email = teammateEmail.trim().toLowerCase();
       if (!email.length || !email.includes("@")) {
@@ -397,6 +405,7 @@ export function SettingsPageClient({
       setTeammateRole("USER");
       setTeammateTelegramPhone("");
       setTeammateUsername("");
+      setTeammateManager(false);
       setTeammateLocationId("");
       setSelectedInviteRestaurantIds(
         inviteRestaurantOptions.map((r) => r.id),
@@ -1077,6 +1086,26 @@ export function SettingsPageClient({
                     className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20"
                     placeholder={t("settings.hostessUsernamePlaceholder")}
                   />
+                  <label className="flex items-start gap-2.5 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={teammateManager}
+                      onChange={(e) => {
+                        setTeammateManager(e.target.checked);
+                        if (teammateError) setTeammateError(null);
+                        if (teammateSaved) setTeammateSaved(null);
+                      }}
+                      className="mt-0.5 size-4 rounded border-foreground/30"
+                    />
+                    <span>
+                      <span className="font-medium">
+                        {t("settings.hostessManager")}
+                      </span>
+                      <span className="mt-0.5 block text-foreground/60">
+                        {t("settings.hostessManagerHelp")}
+                      </span>
+                    </span>
+                  </label>
                 </div>
               ) : null}
               {isPinStaffRole(teammateRole) ? (

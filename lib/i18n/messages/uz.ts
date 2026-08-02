@@ -180,6 +180,9 @@ export const uzMessages: Messages = {
   "settings.hostessPinLogin": "PIN orqali kirish (Hostess ilovasi)",
   "settings.hostessUsername": "Foydalanuvchi nomi",
   "settings.hostessUsernamePlaceholder": "masalan anna.hostess",
+  "settings.hostessManager": "Menejer (mukofotlar)",
+  "settings.hostessManagerHelp":
+    "Hostess ilovasida mukofotlar sahifasini ochib, ofitsiantlarga ball qo‘shishi mumkin.",
   "settings.telegramPhone": "Telegram telefoni",
   "settings.telegramPhonePlaceholder": "+998901234567",
   "settings.branchLocation": "Filial / joy",

@@ -181,6 +181,9 @@ export const ruMessages: Messages = {
   "settings.hostessPinLogin": "Вход по PIN (приложение Hostess)",
   "settings.hostessUsername": "Имя пользователя",
   "settings.hostessUsernamePlaceholder": "например anna.hostess",
+  "settings.hostessManager": "Менеджер (награды)",
+  "settings.hostessManagerHelp":
+    "Может открывать страницу наград в Hostess и начислять баллы официантам.",
   "settings.telegramPhone": "Телефон Telegram",
   "settings.telegramPhonePlaceholder": "+998901234567",
   "settings.branchLocation": "Филиал / локация",
