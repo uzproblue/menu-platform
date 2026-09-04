@@ -3,7 +3,8 @@ import type { MenuItem } from "@/lib/data/global-menu-types";
 export function formatMenuItemPrice(item: MenuItem): string {
   const row = item.prices[0];
   if (!row) return "";
-  return `${row.price} ${row.currency}`.trim();
+  const cleaned = row.price.replace(/([.,]00)(?!\d)/g, "").trim();
+  return `${cleaned} ${row.currency}`.trim();
 }
 
 export function flattenMenuItems(

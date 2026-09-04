@@ -687,7 +687,7 @@ export function NewLocationWizard({
         if (row.categoryId !== catId) continue;
         items.push({
           name: row.name,
-          price: `${row.overridePrice} ${currency}`.trim(),
+          price: `${row.overridePrice.replace(/([.,]00)(?!\d)/g, "").trim()} ${currency}`.trim(),
         });
       }
       out.push({ categoryName: meta.name, items });

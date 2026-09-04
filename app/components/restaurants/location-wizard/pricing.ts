@@ -10,7 +10,8 @@ export function getMatchingCatalogPrices(
 }
 
 export function formatPriceSummary(p: CatalogPriceApi): string {
-  return `${p.price} ${p.currency}`;
+  const cleaned = p.price.replace(/([.,]00)(?!\d)/g, "").trim();
+  return `${cleaned} ${p.currency}`;
 }
 
 export function computeOverrideFromRow(

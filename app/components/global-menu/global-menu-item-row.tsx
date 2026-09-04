@@ -87,9 +87,14 @@ export function ItemActiveToggle({
   );
 }
 
+/** Strip trailing `.00` or `,00` (e.g. "300.00" → "300"). */
+function stripZeroCents(price: string): string {
+  return price.replace(/([.,]00)(?!\d)/g, "").trim();
+}
+
 export function formatCatalogPrices(prices: MenuItem["prices"]): string {
   if (!prices.length) return "";
-  return prices.map((p) => `${p.price} ${p.currency}`).join(" · ");
+  return prices.map((p) => `${stripZeroCents(p.price)} ${p.currency}`).join(" · ");
 }
 
 function isActive(item: MenuItem) {

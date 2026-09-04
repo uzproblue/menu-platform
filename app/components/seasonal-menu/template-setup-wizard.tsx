@@ -191,7 +191,7 @@ export function TemplateSetupWizard({
                       <span className="font-medium text-foreground">{item.name}</span>
                       {item.prices[0] ? (
                         <span className="mt-0.5 block text-xs text-foreground/55">
-                          {item.prices[0].price} {item.prices[0].currency}
+                          {item.prices[0].price.replace(/([.,]00)(?!\d)/g, "").trim()} {item.prices[0].currency}
                         </span>
                       ) : null}
                     </span>

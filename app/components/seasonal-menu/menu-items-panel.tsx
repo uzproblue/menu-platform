@@ -106,7 +106,7 @@ export function MenuItemsPanel({
                 <span className="font-medium text-foreground">{item.name}</span>
                 {item.prices[0] ? (
                   <span className="mt-0.5 block text-xs text-foreground/60">
-                    {item.prices[0].price} {item.prices[0].currency}
+                    {item.prices[0].price.replace(/([.,]00)(?!\d)/g, "").trim()} {item.prices[0].currency}
                   </span>
                 ) : null}
               </button>
