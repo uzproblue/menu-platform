@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import { randomUUID } from "node:crypto";
 import { authOptions } from "@/lib/auth-options";
-import {
-  buildTusUploadSession,
-  createStreamVideo,
-  getBunnyStreamConfig,
-} from "@/lib/bunny-stream";
+import { resolveRestaurantIdForR2Upload } from "@/lib/r2-upload-resolve-restaurant";
+import { createSignedUpload } from "@/lib/r2-upload";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function POST(req: Request) {
@@ -14,39 +12,65 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const config = getBunnyStreamConfig();
-  if (!config) {
+  const restaurantResult = await resolveRestaurantIdForR2Upload(session.accessToken);
+  if (!restaurantResult.ok) {
     return NextResponse.json(
       {
-        error: "bunny_not_configured",
-        message: "BUNNY_STREAM_LIBRARY_ID and BUNNY_STREAM_API_KEY must be set",
+        error: "restaurant_lookup_failed",
+        message: restaurantResult.message ?? "could not resolve restaurant",
       },
-      { status: 503 },
+      { status: restaurantResult.status },
     );
   }
 
-  let title = "Menu item video";
+  let contentType = "video/mp4";
+  let fileName = "video.mp4";
   try {
-    const body = (await req.json()) as { title?: unknown };
-    if (typeof body?.title === "string" && body.title.trim().length) {
-      title = body.title.trim().slice(0, 200);
+    const body = (await req.json()) as { contentType?: unknown; fileName?: unknown };
+    if (typeof body?.contentType === "string" && body.contentType.trim().length) {
+      contentType = body.contentType.trim().toLowerCase();
+    }
+    if (typeof body?.fileName === "string" && body.fileName.trim().length) {
+      fileName = body.fileName.trim();
     }
   } catch {
     /* empty body is fine */
   }
 
-  const created = await createStreamVideo(config, title);
-  if (!created.ok) {
+  const videoId = randomUUID();
+  const ext = fileName.endsWith(".mov")
+    ? "mov"
+    : fileName.endsWith(".webm")
+      ? "webm"
+      : "mp4";
+
+  try {
+    const signed = await createSignedUpload({
+      target: "temp-video",
+      contentType,
+      extension: ext,
+      restaurantId: restaurantResult.restaurantId,
+    });
+
+    void trackStaffMutation(PlatformEvent.VIDEO_UPLOAD_SESSION_STARTED, {
+      videoId,
+      tempKey: signed.objectKey,
+    });
+
+    return NextResponse.json({
+      provider: "r2",
+      videoId,
+      restaurantId: restaurantResult.restaurantId,
+      uploadUrl: signed.uploadUrl,
+      tempKey: signed.objectKey,
+      publicUrl: signed.publicUrl,
+      expiresAt: signed.expiresAt,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "bunny_create_failed", message: created.message },
-      { status: created.status && created.status >= 400 ? created.status : 502 },
+      { error: "sign_failed", message: `Could not prepare upload URL: ${msg}` },
+      { status: 500 },
     );
   }
-
-  void trackStaffMutation(PlatformEvent.VIDEO_UPLOAD_SESSION_STARTED, {
-    videoId: created.videoId,
-  });
-
-  const sessionPayload = buildTusUploadSession(config, created.videoId);
-  return NextResponse.json(sessionPayload);
 }

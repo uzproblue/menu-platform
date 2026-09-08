@@ -23,6 +23,7 @@ const targetFolderMap: Record<UploadTarget, string> = {
   "qr-center-image": "qr-center-images",
   "category-cover": "category-covers",
   "section-background": "section-backgrounds",
+  "temp-video": "temp-videos",
 };
 
 const allowedMimeTypes = new Set([
@@ -31,6 +32,9 @@ const allowedMimeTypes = new Set([
   "image/webp",
   "image/gif",
   "image/svg+xml",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
 ]);
 
 function readNonEmptyEnv(name: string): string {
@@ -102,7 +106,7 @@ export function validateUploadInput(input: {
 
 function getSafeExtension(fileName: string, contentType: string): string {
   const fromName = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() ?? "" : "";
-  const allow = new Set(["jpg", "jpeg", "png", "webp", "gif", "svg"]);
+  const allow = new Set(["jpg", "jpeg", "png", "webp", "gif", "svg", "mp4", "mov", "webm"]);
   if (allow.has(fromName)) return fromName;
   switch (contentType) {
     case "image/jpeg":
@@ -115,6 +119,12 @@ function getSafeExtension(fileName: string, contentType: string): string {
       return "gif";
     case "image/svg+xml":
       return "svg";
+    case "video/mp4":
+      return "mp4";
+    case "video/quicktime":
+      return "mov";
+    case "video/webm":
+      return "webm";
     default:
       return "bin";
   }

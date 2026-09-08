@@ -5,7 +5,8 @@ export type UploadTarget =
   | "location-logo"
   | "qr-center-image"
   | "category-cover"
-  | "section-background";
+  | "section-background"
+  | "temp-video";
 
 export const R2_UPLOAD_MAX_SIZE_BYTES: Record<UploadTarget, number> = {
   "menu-item": 12 * 1024 * 1024,
@@ -13,6 +14,7 @@ export const R2_UPLOAD_MAX_SIZE_BYTES: Record<UploadTarget, number> = {
   "qr-center-image": 4 * 1024 * 1024,
   "category-cover": 8 * 1024 * 1024,
   "section-background": 8 * 1024 * 1024,
+  "temp-video": 500 * 1024 * 1024,
 };
 
 export function getMaxUploadSizeBytes(target: UploadTarget): number {
