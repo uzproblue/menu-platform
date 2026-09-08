@@ -11,6 +11,7 @@ type RestaurantsListMobileProps = {
   locations: LocationListRow[];
   currentUserRole: "ADMIN" | "USER";
   updatingLocationId: string | null;
+  refreshingLocationId?: string | null;
   onOpenLocationPage: (locationId: string) => void;
   onToggleActive: (locationId: string, nextIsActive: boolean) => void;
   onOpenQr: (location: {
@@ -20,16 +21,19 @@ type RestaurantsListMobileProps = {
     qrCenterImageUrl: string;
   }) => void;
   onRequestDelete: (location: { id: string; name: string }) => void;
+  onRefreshLocation?: (location: { id: string; name: string }) => void;
 };
 
 export function RestaurantsListMobile({
   locations,
   currentUserRole,
   updatingLocationId,
+  refreshingLocationId,
   onOpenLocationPage,
   onToggleActive,
   onOpenQr,
   onRequestDelete,
+  onRefreshLocation,
 }: RestaurantsListMobileProps) {
   const { t } = useI18n();
   const isAdmin = currentUserRole === "ADMIN";
@@ -66,8 +70,12 @@ export function RestaurantsListMobile({
                     locationName={location.name}
                     isAdmin={isAdmin}
                     isDefault={location.isDefault}
+                    isRefreshing={refreshingLocationId === location.id}
                     onRequestDelete={() =>
                       onRequestDelete({ id: location.id, name: location.name })
+                    }
+                    onRefresh={() =>
+                      onRefreshLocation?.({ id: location.id, name: location.name })
                     }
                   />
                 </div>

@@ -319,6 +319,10 @@ export const uzMessages: Messages = {
   "restaurants.errUpdateLocationNetwork":
     "Lokatsiya faolligini yangilashda tarmoq xatosi.",
   "restaurants.editRestaurant": "{name} ni tahrirlash",
+  "restaurants.refresh": "Yangilash",
+  "restaurants.refreshingMenu": "{name} menyusi yangilanmoqda…",
+  "restaurants.refreshSuccess": "{name} menyu nusxasi yangilandi va kesh tozalandi.",
+  "restaurants.refreshFailed": "{name} menyusini yangilab bo'lmadi.",
   "restaurants.locationActionsMenuAria": "{name} uchun qo'shimcha amallar",
   "restaurants.deleteLocationQuestion": "Bu lokatsiyani o'chirish?",
   "restaurants.deleteLocationHelp":

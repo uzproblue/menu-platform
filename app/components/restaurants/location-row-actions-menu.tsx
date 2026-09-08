@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { Spinner } from "@/app/components/ui/spinner";
 import { useI18n } from "../i18n-provider";
 
 type LocationRowActionsMenuProps = {
@@ -15,7 +16,9 @@ type LocationRowActionsMenuProps = {
   locationName: string;
   isAdmin: boolean;
   isDefault: boolean;
+  isRefreshing?: boolean;
   onRequestDelete: () => void;
+  onRefresh?: () => void;
 };
 
 const MENU_WIDTH = 176;
@@ -25,7 +28,9 @@ export function LocationRowActionsMenu({
   locationName,
   isAdmin,
   isDefault,
+  isRefreshing,
   onRequestDelete,
+  onRefresh,
 }: LocationRowActionsMenuProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -83,22 +88,27 @@ export function LocationRowActionsMenu({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        disabled={isRefreshing}
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-transparent text-foreground/70 transition-colors hover:border-foreground/15 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-transparent text-foreground/70 transition-colors hover:border-foreground/15 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:opacity-50"
       >
         <span className="sr-only">
           {t("restaurants.locationActionsMenuAria", { name: locationName })}
         </span>
-        <svg
-          className="size-4.5"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden
-        >
-          <circle cx="12" cy="6" r="1.5" />
-          <circle cx="12" cy="12" r="1.5" />
-          <circle cx="12" cy="18" r="1.5" />
-        </svg>
+        {isRefreshing ? (
+          <Spinner className="size-4 text-foreground/70" />
+        ) : (
+          <svg
+            className="size-4.5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <circle cx="12" cy="6" r="1.5" />
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="12" cy="18" r="1.5" />
+          </svg>
+        )}
       </button>
       {open && placed
         ? createPortal(
@@ -121,6 +131,32 @@ export function LocationRowActionsMenu({
               >
                 {t("common.edit")}
               </Link>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={isRefreshing}
+                onClick={() => {
+                  setOpen(false);
+                  onRefresh?.();
+                }}
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-foreground/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span>{t("restaurants.refresh")}</span>
+                <svg
+                  className={`size-4 text-foreground/60 ${isRefreshing ? "animate-spin" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
               {isAdmin ? (
                 <button
                   type="button"

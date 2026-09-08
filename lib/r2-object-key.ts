@@ -6,7 +6,8 @@ export function looksLikeR2ObjectKey(s: string): boolean {
     t.startsWith("category-covers/") ||
     t.startsWith("section-backgrounds/") ||
     t.startsWith("locations/") ||
-    t.startsWith("qr-center-images/")
+    t.startsWith("qr-center-images/") ||
+    t.startsWith("videos/")
   );
 }
 

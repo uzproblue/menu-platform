@@ -48,6 +48,8 @@ function expandMenuForExport(
       ...item,
       image:
         expandR2AssetToPublicUrl(item.image, publicBaseUrl) ?? item.image,
+      videoId:
+        expandR2AssetToPublicUrl(item.videoId, publicBaseUrl) ?? item.videoId,
     })),
   }));
   return { sections, categories };

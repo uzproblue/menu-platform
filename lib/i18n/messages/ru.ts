@@ -321,6 +321,10 @@ export const ruMessages: Messages = {
   "restaurants.errUpdateLocationNetwork":
     "Ошибка сети при обновлении активности локации.",
   "restaurants.editRestaurant": "Редактировать {name}",
+  "restaurants.refresh": "Обновить",
+  "restaurants.refreshingMenu": "Обновление меню для «{name}»…",
+  "restaurants.refreshSuccess": "Снимок меню «{name}» обновлен, кэш сброшен.",
+  "restaurants.refreshFailed": "Не удалось обновить меню для «{name}».",
   "restaurants.locationActionsMenuAria": "Дополнительные действия для {name}",
   "restaurants.deleteLocationQuestion": "Удалить эту локацию?",
   "restaurants.deleteLocationHelp":

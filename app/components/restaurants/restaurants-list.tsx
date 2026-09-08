@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { RestaurantsListData } from "@/lib/data/restaurant-types";
 import { useI18n } from "../i18n-provider";
+import { ToastStack, type ToastEntry } from "@/app/components/ui/toast-stack";
 import { DeleteLocationModal } from "./restaurants-list/delete-location-modal";
 import { QrLocationModal } from "./restaurants-list/qr-location-modal";
 import { readErrorMessage } from "./restaurants-list/read-error-message";
@@ -21,6 +22,10 @@ export function RestaurantsList() {
   const [updatingLocationId, setUpdatingLocationId] = useState<string | null>(
     null,
   );
+  const [refreshingLocationId, setRefreshingLocationId] = useState<string | null>(
+    null,
+  );
+  const [toasts, setToasts] = useState<ToastEntry[]>([]);
   const [qrLocation, setQrLocation] = useState<{
     id: string;
     name: string;
@@ -154,6 +159,73 @@ export function RestaurantsList() {
     setDeleteLocationError(null);
   }, []);
 
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const handleRefreshLocation = useCallback(
+    async (location: { id: string; name: string }) => {
+      if (refreshingLocationId) return;
+      setRefreshingLocationId(location.id);
+      const toastId = `refresh-${location.id}-${Date.now()}`;
+
+      setToasts((prev) => [
+        ...prev,
+        {
+          id: toastId,
+          variant: "loading",
+          message: t("restaurants.refreshingMenu", { name: location.name }),
+        },
+      ]);
+
+      try {
+        const response = await fetch(
+          `/api/settings/locations/${encodeURIComponent(location.id)}/refresh`,
+          { method: "POST" },
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            message?: string;
+          } | null;
+          throw new Error(
+            payload?.message ??
+              t("restaurants.refreshFailed", { name: location.name }),
+          );
+        }
+
+        setToasts((prev) =>
+          prev
+            .filter((t) => t.id !== toastId)
+            .concat({
+              id: `success-${Date.now()}`,
+              variant: "success",
+              message: t("restaurants.refreshSuccess", { name: location.name }),
+              durationMs: 4000,
+            }),
+        );
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : t("restaurants.refreshFailed", { name: location.name });
+        setToasts((prev) =>
+          prev
+            .filter((t) => t.id !== toastId)
+            .concat({
+              id: `error-${Date.now()}`,
+              variant: "error",
+              message,
+              durationMs: 5000,
+            }),
+        );
+      } finally {
+        setRefreshingLocationId(null);
+      }
+    },
+    [refreshingLocationId, t],
+  );
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
@@ -203,20 +275,24 @@ export function RestaurantsList() {
         locations={locations}
         currentUserRole={currentUserRole ?? "USER"}
         updatingLocationId={updatingLocationId}
+        refreshingLocationId={refreshingLocationId}
         onOpenLocationPage={openLocationPage}
         onToggleActive={handleToggle}
         onOpenQr={setQrLocation}
         onRequestDelete={setDeleteLocationTarget}
+        onRefreshLocation={handleRefreshLocation}
       />
 
       <RestaurantsListTable
         locations={locations}
         currentUserRole={currentUserRole ?? "USER"}
         updatingLocationId={updatingLocationId}
+        refreshingLocationId={refreshingLocationId}
         onOpenLocationPage={openLocationPage}
         onToggleActive={handleToggle}
         onOpenQr={setQrLocation}
         onRequestDelete={setDeleteLocationTarget}
+        onRefreshLocation={handleRefreshLocation}
       />
 
       {deleteLocationTarget ? (
@@ -232,6 +308,8 @@ export function RestaurantsList() {
       {qrLocation ? (
         <QrLocationModal location={qrLocation} onClose={closeQrModal} />
       ) : null}
+
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

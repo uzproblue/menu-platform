@@ -324,6 +324,10 @@ export const enMessages: Messages = {
   "restaurants.errUpdateLocationNetwork":
     "Network error while updating location activation.",
   "restaurants.editRestaurant": "Edit {name}",
+  "restaurants.refresh": "Refresh",
+  "restaurants.refreshingMenu": "Refreshing menu for {name}…",
+  "restaurants.refreshSuccess": "Menu snapshot for {name} refreshed & cache purged.",
+  "restaurants.refreshFailed": "Could not refresh menu for {name}.",
   "restaurants.locationActionsMenuAria": "More actions for {name}",
   "restaurants.deleteLocationQuestion": "Delete this location?",
   "restaurants.deleteLocationHelp":

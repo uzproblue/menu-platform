@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateMenuItemVideoWithAuthServer } from "@/lib/auth-api";
+import {
+  isLocationExportStrict,
+  scheduleOrAwaitAllRestaurantLocationExports,
+} from "@/lib/sync-location-public-export";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function PATCH(
@@ -78,10 +82,35 @@ export async function PATCH(
     );
   }
 
+  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
+  if (!exportBatchResult.ok) {
+    console.error(
+      "[PATCH menu-item video] restaurant location export batch failed",
+      exportBatchResult.failures,
+    );
+    if (isLocationExportStrict()) {
+      return NextResponse.json(
+        {
+          ...result.data,
+          error: "location_export_failed",
+          message: "One or more location exports failed",
+          locationExportBatch: exportBatchResult,
+        },
+        { status: 503 },
+      );
+    }
+  }
+
   void trackStaffMutation(
     videoId ? PlatformEvent.VIDEO_LINKED_TO_ITEM : PlatformEvent.VIDEO_REMOVED_FROM_ITEM,
     { itemId: trimmedItemId, videoId },
   );
 
-  return NextResponse.json(result.data, { status: 200 });
+  return NextResponse.json(
+    {
+      ...result.data,
+      locationExportBatch: exportBatchResult,
+    },
+    { status: 200 },
+  );
 }
