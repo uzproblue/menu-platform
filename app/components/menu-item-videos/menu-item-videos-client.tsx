@@ -11,7 +11,14 @@ import { resolveVideoSource } from "@/lib/video-source";
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 
 type FlatMenuItem = MenuItem & {
+  categoryId: string;
   categoryName: string;
+  menuSectionId: string;
+};
+
+type CategoryOption = {
+  id: string;
+  name: string;
   menuSectionId: string;
 };
 
@@ -21,6 +28,7 @@ function flattenMenuItems(data: GlobalMenuData): FlatMenuItem[] {
     for (const item of cat.items) {
       out.push({
         ...item,
+        categoryId: cat.id,
         categoryName: cat.name,
         menuSectionId: cat.menuSectionId,
       });
@@ -128,10 +136,13 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
 
   const [items, setItems] = useState<FlatMenuItem[]>([]);
   const [sections, setSections] = useState<MenuSectionEntity[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<"all" | string>("all");
+  const [category, setCategory] = useState<"all" | string>("all");
+  const [videoFilter, setVideoFilter] = useState<"all" | "has" | "none">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -141,49 +152,147 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const loadMenu = useCallback(async () => {
-    setLoadingMenu(true);
-    setMenuError(null);
-    try {
-      const res = await fetch("/api/settings/global-menu", { cache: "no-store" });
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { message?: string } | null;
-        setMenuError(payload?.message ?? t("menuItemVideos.loadError"));
-        setItems([]);
-        return;
-      }
-      const api = (await res.json()) as GlobalMenuResponse;
-      const data = mapGlobalMenuResponseToData(api);
-      setItems(flattenMenuItems(data));
-      setSections(
-        (data.sections ?? [])
-          .filter((s) => s.kind === "standard")
-          .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
-      );
-    } catch {
-      setMenuError(t("menuItemVideos.loadError"));
-      setItems([]);
-      setSections([]);
-    } finally {
-      setLoadingMenu(false);
-    }
-  }, [t]);
 
   useEffect(() => {
-    void loadMenu();
-  }, [loadMenu]);
+    let cancelled = false;
+    async function init() {
+      try {
+        const res = await fetch("/api/settings/global-menu", { cache: "no-store" });
+        if (cancelled) return;
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => null)) as { message?: string } | null;
+          setMenuError(payload?.message ?? t("menuItemVideos.loadError"));
+          setItems([]);
+          setCategories([]);
+          return;
+        }
+        const api = (await res.json()) as GlobalMenuResponse;
+        if (cancelled) return;
+        const data = mapGlobalMenuResponseToData(api);
+        setItems(flattenMenuItems(data));
+        setSections(
+          (data.sections ?? [])
+            .filter((s) => s.kind === "standard")
+            .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+        );
+        setCategories(
+          (data.categories ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            menuSectionId: c.menuSectionId,
+          })),
+        );
+      } catch {
+        if (!cancelled) {
+          setMenuError(t("menuItemVideos.loadError"));
+          setItems([]);
+          setSections([]);
+          setCategories([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingMenu(false);
+        }
+      }
+    }
+    void init();
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  const handleSelectSection = useCallback((nextSection: "all" | string) => {
+    setSection(nextSection);
+    setCategory("all");
+  }, []);
+
+  const availableCategories = useMemo(() => {
+    if (section === "all") return categories;
+    return categories.filter((c) => c.menuSectionId === section);
+  }, [categories, section]);
+
+  const totalMetrics = useMemo(() => {
+    const total = items.length;
+    const withVideo = items.filter((i) => Boolean(i.videoId?.trim())).length;
+    const withoutVideo = total - withVideo;
+    const coveragePercent = total > 0 ? Math.round((withVideo / total) * 100) : 0;
+    return { total, withVideo, withoutVideo, coveragePercent };
+  }, [items]);
+
+  const sectionMetrics = useMemo(() => {
+    const map = new Map<string, { total: number; withVideo: number; withoutVideo: number }>();
+    for (const item of items) {
+      const secId = item.menuSectionId;
+      const current = map.get(secId) ?? { total: 0, withVideo: 0, withoutVideo: 0 };
+      current.total += 1;
+      if (Boolean(item.videoId?.trim())) {
+        current.withVideo += 1;
+      } else {
+        current.withoutVideo += 1;
+      }
+      map.set(secId, current);
+    }
+    return map;
+  }, [items]);
+
+  const currentSectionMetrics = useMemo(() => {
+    if (section === "all") {
+      return {
+        name: t("menuItemVideos.sectionAll"),
+        total: totalMetrics.total,
+        withVideo: totalMetrics.withVideo,
+        withoutVideo: totalMetrics.withoutVideo,
+        coveragePercent: totalMetrics.coveragePercent,
+      };
+    }
+    const sObj = sections.find((s) => s.id === section);
+    const sec = sectionMetrics.get(section) ?? { total: 0, withVideo: 0, withoutVideo: 0 };
+    const coveragePercent = sec.total > 0 ? Math.round((sec.withVideo / sec.total) * 100) : 0;
+    return {
+      name: sObj?.name ?? section,
+      total: sec.total,
+      withVideo: sec.withVideo,
+      withoutVideo: sec.withoutVideo,
+      coveragePercent,
+    };
+  }, [section, sections, sectionMetrics, totalMetrics, t]);
+
+  const categoryMetrics = useMemo(() => {
+    const map = new Map<string, { total: number; withVideo: number; withoutVideo: number }>();
+    for (const item of items) {
+      const catId = item.categoryId;
+      const current = map.get(catId) ?? { total: 0, withVideo: 0, withoutVideo: 0 };
+      current.total += 1;
+      if (Boolean(item.videoId?.trim())) {
+        current.withVideo += 1;
+      } else {
+        current.withoutVideo += 1;
+      }
+      map.set(catId, current);
+    }
+    return map;
+  }, [items]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
       if (section !== "all" && item.menuSectionId !== section) return false;
+      if (category !== "all" && item.categoryId !== category) return false;
+      const hasVideo = Boolean(item.videoId?.trim());
+      if (videoFilter === "has" && !hasVideo) return false;
+      if (videoFilter === "none" && hasVideo) return false;
       if (!q) return true;
       return (
         item.name.toLowerCase().includes(q) ||
         item.categoryName.toLowerCase().includes(q)
       );
     });
-  }, [items, query, section]);
+  }, [items, query, section, category, videoFilter]);
+
+  const filteredWithVideoCount = useMemo(
+    () => filtered.filter((i) => Boolean(i.videoId?.trim())).length,
+    [filtered],
+  );
 
   const selected = useMemo(
     () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
@@ -351,43 +460,194 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
     : null;
 
   return (
-    <div className="mt-6 flex min-h-0 flex-1 flex-col sm:mt-8">
+    <div className="mt-6 flex min-h-0 flex-1 flex-col gap-6 sm:mt-8">
+      {/* Top metrics summary */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-foreground/10 bg-background/50 p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-foreground/50">{t("menuItemVideos.totalItems")}</span>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{totalMetrics.total}</p>
+        </div>
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            {t("menuItemVideos.itemsWithVideo")}
+          </span>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <p className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+              {totalMetrics.withVideo}
+            </p>
+            <span className="text-xs font-semibold text-emerald-600/80 dark:text-emerald-400/80">
+              ({totalMetrics.coveragePercent}%)
+            </span>
+          </div>
+        </div>
+        <div className="rounded-xl border border-foreground/10 bg-background/50 p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-foreground/50">{t("menuItemVideos.itemsWithoutVideo")}</span>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground/75">{totalMetrics.withoutVideo}</p>
+        </div>
+        <div className="rounded-xl border border-foreground/10 bg-background/50 p-3.5 shadow-xs">
+          <span className="block truncate text-xs font-medium text-foreground/50" title={currentSectionMetrics.name}>
+            {section === "all" ? t("menuItemVideos.sectionAll") : currentSectionMetrics.name}
+          </span>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <p className="text-2xl font-bold tracking-tight text-foreground">
+              {currentSectionMetrics.total}
+            </p>
+            <span className="text-xs text-foreground/60">
+              ({currentSectionMetrics.withVideo} {t("menuItemVideos.hasVideo")})
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="grid h-full min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-stretch">
-        <aside className="flex h-full min-h-0 max-h-[min(50vh,100%)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-background/40 lg:max-h-full">
-          <div className="shrink-0 border-b border-foreground/10 p-3">
+        <aside className="flex h-full min-h-0 max-h-[min(55vh,100%)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-background/40 lg:max-h-full">
+          <div className="shrink-0 space-y-3 border-b border-foreground/10 p-3">
+            {/* Search */}
             <input
               type="search"
               placeholder={t("menuItemVideos.searchItems")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-lg border border-foreground/15 bg-background px-2 py-2 text-sm"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-2.5 py-1.5 text-sm"
             />
-            <div className="mt-2 flex flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={() => setSection("all")}
-                className={`rounded-lg px-2 py-1 text-xs font-medium ${
-                  section === "all"
-                    ? "bg-foreground text-background"
-                    : "bg-foreground/10 text-foreground/70"
-                }`}
-              >
-                {t("menuItemVideos.sectionAll")}
-              </button>
-              {sections.map((s) => (
+
+            {/* Video filter */}
+            <div>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+                {t("menuItemVideos.videoFilterLabel")}
+              </div>
+              <div className="grid grid-cols-3 gap-1">
                 <button
-                  key={s.id}
                   type="button"
-                  onClick={() => setSection(s.id)}
-                  className={`rounded-lg px-2 py-1 text-xs font-medium ${
-                    section === s.id
+                  onClick={() => setVideoFilter("all")}
+                  className={`rounded-lg px-2 py-1 text-center text-xs font-medium transition ${
+                    videoFilter === "all"
                       ? "bg-foreground text-background"
-                      : "bg-foreground/10 text-foreground/70"
+                      : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
                   }`}
                 >
-                  {s.name}
+                  {t("menuItemVideos.videoFilterAll")}
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setVideoFilter("has")}
+                  className={`inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1 text-center text-xs font-medium transition ${
+                    videoFilter === "has"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300"
+                  }`}
+                >
+                  {t("menuItemVideos.videoFilterWithVideo")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVideoFilter("none")}
+                  className={`rounded-lg px-2 py-1 text-center text-xs font-medium transition ${
+                    videoFilter === "none"
+                      ? "bg-foreground text-background"
+                      : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                  }`}
+                >
+                  {t("menuItemVideos.videoFilterWithoutVideo")}
+                </button>
+              </div>
+            </div>
+
+            {/* Section filter */}
+            <div>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+                {t("menuItemVideos.sectionFilterLabel")}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleSelectSection("all")}
+                  className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
+                    section === "all"
+                      ? "bg-foreground text-background"
+                      : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                  }`}
+                >
+                  {t("menuItemVideos.sectionAll")}{" "}
+                  <span className="opacity-70">
+                    ({totalMetrics.withVideo}/{totalMetrics.total})
+                  </span>
+                </button>
+                {sections.map((s) => {
+                  const sm = sectionMetrics.get(s.id) ?? { total: 0, withVideo: 0 };
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleSelectSection(s.id)}
+                      className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
+                        section === s.id
+                          ? "bg-foreground text-background"
+                          : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                      }`}
+                    >
+                      {s.name}{" "}
+                      <span className="opacity-70">
+                        ({sm.withVideo}/{sm.total})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Category filter */}
+            {availableCategories.length > 0 ? (
+              <div>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+                  {t("menuItemVideos.categoryFilterLabel")}
+                </div>
+                <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCategory("all")}
+                    className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
+                      category === "all"
+                        ? "bg-foreground text-background"
+                        : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                    }`}
+                  >
+                    {t("menuItemVideos.allCategories")}{" "}
+                    <span className="opacity-70">
+                      ({currentSectionMetrics.withVideo}/{currentSectionMetrics.total})
+                    </span>
+                  </button>
+                  {availableCategories.map((cat) => {
+                    const cm = categoryMetrics.get(cat.id) ?? { total: 0, withVideo: 0 };
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCategory(cat.id)}
+                        className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
+                          category === cat.id
+                            ? "bg-foreground text-background"
+                            : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                        }`}
+                      >
+                        {cat.name}{" "}
+                        <span className="opacity-70">
+                          ({cm.withVideo}/{cm.total})
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Items count readout */}
+            <div className="text-[11px] text-foreground/50">
+              {t("menuItemVideos.showingItems").replace("{count}", String(filtered.length))}{" "}
+              {t("menuItemVideos.showingItemsWithVideo").replace(
+                "{count}",
+                String(filteredWithVideoCount),
+              )}
             </div>
           </div>
           <ul className="min-h-0 flex-1 overflow-y-auto p-2">
