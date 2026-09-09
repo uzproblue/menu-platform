@@ -70,6 +70,7 @@ type PendingCatalogPipeline = {
   options: PostCatalogChangeOptions;
   /** Bumped on each schedule; runner sleeps until generation is stable. */
   generation: number;
+  restaurantId?: string;
 };
 
 /** Debounced translation + export per access token (absorbs rapid saves/retries). */
@@ -178,12 +179,18 @@ function coalescedSyncAndPurgeLocationPublicExport(
   accessToken: string,
   locationId: string,
   mode: LocationExportMode = { kind: "full" },
+  explicitRestaurantId?: string,
 ): Promise<LocationExportResult> {
   const key = locationId.trim();
   const existing = locationExportInFlight.get(key);
   if (existing) return existing;
 
-  const work = syncAndPurgeLocationPublicExport(accessToken, key, mode).finally(() => {
+  const work = syncAndPurgeLocationPublicExport(
+    accessToken,
+    key,
+    mode,
+    explicitRestaurantId,
+  ).finally(() => {
     locationExportInFlight.delete(key);
   });
   locationExportInFlight.set(key, work);
@@ -198,6 +205,7 @@ export async function scheduleOrAwaitLocationPublicExport(
   accessToken: string,
   locationId: string,
   mode: LocationExportMode = { kind: "full" },
+  explicitRestaurantId?: string,
 ): Promise<LocationExportResult> {
   void trackStaffMutation(PlatformEvent.PIPELINE_LOCATION_EXPORT_SCHEDULED, {
     locationId,
@@ -205,13 +213,19 @@ export async function scheduleOrAwaitLocationPublicExport(
   });
 
   if (isLocationExportStrict()) {
-    return coalescedSyncAndPurgeLocationPublicExport(accessToken, locationId, mode);
+    return coalescedSyncAndPurgeLocationPublicExport(
+      accessToken,
+      locationId,
+      mode,
+      explicitRestaurantId,
+    );
   }
 
   const exportWork = coalescedSyncAndPurgeLocationPublicExport(
     accessToken,
     locationId,
     mode,
+    explicitRestaurantId,
   ).catch((err) => {
     console.error(
       "[scheduleOrAwaitLocationPublicExport] background sync failed",
@@ -238,8 +252,11 @@ export async function scheduleOrAwaitLocationPublicExport(
 async function runCatalogChangePipeline(
   accessToken: string,
   options: PostCatalogChangeOptions,
+  explicitRestaurantId?: string,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const restaurantId =
+    explicitRestaurantId ||
+    (await getSelectedRestaurantIdFromCookies().catch(() => undefined));
 
   await Promise.all([
     ...options.itemIdsToSync.map(async (itemId) => {
@@ -290,7 +307,11 @@ async function runCatalogChangePipeline(
     }),
   ]);
 
-  const exportResult = await syncAndPurgeAllRestaurantLocationExports(accessToken);
+  const exportResult = await syncAndPurgeAllRestaurantLocationExports(
+    accessToken,
+    4,
+    restaurantId,
+  );
   if (!exportResult.ok) {
     console.error(
       "[runCatalogChangePipeline] restaurant location export batch failed",
@@ -308,9 +329,11 @@ async function catalogPipelineRunner(accessToken: string): Promise<void> {
   try {
     for (;;) {
       let options: PostCatalogChangeOptions | null = null;
+      let restaurantId: string | undefined = undefined;
 
       while (pendingCatalogPipelines.has(accessToken)) {
-        const generation = pendingCatalogPipelines.get(accessToken)!.generation;
+        const entry = pendingCatalogPipelines.get(accessToken)!;
+        const generation = entry.generation;
         await sleep(RESTAURANT_EXPORT_DEBOUNCE_MS);
 
         const state = pendingCatalogPipelines.get(accessToken);
@@ -319,13 +342,14 @@ async function catalogPipelineRunner(accessToken: string): Promise<void> {
         }
 
         options = state.options;
+        restaurantId = state.restaurantId;
         pendingCatalogPipelines.delete(accessToken);
         break;
       }
 
       if (!options) return;
 
-      await runCatalogChangePipeline(accessToken, options);
+      await runCatalogChangePipeline(accessToken, options, restaurantId);
 
       if (!pendingCatalogPipelines.has(accessToken)) return;
     }
@@ -361,14 +385,19 @@ function armCatalogPipelineRunner(accessToken: string): void {
 export async function schedulePostCatalogChangePipeline(
   accessToken: string,
   options: PostCatalogChangeOptions,
+  explicitRestaurantId?: string,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
   void trackStaffMutation(PlatformEvent.PIPELINE_CATALOG_CHANGE_SCHEDULED, {
     itemIdsToSync: options.itemIdsToSync.length,
     categoryIdsToSync: options.categoryIdsToSync.length,
   });
 
+  const restaurantId =
+    explicitRestaurantId ||
+    (await getSelectedRestaurantIdFromCookies().catch(() => undefined));
+
   if (isLocationExportStrict()) {
-    return runCatalogChangePipeline(accessToken, options);
+    return runCatalogChangePipeline(accessToken, options, restaurantId);
   }
 
   const existing = pendingCatalogPipelines.get(accessToken);
@@ -379,6 +408,7 @@ export async function schedulePostCatalogChangePipeline(
   pendingCatalogPipelines.set(accessToken, {
     options: merged,
     generation: (existing?.generation ?? 0) + 1,
+    restaurantId: restaurantId ?? existing?.restaurantId,
   });
 
   armCatalogPipelineRunner(accessToken);
@@ -387,10 +417,15 @@ export async function schedulePostCatalogChangePipeline(
 
 export async function scheduleOrAwaitAllRestaurantLocationExports(
   accessToken: string,
+  explicitRestaurantId?: string,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
   void trackStaffMutation(PlatformEvent.PIPELINE_ALL_LOCATIONS_EXPORT_SCHEDULED);
 
-  return schedulePostCatalogChangePipeline(accessToken, EMPTY_CATALOG_PIPELINE_OPTIONS);
+  return schedulePostCatalogChangePipeline(
+    accessToken,
+    EMPTY_CATALOG_PIPELINE_OPTIONS,
+    explicitRestaurantId,
+  );
 }
 
 /**
@@ -401,11 +436,14 @@ export async function syncLocationPublicExportToR2(
   accessToken: string,
   locationId: string,
   mode: LocationExportMode = { kind: "full" },
+  explicitRestaurantId?: string,
 ): Promise<
   | { ok: true; publicUrl: string; objectKey: string }
   | { ok: false; message: string }
 > {
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const restaurantId =
+    explicitRestaurantId ||
+    (await getSelectedRestaurantIdFromCookies().catch(() => undefined));
   const r2Config = getR2UploadConfig();
 
   let payload: LocationPublicExport | undefined;
@@ -447,7 +485,9 @@ export async function syncLocationPublicExportToR2(
   if (!payload) {
     const [locRes, menuRes] = await Promise.all([
       getLocationWithAuthServer(accessToken, locationId, restaurantId),
-      getLocationMenuWithAuthServer(accessToken, locationId, restaurantId),
+      getLocationMenuWithAuthServer(accessToken, locationId, restaurantId, {
+        fresh: true,
+      }),
     ]);
 
     if (!locRes.ok) {
@@ -487,8 +527,14 @@ export async function syncAndPurgeLocationPublicExport(
   accessToken: string,
   locationId: string,
   mode: LocationExportMode = { kind: "full" },
+  explicitRestaurantId?: string,
 ): Promise<LocationExportResult> {
-  const syncRes = await syncLocationPublicExportToR2(accessToken, locationId, mode);
+  const syncRes = await syncLocationPublicExportToR2(
+    accessToken,
+    locationId,
+    mode,
+    explicitRestaurantId,
+  );
   if (!syncRes.ok) {
     return syncRes;
   }
@@ -551,8 +597,11 @@ export async function purgeLocationPublicExportUrl(
 export async function syncAndPurgeAllRestaurantLocationExports(
   accessToken: string,
   concurrency = 4,
+  explicitRestaurantId?: string,
 ): Promise<SyncAndPurgeAllLocationExportsResult> {
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const restaurantId =
+    explicitRestaurantId ||
+    (await getSelectedRestaurantIdFromCookies().catch(() => undefined));
   const locationsRes = await getLocationsWithAuthServer(accessToken, restaurantId);
   if (!locationsRes.ok) {
     return {
@@ -594,6 +643,8 @@ export async function syncAndPurgeAllRestaurantLocationExports(
       const result = await coalescedSyncAndPurgeLocationPublicExport(
         accessToken,
         locationId,
+        { kind: "full" },
+        restaurantId,
       );
 
       if (result.ok) {

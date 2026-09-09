@@ -5,7 +5,7 @@ import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { updateMenuItemVideoWithAuthServer } from "@/lib/auth-api";
 import {
   isLocationExportStrict,
-  scheduleOrAwaitAllRestaurantLocationExports,
+  syncAndPurgeAllRestaurantLocationExports,
 } from "@/lib/sync-location-public-export";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
@@ -82,7 +82,11 @@ export async function PATCH(
     );
   }
 
-  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
+  const exportBatchResult = await syncAndPurgeAllRestaurantLocationExports(
+    token,
+    4,
+    restaurantId,
+  );
   if (!exportBatchResult.ok) {
     console.error(
       "[PATCH menu-item video] restaurant location export batch failed",

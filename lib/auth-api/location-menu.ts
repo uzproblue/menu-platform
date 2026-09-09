@@ -49,12 +49,14 @@ export async function getLocationMenuWithAuthServer(
   accessToken: string,
   locationId: string,
   restaurantId?: string,
+  options?: { fresh?: boolean },
 ): Promise<
   | { ok: true; data: GlobalMenuResponse }
   | { ok: false; status: number; error: string; message?: string }
 > {
+  const query = options?.fresh ? "?fresh=true" : "";
   return authApiJson<GlobalMenuResponse>({
-    path: `/api/locations/${encodeURIComponent(locationId)}/menu`,
+    path: `/api/locations/${encodeURIComponent(locationId)}/menu${query}`,
     method: "GET",
     accessToken,
     restaurantId,

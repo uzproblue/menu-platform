@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getAuthApiTransport, authApiFetch } from "@/lib/auth-api/client";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
+import { syncAndPurgeLocationPublicExport } from "@/lib/sync-location-public-export";
 
 export async function POST(req: Request) {
   const secret =
@@ -91,13 +92,56 @@ export async function POST(req: Request) {
       );
     }
 
+    const updateData = (await updateRes.json().catch(() => null)) as {
+      ok?: boolean;
+      item?: unknown;
+      restaurantId?: string;
+      locationIds?: string[];
+    } | null;
+
+    const restaurantId = updateData?.restaurantId;
+    const locationIds = updateData?.locationIds ?? [];
+
+    let exportResults: Array<{ locationId: string; ok: boolean; message?: string }> = [];
+    if (restaurantId && locationIds.length > 0) {
+      exportResults = await Promise.all(
+        locationIds.map(async (locationId) => {
+          try {
+            const res = await syncAndPurgeLocationPublicExport(
+              internalSecret,
+              locationId,
+              { kind: "full" },
+              restaurantId,
+            );
+            return {
+              locationId,
+              ok: res.ok,
+              message: !res.ok ? res.message : undefined,
+            };
+          } catch (e) {
+            return {
+              locationId,
+              ok: false,
+              message: e instanceof Error ? e.message : "export_failed",
+            };
+          }
+        }),
+      );
+      console.log(`[video-webhook] Exported locations for item ${itemId}:`, exportResults);
+    }
+
     void trackStaffMutation(PlatformEvent.VIDEO_LINKED_TO_ITEM, {
       itemId,
       videoId: hlsMasterKey,
     });
 
     console.log(`[video-webhook] Successfully updated item ${itemId} videoId to ${hlsMasterKey}`);
-    return NextResponse.json({ ok: true, itemId, videoId: hlsMasterKey });
+    return NextResponse.json({
+      ok: true,
+      itemId,
+      videoId: hlsMasterKey,
+      exportResults,
+    });
   }
 
   if (status === "failed") {
