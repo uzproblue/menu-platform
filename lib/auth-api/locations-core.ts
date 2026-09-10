@@ -160,3 +160,36 @@ export async function updateLocationCategoriesWithAuthServer(
     body: input,
   });
 }
+
+export type PosMenuSyncResponse = {
+  ok: boolean;
+  locationId: string;
+  locationName: string;
+  createdItems: number;
+  pricesUpdated: number;
+  createdCategories: number;
+  publicUrl?: string;
+  message?: string;
+};
+
+export async function triggerLocationPosSyncWithAuthServer(
+  accessToken: string,
+  restaurantId?: string,
+  locationId?: string,
+): Promise<
+  | { ok: true; data: PosMenuSyncResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const path = locationId
+    ? `/api/locations/${encodeURIComponent(locationId)}/pos-sync`
+    : "/api/locations/pos-sync";
+
+  return authApiJson<PosMenuSyncResponse>({
+    path,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: locationId ? { locationId } : {},
+  });
+}
+

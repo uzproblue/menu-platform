@@ -25,10 +25,6 @@
 		{
 			"binding": "MENU_LOYALTY",
 			"service": "menu-loyalty-worker"
-		},
-		{
-			"binding": "MENU_POS_SYNC",
-			"service": "menu-pos-sync-worker"
 		}
 	],
 	"analytics_engine_datasets": [
