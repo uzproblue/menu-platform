@@ -46,7 +46,7 @@ const topLinks: Array<{
 ];
 
 function isGlobalMenuGroupPath(pathname: string): boolean {
-  if (pathname === "/global-menu/sections") return false;
+  if (pathname === "/global-menu/sections" || pathname.startsWith("/global-menu/unassigned")) return false;
   if (pathname.startsWith("/global-menu/sections/")) return true;
   return (
     pathname.startsWith("/global-menu") &&
@@ -60,6 +60,10 @@ function isMenuCategoriesGroupPath(pathname: string): boolean {
 
 function isSectionsManagePath(pathname: string): boolean {
   return pathname === "/global-menu/sections";
+}
+
+function isUnassignedPath(pathname: string): boolean {
+  return pathname === "/global-menu/unassigned" || pathname.startsWith("/global-menu/unassigned/");
 }
 
 const settingsItem = {
@@ -150,6 +154,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const searchParams = useSearchParams();
   const { t } = useI18n();
   const [sections, setSections] = useState<MenuSectionEntity[]>([]);
+  const [unassignedCount, setUnassignedCount] = useState<number>(0);
   const [globalMenuExpanded, setGlobalMenuExpanded] = useState(() =>
     isGlobalMenuGroupPath(pathname),
   );
@@ -188,6 +193,8 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
             .filter((s) => s.kind === "standard")
             .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
         );
+        const unassigned = list.find((s) => s.kind === "unassigned");
+        setUnassignedCount(unassigned?.categoriesCount ?? 0);
       } catch {
         /* non-fatal — nav falls back to manage link only */
       }
@@ -224,6 +231,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const globalMenuGroupActive = isGlobalMenuGroupPath(pathname);
   const menuCategoriesGroupActive = isMenuCategoriesGroupPath(pathname);
   const sectionsManageActive = isSectionsManagePath(pathname);
+  const unassignedActive = isUnassignedPath(pathname);
   const navItemBaseClass =
     "block w-full min-h-11 touch-manipulation rounded-xl px-3 py-3 text-sm font-medium leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-0 sm:py-2.5";
   const childNavItemClass =
@@ -282,6 +290,23 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
           }`}
         >
           {labelForKey("nav.sections")}
+        </Link>
+
+        <Link
+          href="/global-menu/unassigned"
+          onClick={() => onNavigate?.()}
+          className={`${navItemBaseClass} flex items-center justify-between gap-2 ${
+            unassignedActive
+              ? "bg-foreground/10 text-foreground"
+              : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+          }`}
+        >
+          <span>{labelForKey("nav.unassigned")}</span>
+          {unassignedCount > 0 ? (
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+              {unassignedCount}
+            </span>
+          ) : null}
         </Link>
 
         {topLinks.slice(1).map(({ href, labelKey, match }) => {

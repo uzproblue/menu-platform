@@ -130,3 +130,29 @@ export async function deleteMenuItemWithAuthServer(
     restaurantId,
   });
 }
+
+export type BatchReassignMenuItemsResponse = {
+  success: boolean;
+  count: number;
+  itemIds: string[];
+  targetCategoryId: string;
+};
+
+export async function batchReassignMenuItemsWithAuthServer(
+  accessToken: string,
+  itemIds: string[],
+  targetCategoryId: string,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: BatchReassignMenuItemsResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<BatchReassignMenuItemsResponse>({
+    path: "/api/menu-items/batch-reassign",
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: { itemIds, targetCategoryId },
+  });
+}
+

@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import type { TranslationTextApi } from "@/lib/auth-api";
 import type { MenuSectionEntity } from "@/lib/data/global-menu-types";
@@ -469,9 +470,16 @@ export function MenuSectionsClient() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    {t("sections.unassigned")}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("sections.unassigned")}
+                    </p>
+                    {(unassignedSection.categoriesCount ?? 0) > 0 ? (
+                      <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                        {t("sections.unassignedBadge")}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-0.5 text-xs text-foreground/55">
                     {t("sections.systemSection")}
                     {" · "}
@@ -481,8 +489,16 @@ export function MenuSectionsClient() {
                       : t("sections.categoryPlural")}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-foreground/45">{t("sections.unassignedHint")}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href="/global-menu/unassigned"
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90"
+                  >
+                    {t("sections.manageUnassigned")}
+                    <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
                 </div>
               </li>
             </ul>

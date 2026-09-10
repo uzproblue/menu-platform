@@ -99,3 +99,29 @@ export async function deleteCategoryWithAuthServer(
     restaurantId,
   });
 }
+
+export type BatchReassignCategoriesResponse = {
+  success: boolean;
+  count: number;
+  categoryIds: string[];
+  targetSectionId: string;
+};
+
+export async function batchReassignCategoriesWithAuthServer(
+  accessToken: string,
+  categoryIds: string[],
+  targetSectionId: string,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: BatchReassignCategoriesResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<BatchReassignCategoriesResponse>({
+    path: "/api/categories/batch-reassign",
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: { categoryIds, targetSectionId },
+  });
+}
+
