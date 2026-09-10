@@ -8,7 +8,7 @@ export type LoginResponse = {
   access_token: string;
   token_type: "bearer";
   expires_in: number;
-  user: { id: string; email: string; name: string };
+  user: { id: string; email: string; name: string; isOwner?: boolean };
 };
 
 export type ProvisionRestaurantResponse = {

@@ -20,6 +20,9 @@ declare namespace Cloudflare {
 		CLOUDFLARE_API_TOKEN: string;
 		MENU_SERVER: Fetcher /* menu-server */;
 		MENU_LOYALTY: Fetcher /* menu-loyalty-worker */;
+		MENU_POS_SYNC?: Fetcher /* menu-pos-sync-worker */;
+		SYNC_SERVICE_SECRET?: string;
+		POS_SYNC_API_BASE_URL?: string;
 	}
 }
 interface CloudflareEnv extends Cloudflare.Env {}

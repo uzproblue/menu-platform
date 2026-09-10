@@ -12,8 +12,13 @@ export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
   const initialName = session?.user?.name?.trim() || "User";
   const initialEmail = session?.user?.email ?? null;
+  const initialIsOwner = Boolean(session?.user?.isOwner);
 
   return (
-    <SettingsPageClient initialName={initialName} initialEmail={initialEmail} />
+    <SettingsPageClient
+      initialName={initialName}
+      initialEmail={initialEmail}
+      initialIsOwner={initialIsOwner}
+    />
   );
 }

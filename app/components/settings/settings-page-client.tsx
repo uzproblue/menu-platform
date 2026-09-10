@@ -7,6 +7,7 @@ import { useI18n } from "../i18n-provider";
 type SettingsPageClientProps = {
   initialName: string;
   initialEmail: string | null;
+  initialIsOwner?: boolean;
 };
 
 type RoleType = "ADMIN" | "USER" | "CHEF" | "HOSTESS";
@@ -34,6 +35,13 @@ type LocationOption = {
   name: string;
 };
 
+type PosSyncLocationOption = {
+  id: string;
+  name: string;
+  posOrganizationId: string | null;
+  hasPos: boolean;
+};
+
 type InviteRestaurantOption = {
   id: string;
   name: string;
@@ -52,6 +60,7 @@ function formatLastLogin(value: string | null, neverLabel: string): string {
 export function SettingsPageClient({
   initialName,
   initialEmail,
+  initialIsOwner,
 }: SettingsPageClientProps) {
   const { t } = useI18n();
   const { data: session, update } = useSession();
@@ -68,7 +77,7 @@ export function SettingsPageClient({
 
   const [teammates, setTeammates] = useState<Teammate[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<RoleType>("USER");
-  const [isOwner, setIsOwner] = useState(false);
+  const [isOwner, setIsOwner] = useState(initialIsOwner ?? false);
   const [inviteRestaurantOptions, setInviteRestaurantOptions] = useState<
     InviteRestaurantOption[]
   >([]);
@@ -99,6 +108,102 @@ export function SettingsPageClient({
   const [deleteTarget, setDeleteTarget] = useState<Teammate | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [syncLocations, setSyncLocations] = useState<PosSyncLocationOption[]>([]);
+  const [selectedSyncLocationId, setSelectedSyncLocationId] = useState<string>("");
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncStatusPending, setSyncStatusPending] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    ok: boolean;
+    message?: string;
+    createdItems?: number;
+    pricesUpdated?: number;
+    createdCategories?: number;
+    publicUrl?: string;
+    timestamp?: Date;
+  } | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    let cancelled = false;
+    async function loadPosStatus() {
+      setSyncStatusPending(true);
+      try {
+        const res = await fetch("/api/settings/menu-sync", { cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json().catch(() => null)) as {
+            posLocations?: PosSyncLocationOption[];
+            isOwner?: boolean;
+          } | null;
+          if (!cancelled && data) {
+            if (typeof data.isOwner === "boolean") {
+              setIsOwner(data.isOwner);
+            }
+            if (data.posLocations) {
+              setSyncLocations(data.posLocations);
+              if (data.posLocations.length > 0 && !selectedSyncLocationId) {
+                setSelectedSyncLocationId(data.posLocations[0].id);
+              }
+            }
+          }
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setSyncStatusPending(false);
+      }
+    }
+    void loadPosStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOwner, selectedSyncLocationId]);
+
+  async function handleRefreshMenu() {
+    setSyncLoading(true);
+    setSyncError(null);
+    setSyncResult(null);
+
+    try {
+      const res = await fetch("/api/settings/menu-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: selectedSyncLocationId || undefined,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+        createdItems?: number;
+        pricesUpdated?: number;
+        createdCategories?: number;
+        publicUrl?: string;
+      } | null;
+
+      if (!res.ok || !data?.ok) {
+        setSyncError(data?.message ?? data?.error ?? t("settings.menuSyncError"));
+        return;
+      }
+
+      setSyncResult({
+        ok: true,
+        message: data.message,
+        createdItems: data.createdItems ?? 0,
+        pricesUpdated: data.pricesUpdated ?? 0,
+        createdCategories: data.createdCategories ?? 0,
+        publicUrl: data.publicUrl,
+        timestamp: new Date(),
+      });
+    } catch {
+      setSyncError(t("settings.menuSyncError"));
+    } finally {
+      setSyncLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!addOpen || !isPinStaffRole(teammateRole)) return;
@@ -683,6 +788,161 @@ export function SettingsPageClient({
           </button>
         </form>
       </section>
+
+      {isOwner ? (
+        <section className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                  {t("settings.menuSync")}
+                </h2>
+                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  Owner
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-foreground/60">
+                {t("settings.menuSyncHelp")}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {syncLocations.length > 1 ? (
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="pos-location-select"
+                    className="text-xs font-medium text-foreground/60"
+                  >
+                    {t("settings.menuSyncLocation")}:
+                  </label>
+                  <select
+                    id="pos-location-select"
+                    value={selectedSyncLocationId}
+                    onChange={(e) => setSelectedSyncLocationId(e.target.value)}
+                    disabled={syncLoading}
+                    className="min-h-11 rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-50"
+                  >
+                    {syncLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleRefreshMenu}
+                disabled={
+                  syncLoading || (syncLocations.length === 0 && !syncStatusPending)
+                }
+                className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-all hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg
+                  className={`size-4 shrink-0 ${syncLoading ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {syncLoading
+                  ? t("settings.refreshingMenu")
+                  : t("settings.refreshMenuBtn")}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-foreground/10 pt-4">
+            {syncStatusPending ? (
+              <p className="text-xs text-foreground/50">Checking POS status...</p>
+            ) : syncLocations.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/60">
+                <span className="inline-block size-2 rounded-full bg-emerald-500" />
+                <span>
+                  {t("settings.menuSyncConnected")}:{" "}
+                  <strong className="font-medium text-foreground">
+                    {syncLocations.length === 1
+                      ? syncLocations[0].name
+                      : `${syncLocations.length} locations`}
+                  </strong>
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                <svg
+                  className="size-4 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <span>{t("settings.menuSyncNoPos")}</span>
+              </div>
+            )}
+
+            {syncError ? (
+              <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600 dark:text-red-400">
+                {syncError}
+              </p>
+            ) : null}
+
+            {syncResult ? (
+              <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-700 dark:text-emerald-400">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    {(syncResult.createdItems ?? 0) === 0 &&
+                    (syncResult.pricesUpdated ?? 0) === 0
+                      ? t("settings.menuSyncUpToDate")
+                      : t("settings.menuSyncSuccess")}
+                  </span>
+                  {syncResult.timestamp ? (
+                    <span className="text-xs opacity-75">
+                      {t("settings.menuSyncLastRefreshed")}:{" "}
+                      {formatLastLogin(syncResult.timestamp.toISOString(), "")}
+                    </span>
+                  ) : null}
+                </div>
+                {(syncResult.createdItems ?? 0) > 0 ||
+                (syncResult.pricesUpdated ?? 0) > 0 ||
+                (syncResult.createdCategories ?? 0) > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-3 text-xs opacity-90">
+                    {(syncResult.createdItems ?? 0) > 0 ? (
+                      <span>
+                        + {syncResult.createdItems} {t("settings.menuSyncItemsCreated")}
+                      </span>
+                    ) : null}
+                    {(syncResult.pricesUpdated ?? 0) > 0 ? (
+                      <span>
+                        ✓ {syncResult.pricesUpdated} {t("settings.menuSyncPricesUpdated")}
+                      </span>
+                    ) : null}
+                    {(syncResult.createdCategories ?? 0) > 0 ? (
+                      <span>
+                        + {syncResult.createdCategories}{" "}
+                        {t("settings.menuSyncCategoriesCreated")}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {currentUserRole === "ADMIN" || isOwner ? (
         <section className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">

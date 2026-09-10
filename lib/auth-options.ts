@@ -25,6 +25,7 @@ export const authOptions: NextAuthOptions = {
           id: data.user.id,
           email: data.user.email,
           name: data.user.name,
+          isOwner: data.user.isOwner ?? false,
           accessToken: data.access_token,
           accessTokenExpiresAt: Date.now() + data.expires_in * 1000,
         };
@@ -46,6 +47,9 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         if (user.email) token.email = user.email;
         if (user.name) token.name = user.name;
+        if ("isOwner" in user && typeof user.isOwner === "boolean") {
+          token.isOwner = user.isOwner;
+        }
         if ("accessToken" in user && typeof user.accessToken === "string") {
           token.accessToken = user.accessToken;
         }
@@ -75,6 +79,7 @@ export const authOptions: NextAuthOptions = {
         delete token.id;
         delete token.email;
         delete token.name;
+        delete token.isOwner;
         token.authError = "AccessTokenExpired";
       }
       return token;
@@ -84,6 +89,7 @@ export const authOptions: NextAuthOptions = {
         if (token.id) session.user.id = token.id as string;
         if (token.email) session.user.email = token.email as string;
         if (token.name) session.user.name = token.name as string;
+        if (typeof token.isOwner === "boolean") session.user.isOwner = token.isOwner;
       }
       if (token.accessToken) {
         session.accessToken = token.accessToken as string;

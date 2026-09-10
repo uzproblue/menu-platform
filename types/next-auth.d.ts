@@ -3,7 +3,7 @@ import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
-    user: DefaultSession["user"] & { id: string };
+    user: DefaultSession["user"] & { id: string; isOwner?: boolean };
     /** Bearer from menu-server; server uses MENU_SERVER binding or AUTH_API_BASE_URL */
     accessToken?: string;
     /** Absolute epoch milliseconds when accessToken expires */
@@ -15,6 +15,7 @@ declare module "next-auth" {
   interface User {
     accessToken?: string;
     accessTokenExpiresAt?: number;
+    isOwner?: boolean;
   }
 }
 
@@ -22,6 +23,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     email?: string;
+    isOwner?: boolean;
     accessToken?: string;
     accessTokenExpiresAt?: number;
     authError?: "AccessTokenExpired";
