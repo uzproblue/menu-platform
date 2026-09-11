@@ -16,14 +16,8 @@ export default async function MenuItemVideosPage() {
   const bunnyLibraryId = getBunnyStreamLibraryIdForPreview();
 
   return (
-    <div className="mx-auto flex h-full min-h-0 max-w-5xl flex-col">
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-8">
-        <h1 className="shrink-0 text-2xl font-semibold tracking-tight text-foreground">
-          {t("menuItemVideos.title")}
-        </h1>
-        <p className="mt-2 shrink-0 text-sm text-foreground/60">{t("menuItemVideos.subtitle")}</p>
-        <MenuItemVideosClient bunnyLibraryId={bunnyLibraryId} />
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <MenuItemVideosClient bunnyLibraryId={bunnyLibraryId} title={t("menuItemVideos.title")} subtitle={t("menuItemVideos.subtitle")} />
     </div>
   );
 }

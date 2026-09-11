@@ -40,21 +40,16 @@ function flattenMenuItems(data: GlobalMenuData): FlatMenuItem[] {
 function VideoListBadge({ label }: { label: string }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-400"
+      className="inline-flex shrink-0 items-center rounded-full bg-emerald-500/15 p-0.5 text-emerald-700 dark:text-emerald-400"
       title={label}
       aria-hidden
     >
       <svg
-        className="size-3.5"
+        className="size-3"
         viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="currentColor"
       >
-        <rect x="2" y="6" width="14" height="12" rx="2" />
-        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11v2z" />
+        <path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.69L9.54 5.98A1 1 0 0 0 8 6.82z" />
       </svg>
     </span>
   );
@@ -91,7 +86,7 @@ function VideoPreview({
 
   if (source.type === "bunny") {
     return (
-      <div className="overflow-hidden rounded-lg border border-foreground/10 bg-black/90">
+      <div className="overflow-hidden rounded-xl border border-foreground/10 bg-black/90">
         <iframe
           title={title}
           src={source.embedUrl}
@@ -104,7 +99,7 @@ function VideoPreview({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-foreground/10 bg-black">
+    <div className="overflow-hidden rounded-xl border border-foreground/10 bg-black">
       <video
         ref={videoRef}
         poster={source.posterUrl}
@@ -129,9 +124,11 @@ type R2UploadSessionResponse = {
 type MenuItemVideosClientProps = {
   /** From server env (Worker runtime); avoids relying on NEXT_PUBLIC at build time. */
   bunnyLibraryId: string;
+  title: string;
+  subtitle: string;
 };
 
-export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientProps) {
+export function MenuItemVideosClient({ bunnyLibraryId, title, subtitle }: MenuItemVideosClientProps) {
   const { t } = useI18n();
 
   const [items, setItems] = useState<FlatMenuItem[]>([]);
@@ -144,6 +141,9 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
   const [category, setCategory] = useState<"all" | string>("all");
   const [videoFilter, setVideoFilter] = useState<"all" | "has" | "none">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Mobile: "list" | "detail"
+  const [mobileTab, setMobileTab] = useState<"list" | "detail">("list");
 
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -151,7 +151,6 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
   const [stageDetail, setStageDetail] = useState<string>("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -298,6 +297,14 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
     () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
     [items, selectedId],
   );
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (section !== "all") count++;
+    if (category !== "all") count++;
+    if (videoFilter !== "all") count++;
+    return count;
+  }, [section, category, videoFilter]);
 
   const patchVideoId = useCallback(
     async (itemId: string, videoId: string | null) => {
@@ -459,162 +466,230 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
     ? resolveVideoSource(selected.videoId, { bunnyLibraryId })
     : null;
 
+  // Coverage bar width
+  const coverageWidth = `${totalMetrics.coveragePercent}%`;
+
   return (
-    <div className="mt-6 flex min-h-0 flex-1 flex-col gap-6 sm:mt-8">
-      {/* Top metrics summary */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-foreground/10 bg-background/50 p-3.5 shadow-xs">
-          <span className="text-xs font-medium text-foreground/50">{t("menuItemVideos.totalItems")}</span>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{totalMetrics.total}</p>
-        </div>
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 shadow-xs">
-          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-            {t("menuItemVideos.itemsWithVideo")}
-          </span>
-          <div className="mt-1 flex items-baseline gap-1.5">
-            <p className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-              {totalMetrics.withVideo}
-            </p>
-            <span className="text-xs font-semibold text-emerald-600/80 dark:text-emerald-400/80">
-              ({totalMetrics.coveragePercent}%)
-            </span>
+    <div className="flex h-full min-h-0 flex-col">
+      {/* ── Page header ── */}
+      <div className="shrink-0 border-b border-foreground/8 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              {title}
+            </h1>
+            <p className="mt-0.5 text-sm text-foreground/55">{subtitle}</p>
           </div>
+
+          {/* Compact metrics pill row (desktop only) */}
+          {!loadingMenu && !menuError && (
+            <div className="hidden shrink-0 items-center gap-3 sm:flex">
+              <div className="flex items-center gap-1.5 rounded-full border border-foreground/10 bg-background/60 px-3 py-1.5">
+                <span className="text-xs text-foreground/50">{t("menuItemVideos.totalItems")}</span>
+                <span className="text-sm font-semibold text-foreground">{totalMetrics.total}</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 px-3 py-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                  {totalMetrics.withVideo}/{totalMetrics.total}
+                </span>
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                  {totalMetrics.coveragePercent}%
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="rounded-xl border border-foreground/10 bg-background/50 p-3.5 shadow-xs">
-          <span className="text-xs font-medium text-foreground/50">{t("menuItemVideos.itemsWithoutVideo")}</span>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground/75">{totalMetrics.withoutVideo}</p>
-        </div>
-        <div className="rounded-xl border border-foreground/10 bg-background/50 p-3.5 shadow-xs">
-          <span className="block truncate text-xs font-medium text-foreground/50" title={currentSectionMetrics.name}>
-            {section === "all" ? t("menuItemVideos.sectionAll") : currentSectionMetrics.name}
-          </span>
-          <div className="mt-1 flex items-baseline gap-1.5">
-            <p className="text-2xl font-bold tracking-tight text-foreground">
-              {currentSectionMetrics.total}
-            </p>
-            <span className="text-xs text-foreground/60">
-              ({currentSectionMetrics.withVideo} {t("menuItemVideos.hasVideo")})
-            </span>
+
+        {/* Coverage progress bar */}
+        {!loadingMenu && !menuError && totalMetrics.total > 0 && (
+          <div className="mt-3">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/8">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                style={{ width: coverageWidth }}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="grid h-full min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-stretch">
-        <aside className="flex h-full min-h-0 max-h-[min(55vh,100%)] flex-col overflow-hidden rounded-xl border border-foreground/10 bg-background/40 lg:max-h-full">
-          <div className="shrink-0 space-y-3 border-b border-foreground/10 p-3">
-            {/* Search */}
+      {/* ── Toolbar: search + filter toggle ── */}
+      <div className="shrink-0 border-b border-foreground/8 py-2.5">
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="relative min-w-0 flex-1">
+            <svg
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-foreground/40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
             <input
               type="search"
               placeholder={t("menuItemVideos.searchItems")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-lg border border-foreground/15 bg-background px-2.5 py-1.5 text-sm"
+              className="w-full rounded-lg border border-foreground/12 bg-background/60 py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20"
             />
+          </div>
 
-            {/* Video filter */}
-            <div>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+          {/* Video filter segment (desktop) */}
+          <div className="hidden items-center gap-0.5 rounded-lg border border-foreground/10 bg-foreground/5 p-0.5 sm:flex">
+            {(["all", "has", "none"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setVideoFilter(v)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  videoFilter === v
+                    ? v === "has"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-foreground text-background shadow-sm"
+                    : "text-foreground/60 hover:text-foreground"
+                }`}
+              >
+                {v === "all"
+                  ? t("menuItemVideos.videoFilterAll")
+                  : v === "has"
+                    ? t("menuItemVideos.videoFilterWithVideo")
+                    : t("menuItemVideos.videoFilterWithoutVideo")}
+              </button>
+            ))}
+          </div>
+
+          {/* Filter toggle button */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((o) => !o)}
+            className={`relative flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+              filtersOpen || activeFilterCount > 0
+                ? "border-foreground/25 bg-foreground/10 text-foreground"
+                : "border-foreground/12 bg-foreground/5 text-foreground/60 hover:text-foreground"
+            }`}
+          >
+            <svg
+              className="size-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            <span className="hidden sm:inline">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="flex size-4 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Expandable filter panel */}
+        {filtersOpen && (
+          <div className="mt-2.5 space-y-3 rounded-xl border border-foreground/10 bg-foreground/3 p-3">
+            {/* Video filter (mobile only) */}
+            <div className="sm:hidden">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/45">
                 {t("menuItemVideos.videoFilterLabel")}
-              </div>
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  type="button"
-                  onClick={() => setVideoFilter("all")}
-                  className={`rounded-lg px-2 py-1 text-center text-xs font-medium transition ${
-                    videoFilter === "all"
-                      ? "bg-foreground text-background"
-                      : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
-                  }`}
-                >
-                  {t("menuItemVideos.videoFilterAll")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoFilter("has")}
-                  className={`inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1 text-center text-xs font-medium transition ${
-                    videoFilter === "has"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300"
-                  }`}
-                >
-                  {t("menuItemVideos.videoFilterWithVideo")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoFilter("none")}
-                  className={`rounded-lg px-2 py-1 text-center text-xs font-medium transition ${
-                    videoFilter === "none"
-                      ? "bg-foreground text-background"
-                      : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
-                  }`}
-                >
-                  {t("menuItemVideos.videoFilterWithoutVideo")}
-                </button>
+              </p>
+              <div className="flex items-center gap-0.5 self-start rounded-lg border border-foreground/10 bg-foreground/5 p-0.5">
+                {(["all", "has", "none"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setVideoFilter(v)}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      videoFilter === v
+                        ? v === "has"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "bg-foreground text-background shadow-sm"
+                        : "text-foreground/60 hover:text-foreground"
+                    }`}
+                  >
+                    {v === "all"
+                      ? t("menuItemVideos.videoFilterAll")
+                      : v === "has"
+                        ? t("menuItemVideos.videoFilterWithVideo")
+                        : t("menuItemVideos.videoFilterWithoutVideo")}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Section filter */}
-            <div>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
-                {t("menuItemVideos.sectionFilterLabel")}
+            {sections.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/45">
+                  {t("menuItemVideos.sectionFilterLabel")}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSection("all")}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                      section === "all"
+                        ? "bg-foreground text-background"
+                        : "border border-foreground/12 bg-background/60 text-foreground/60 hover:text-foreground"
+                    }`}
+                  >
+                    {t("menuItemVideos.sectionAll")}{" "}
+                    <span className="opacity-60">
+                      {totalMetrics.withVideo}/{totalMetrics.total}
+                    </span>
+                  </button>
+                  {sections.map((s) => {
+                    const sm = sectionMetrics.get(s.id) ?? { total: 0, withVideo: 0 };
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleSelectSection(s.id)}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                          section === s.id
+                            ? "bg-foreground text-background"
+                            : "border border-foreground/12 bg-background/60 text-foreground/60 hover:text-foreground"
+                        }`}
+                      >
+                        {s.name}{" "}
+                        <span className="opacity-60">
+                          {sm.withVideo}/{sm.total}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleSelectSection("all")}
-                  className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
-                    section === "all"
-                      ? "bg-foreground text-background"
-                      : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
-                  }`}
-                >
-                  {t("menuItemVideos.sectionAll")}{" "}
-                  <span className="opacity-70">
-                    ({totalMetrics.withVideo}/{totalMetrics.total})
-                  </span>
-                </button>
-                {sections.map((s) => {
-                  const sm = sectionMetrics.get(s.id) ?? { total: 0, withVideo: 0 };
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => handleSelectSection(s.id)}
-                      className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
-                        section === s.id
-                          ? "bg-foreground text-background"
-                          : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
-                      }`}
-                    >
-                      {s.name}{" "}
-                      <span className="opacity-70">
-                        ({sm.withVideo}/{sm.total})
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            )}
 
             {/* Category filter */}
-            {availableCategories.length > 0 ? (
+            {availableCategories.length > 0 && (
               <div>
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/45">
                   {t("menuItemVideos.categoryFilterLabel")}
-                </div>
-                <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
+                </p>
+                <div className="flex flex-wrap gap-1">
                   <button
                     type="button"
                     onClick={() => setCategory("all")}
-                    className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                       category === "all"
                         ? "bg-foreground text-background"
-                        : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                        : "border border-foreground/12 bg-background/60 text-foreground/60 hover:text-foreground"
                     }`}
                   >
                     {t("menuItemVideos.allCategories")}{" "}
-                    <span className="opacity-70">
-                      ({currentSectionMetrics.withVideo}/{currentSectionMetrics.total})
+                    <span className="opacity-60">
+                      {currentSectionMetrics.withVideo}/{currentSectionMetrics.total}
                     </span>
                   </button>
                   {availableCategories.map((cat) => {
@@ -624,48 +699,105 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
                         key={cat.id}
                         type="button"
                         onClick={() => setCategory(cat.id)}
-                        className={`rounded-lg px-2 py-1 text-xs font-medium transition ${
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                           category === cat.id
                             ? "bg-foreground text-background"
-                            : "bg-foreground/10 text-foreground/70 hover:bg-foreground/15"
+                            : "border border-foreground/12 bg-background/60 text-foreground/60 hover:text-foreground"
                         }`}
                       >
                         {cat.name}{" "}
-                        <span className="opacity-70">
-                          ({cm.withVideo}/{cm.total})
+                        <span className="opacity-60">
+                          {cm.withVideo}/{cm.total}
                         </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-            ) : null}
+            )}
 
-            {/* Items count readout */}
-            <div className="text-[11px] text-foreground/50">
-              {t("menuItemVideos.showingItems").replace("{count}", String(filtered.length))}{" "}
-              {t("menuItemVideos.showingItemsWithVideo").replace(
-                "{count}",
-                String(filteredWithVideoCount),
-              )}
-            </div>
+            {/* Clear all */}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSection("all");
+                  setCategory("all");
+                  setVideoFilter("all");
+                }}
+                className="text-xs text-foreground/50 underline-offset-2 hover:text-foreground hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
-          <ul className="min-h-0 flex-1 overflow-y-auto p-2">
+        )}
+      </div>
+
+      {/* ── Mobile tab nav (only when an item is selected) ── */}
+      {selected && (
+        <div className="flex shrink-0 border-b border-foreground/8 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileTab("list")}
+            className={`flex-1 py-2 text-center text-sm font-medium transition ${
+              mobileTab === "list"
+                ? "border-b-2 border-foreground text-foreground"
+                : "text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            Items
+            <span className="ml-1.5 text-xs opacity-60">
+              ({filtered.length})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("detail")}
+            className={`flex-1 truncate py-2 text-center text-sm font-medium transition ${
+              mobileTab === "detail"
+                ? "border-b-2 border-foreground text-foreground"
+                : "text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            <span className="truncate">{selected.name}</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── Main content: list + detail ── */}
+      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+
+        {/* Items list */}
+        <aside
+          className={`flex min-h-0 flex-col border-foreground/8 lg:border-r ${
+            selected && mobileTab === "detail" ? "hidden lg:flex" : "flex"
+          }`}
+        >
+          {/* Result count */}
+          <div className="shrink-0 px-3 py-1.5">
+            <p className="text-[11px] text-foreground/45">
+              {t("menuItemVideos.showingItems").replace("{count}", String(filtered.length))}
+              {" · "}
+              {filteredWithVideoCount} {t("menuItemVideos.hasVideo").toLowerCase()}
+            </p>
+          </div>
+
+          <ul className="min-h-0 flex-1 overflow-y-auto">
             {loadingMenu ? (
-              <li className="px-2 py-4 text-sm text-foreground/55">
+              <li className="px-3 py-6 text-sm text-foreground/50">
                 {t("menuItemVideos.loadingMenu")}
               </li>
             ) : menuError ? (
-              <li className="px-2 py-4 text-sm text-red-600 dark:text-red-400">
-                {menuError}
-              </li>
+              <li className="px-3 py-6 text-sm text-red-600 dark:text-red-400">{menuError}</li>
             ) : filtered.length === 0 ? (
-              <li className="px-2 py-4 text-sm text-foreground/55">
-                {t("menuItemVideos.noItems")}
+              <li className="px-3 py-10 text-center">
+                <p className="text-sm text-foreground/45">{t("menuItemVideos.noItems")}</p>
               </li>
             ) : (
               filtered.map((item) => {
                 const hasVideo = Boolean(item.videoId?.trim());
+                const isSelected = selectedId === item.id;
                 return (
                   <li key={item.id}>
                     <button
@@ -674,31 +806,28 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
                         setSelectedId(item.id);
                         setActionError(null);
                         setFile(null);
+                        setMobileTab("detail");
                       }}
                       aria-label={
                         hasVideo
                           ? `${item.name}, ${item.categoryName}, ${t("menuItemVideos.hasVideo")}`
                           : `${item.name}, ${item.categoryName}`
                       }
-                      className={`flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-sm transition ${
-                        hasVideo
-                          ? "border-l-2 border-emerald-500/50 pl-2.5"
-                          : "border-l-2 border-transparent pl-2.5"
+                      className={`flex w-full items-center gap-2.5 border-l-2 px-3 py-2.5 text-left transition ${
+                        hasVideo ? "border-emerald-500/60" : "border-transparent"
                       } ${
-                        selectedId === item.id
-                          ? "bg-foreground/10 font-medium text-foreground"
-                          : "text-foreground/80 hover:bg-foreground/5"
+                        isSelected
+                          ? "bg-foreground/8 font-medium text-foreground"
+                          : "text-foreground/75 hover:bg-foreground/4"
                       }`}
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate">{item.name}</span>
-                        <span className="mt-0.5 block truncate text-xs text-foreground/50">
+                        <span className="block truncate text-sm">{item.name}</span>
+                        <span className="mt-0.5 block truncate text-xs text-foreground/45">
                           {item.categoryName}
                         </span>
                       </span>
-                      {hasVideo ? (
-                        <VideoListBadge label={t("menuItemVideos.hasVideo")} />
-                      ) : null}
+                      {hasVideo && <VideoListBadge label={t("menuItemVideos.hasVideo")} />}
                     </button>
                   </li>
                 );
@@ -707,107 +836,143 @@ export function MenuItemVideosClient({ bunnyLibraryId }: MenuItemVideosClientPro
           </ul>
         </aside>
 
-        <section className="rounded-xl border border-foreground/10 bg-background/40 p-5 lg:min-h-0 lg:overflow-y-auto">
+        {/* Detail panel */}
+        <section
+          className={`min-h-0 overflow-y-auto ${
+            selected && mobileTab === "list" ? "hidden lg:block" : "block"
+          }`}
+        >
           {!selected ? (
-            <p className="text-sm text-foreground/60">{t("menuItemVideos.selectItem")}</p>
-          ) : (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">{selected.name}</h2>
-                <p className="text-sm text-foreground/55">{selected.categoryName}</p>
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center">
+                <svg
+                  className="mx-auto mb-3 size-10 text-foreground/20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="6" width="14" height="12" rx="2" />
+                  <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11v2z" />
+                </svg>
+                <p className="text-sm text-foreground/45">{t("menuItemVideos.selectItem")}</p>
               </div>
+            </div>
+          ) : (
+            <div className="p-5 sm:p-6">
+              <div className="space-y-5 sm:space-y-6">
+                {/* Item header */}
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">{selected.name}</h2>
+                  <p className="text-sm text-foreground/50">{selected.categoryName}</p>
+                </div>
 
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
-                  {t("menuItemVideos.currentVideo")}
-                </p>
-                {selected.videoId ? (
-                  <p className="mt-1 break-all font-mono text-xs text-foreground/80">
-                    {selected.videoId}
+                {/* Current video ID */}
+                <div className="rounded-xl border border-foreground/10 bg-foreground/3 p-4">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/45">
+                    {t("menuItemVideos.currentVideo")}
                   </p>
-                ) : (
-                  <p className="mt-1 text-sm text-foreground/55">{t("menuItemVideos.noVideo")}</p>
+                  {selected.videoId ? (
+                    <p className="break-all font-mono text-xs text-foreground/70">
+                      {selected.videoId}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-foreground/45">{t("menuItemVideos.noVideo")}</p>
+                  )}
+                </div>
+
+                {/* Video preview */}
+                {selected.videoId && previewSource ? (
+                  <VideoPreview
+                    videoId={selected.videoId}
+                    bunnyLibraryId={bunnyLibraryId}
+                    title={selected.name}
+                  />
+                ) : selected.videoId ? (
+                  <p className="text-xs text-foreground/45">
+                    {t("menuItemVideos.previewNoLibrary")}
+                  </p>
+                ) : null}
+
+                {/* Upload section */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-foreground">
+                    {t("menuItemVideos.uploadLabel")}
+                  </label>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm"
+                    disabled={uploading || saving}
+                    className="block w-full text-sm text-foreground/75 file:mr-3 file:rounded-lg file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+                    onChange={(e) => {
+                      const next = e.target.files?.[0] ?? null;
+                      setActionError(null);
+                      if (next && next.size > MAX_VIDEO_BYTES) {
+                        setFile(null);
+                        setActionError(t("menuItemVideos.fileTooLarge"));
+                        e.target.value = "";
+                        return;
+                      }
+                      if (next && next.type && !next.type.startsWith("video/")) {
+                        setFile(null);
+                        setActionError(t("menuItemVideos.invalidFileType"));
+                        e.target.value = "";
+                        return;
+                      }
+                      setFile(next);
+                    }}
+                  />
+
+                  {/* Upload progress */}
+                  {uploading && (
+                    <div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-foreground/10">
+                        <div
+                          className="h-full bg-foreground transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="mt-1.5 text-xs text-foreground/50">
+                        {stageDetail || `${t("menuItemVideos.uploading")} ${uploadProgress}%`}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={!file || uploading || saving}
+                      onClick={() => void handleUpload()}
+                      className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-35"
+                    >
+                      {uploading ? t("menuItemVideos.uploading") : t("menuItemVideos.upload")}
+                    </button>
+
+                    {selected.videoId && (
+                      <button
+                        type="button"
+                        disabled={uploading || saving}
+                        onClick={() => void handleRemoveVideo()}
+                        className="rounded-lg border border-red-500/35 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-500/8 disabled:opacity-35 dark:text-red-400"
+                      >
+                        {saving ? t("menuItemVideos.removing") : t("menuItemVideos.removeVideo")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Error */}
+                {actionError && (
+                  <p
+                    className="rounded-lg border border-red-500/20 bg-red-500/8 px-3 py-2 text-sm text-red-600 dark:text-red-400"
+                    role="alert"
+                  >
+                    {actionError}
+                  </p>
                 )}
               </div>
-
-              {selected.videoId && previewSource ? (
-                <VideoPreview
-                  videoId={selected.videoId}
-                  bunnyLibraryId={bunnyLibraryId}
-                  title={selected.name}
-                />
-              ) : selected.videoId ? (
-                <p className="text-xs text-foreground/50">
-                  {t("menuItemVideos.previewNoLibrary")}
-                </p>
-              ) : null}
-
-              <div>
-                <label className="block text-sm font-medium text-foreground">
-                  {t("menuItemVideos.uploadLabel")}
-                </label>
-                <input
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/webm"
-                  disabled={uploading || saving}
-                  className="mt-2 block w-full text-sm text-foreground/80 file:mr-3 file:rounded-lg file:border-0 file:bg-foreground/10 file:px-3 file:py-2 file:text-sm file:font-medium"
-                  onChange={(e) => {
-                    const next = e.target.files?.[0] ?? null;
-                    setActionError(null);
-                    if (next && next.size > MAX_VIDEO_BYTES) {
-                      setFile(null);
-                      setActionError(t("menuItemVideos.fileTooLarge"));
-                      e.target.value = "";
-                      return;
-                    }
-                    if (next && next.type && !next.type.startsWith("video/")) {
-                      setFile(null);
-                      setActionError(t("menuItemVideos.invalidFileType"));
-                      e.target.value = "";
-                      return;
-                    }
-                    setFile(next);
-                  }}
-                />
-                {uploading ? (
-                  <div className="mt-3">
-                    <div className="h-2 overflow-hidden rounded-full bg-foreground/10">
-                      <div
-                        className="h-full bg-foreground transition-all"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-foreground/55">
-                      {stageDetail || `${t("menuItemVideos.uploading")} ${uploadProgress}%`}
-                    </p>
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={!file || uploading || saving}
-                  onClick={() => void handleUpload()}
-                  className="mt-3 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-40"
-                >
-                  {uploading ? t("menuItemVideos.uploading") : t("menuItemVideos.upload")}
-                </button>
-              </div>
-
-              {selected.videoId ? (
-                <button
-                  type="button"
-                  disabled={uploading || saving}
-                  onClick={() => void handleRemoveVideo()}
-                  className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-40 dark:text-red-400"
-                >
-                  {saving ? t("menuItemVideos.removing") : t("menuItemVideos.removeVideo")}
-                </button>
-              ) : null}
-
-              {actionError ? (
-                <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                  {actionError}
-                </p>
-              ) : null}
             </div>
           )}
         </section>
