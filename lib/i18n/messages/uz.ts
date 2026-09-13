@@ -269,8 +269,14 @@ export const uzMessages: Messages = {
   "restaurants.location": "Lokatsiya",
   "restaurants.locationId": "Lokatsiya ID",
   "restaurants.addressNotAvailable": "Manzil mavjud emas",
-  "restaurants.defaultLocation": "Asosiy",
-  "restaurants.toggle": "Almashtirish",
+  "restaurants.deliveryBadge": "Yetkazib berish",
+  "restaurants.dineInBadge": "Zalda",
+  "restaurants.deliveryQrModalTitle": "{name} uchun yetkazib berish QR kodi",
+  "restaurants.deliveryQrModalBody":
+    "Ushbu yagona QR kod bevosita onlayn yetkazib berish menyusiga olib boradi. Mijozlar buyurtma berish uchun skanerlaydilar.",
+  "restaurants.downloadPng": "PNG yuklab olish",
+  "restaurants.downloadPdf": "PDF flayer yuklab olish",
+  "restaurants.openStorefront": "Menyuni ochish",
   "restaurants.qrCode": "QR kod",
   "restaurants.qrModalTitle": "{name} uchun stol QR kodlari",
   "restaurants.qrModalBody":

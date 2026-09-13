@@ -19,6 +19,7 @@ type RestaurantsListMobileProps = {
     name: string;
     logoUrl: string;
     qrCenterImageUrl: string;
+    type?: "dine_in" | "delivery";
   }) => void;
   onRequestDelete: (location: { id: string; name: string }) => void;
   onRefreshLocation?: (location: { id: string; name: string }) => void;
@@ -56,9 +57,16 @@ export function RestaurantsListMobile({
                     priority={index < 8}
                   />
                   <div className="min-w-0">
-                    <p className="font-semibold tracking-tight text-foreground">
-                      {location.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold tracking-tight text-foreground">
+                        {location.name}
+                      </p>
+                      {location.type === "delivery" ? (
+                        <span className="inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                          {t("restaurants.deliveryBadge")}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-1 text-sm text-foreground/60">
                       {location.address || t("restaurants.addressNotAvailable")}
                     </p>
@@ -133,6 +141,7 @@ export function RestaurantsListMobile({
                       name: location.name,
                       logoUrl: location.logoUrl,
                       qrCenterImageUrl: location.qrCenterImageUrl ?? "",
+                      type: location.type,
                     });
                   }}
                   ariaLabel={t("restaurants.openQrModalAria", {

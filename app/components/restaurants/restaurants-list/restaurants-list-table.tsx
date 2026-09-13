@@ -19,6 +19,7 @@ type RestaurantsListTableProps = {
     name: string;
     logoUrl: string;
     qrCenterImageUrl: string;
+    type?: "dine_in" | "delivery";
   }) => void;
   onRequestDelete: (location: { id: string; name: string }) => void;
   onRefreshLocation?: (location: { id: string; name: string }) => void;
@@ -85,10 +86,15 @@ export function RestaurantsListTable({
                 />
               </td>
               <td className="px-4 py-3.5 pl-5">
-                <div className="space-y-1">
+                <div className="flex flex-col items-start gap-1">
                   <span className="font-medium text-foreground">
                     {location.name}
                   </span>
+                  {location.type === "delivery" ? (
+                    <span className="inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                      {t("restaurants.deliveryBadge")}
+                    </span>
+                  ) : null}
                 </div>
               </td>
               <td className="px-4 py-3.5 font-mono text-sm text-foreground/80">
@@ -141,6 +147,7 @@ export function RestaurantsListTable({
                       name: location.name,
                       logoUrl: location.logoUrl,
                       qrCenterImageUrl: location.qrCenterImageUrl ?? "",
+                      type: location.type,
                     })
                   }
                   ariaLabel={t("restaurants.openQrModalAria", {

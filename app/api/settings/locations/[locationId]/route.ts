@@ -89,10 +89,15 @@ export async function PATCH(
   const o = body as Record<string, unknown>;
   const payload: {
     name?: string;
+    type?: "dine_in" | "delivery";
     currency?: string;
     logoUrl?: string;
+    coverImageUrl?: string | null;
     qrCenterImageUrl?: string;
     address?: string | null;
+    phoneNumber?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     translationLangs?: string[];
     posOrganizationId?: string | null;
     posTerminalGroupId?: string | null;
@@ -137,6 +142,63 @@ export async function PATCH(
       );
     }
     payload.qrCenterImageUrl = o.qrCenterImageUrl.trim();
+  }
+  if ("type" in o) {
+    if (o.type !== "dine_in" && o.type !== "delivery") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "type must be either 'dine_in' or 'delivery'" },
+        { status: 400 },
+      );
+    }
+    payload.type = o.type;
+  }
+  if ("coverImageUrl" in o) {
+    if (o.coverImageUrl !== null && typeof o.coverImageUrl !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "coverImageUrl must be a string or null" },
+        { status: 400 },
+      );
+    }
+    payload.coverImageUrl =
+      o.coverImageUrl === null ? null : (o.coverImageUrl as string).trim();
+  }
+  if ("phoneNumber" in o) {
+    if (o.phoneNumber !== null && typeof o.phoneNumber !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "phoneNumber must be a string or null" },
+        { status: 400 },
+      );
+    }
+    payload.phoneNumber =
+      o.phoneNumber === null ? null : (o.phoneNumber as string).trim();
+  }
+  if ("latitude" in o) {
+    if (o.latitude === null) {
+      payload.latitude = null;
+    } else {
+      const lat = Number(o.latitude);
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+        return NextResponse.json(
+          { error: "invalid_body", message: "latitude must be a valid number between -90 and 90" },
+          { status: 400 },
+        );
+      }
+      payload.latitude = lat;
+    }
+  }
+  if ("longitude" in o) {
+    if (o.longitude === null) {
+      payload.longitude = null;
+    } else {
+      const lon = Number(o.longitude);
+      if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
+        return NextResponse.json(
+          { error: "invalid_body", message: "longitude must be a valid number between -180 and 180" },
+          { status: 400 },
+        );
+      }
+      payload.longitude = lon;
+    }
   }
   if ("address" in o) {
     if (o.address === null) {

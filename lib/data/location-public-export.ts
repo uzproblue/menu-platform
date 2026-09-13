@@ -19,13 +19,15 @@ export type LocationPublicExport = {
   };
 };
 
-function expandLocationLogoForExport(
+function expandLocationAssetsForExport(
   location: Location,
   publicBaseUrl: string,
 ): Location {
   const logoUrl =
     expandR2AssetToPublicUrl(location.logoUrl, publicBaseUrl) ?? location.logoUrl;
-  return { ...location, logoUrl };
+  const coverImageUrl =
+    expandR2AssetToPublicUrl(location.coverImageUrl, publicBaseUrl) ?? location.coverImageUrl;
+  return { ...location, logoUrl, coverImageUrl };
 }
 
 function expandMenuForExport(
@@ -68,7 +70,7 @@ export function buildLocationPublicExport(
     schemaVersion: LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     restaurantId: menu.restaurantId,
-    location: expandLocationLogoForExport(location, base),
+    location: expandLocationAssetsForExport(location, base),
     menu: expandMenuForExport(menu, base),
   };
 }

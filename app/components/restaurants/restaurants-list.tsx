@@ -6,6 +6,7 @@ import type { RestaurantsListData } from "@/lib/data/restaurant-types";
 import { useI18n } from "../i18n-provider";
 import { ToastStack, type ToastEntry } from "@/app/components/ui/toast-stack";
 import { DeleteLocationModal } from "./restaurants-list/delete-location-modal";
+import { DeliveryQrModal } from "./restaurants-list/delivery-qr-modal";
 import { QrLocationModal } from "./restaurants-list/qr-location-modal";
 import { readErrorMessage } from "./restaurants-list/read-error-message";
 import { RequestErrorBanner } from "./restaurants-list/request-error-banner";
@@ -31,6 +32,7 @@ export function RestaurantsList() {
     name: string;
     logoUrl: string;
     qrCenterImageUrl: string;
+    type?: "dine_in" | "delivery";
   } | null>(null);
   const [deleteLocationTarget, setDeleteLocationTarget] = useState<{
     id: string;
@@ -306,7 +308,11 @@ export function RestaurantsList() {
       ) : null}
 
       {qrLocation ? (
-        <QrLocationModal location={qrLocation} onClose={closeQrModal} />
+        qrLocation.type === "delivery" ? (
+          <DeliveryQrModal location={qrLocation} onClose={closeQrModal} />
+        ) : (
+          <QrLocationModal location={qrLocation} onClose={closeQrModal} />
+        )
       ) : null}
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />

@@ -277,7 +277,14 @@ export const enMessages: Messages = {
   "restaurants.locationId": "Location ID",
   "restaurants.addressNotAvailable": "Address not available",
   "restaurants.defaultLocation": "Default",
-  "restaurants.toggle": "Toggle",
+  "restaurants.deliveryBadge": "Delivery",
+  "restaurants.dineInBadge": "Dine-In",
+  "restaurants.deliveryQrModalTitle": "Delivery storefront QR code for {name}",
+  "restaurants.deliveryQrModalBody":
+    "This single QR code links directly to your online delivery menu. Customers can scan it to browse and order delivery.",
+  "restaurants.downloadPng": "Download PNG",
+  "restaurants.downloadPdf": "Download PDF flyer",
+  "restaurants.openStorefront": "Open storefront",
   "restaurants.qrCode": "QR code",
   "restaurants.qrModalTitle": "Table QR codes for {name}",
   "restaurants.qrModalBody":

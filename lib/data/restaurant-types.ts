@@ -1,10 +1,15 @@
 export type LocationListRow = {
   id: string;
   name: string;
+  type?: "dine_in" | "delivery";
   currency: string;
   address: string;
   logoUrl: string;
+  coverImageUrl?: string;
   qrCenterImageUrl: string;
+  phoneNumber?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   enabledCategoryIds: string[];
   isDefault: boolean;
   isActive: boolean;

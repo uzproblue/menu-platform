@@ -33,7 +33,10 @@ import { WizardStepBasics } from "./location-wizard/wizard-step-basics";
 import { WizardStepCategories } from "./location-wizard/wizard-step-categories";
 import { WizardStepDone } from "./location-wizard/wizard-step-done";
 import { WizardStepMenu } from "./location-wizard/wizard-step-menu";
-import { buildLocationMenuPublicUrl } from "@/lib/location-menu-url";
+import {
+  buildDeliveryMenuPublicUrl,
+  buildLocationMenuPublicUrl,
+} from "@/lib/location-menu-url";
 import {
   STYLED_QR_PRINT_WIDTH,
   STYLED_QR_WIZARD_PREVIEW_WIDTH,
@@ -50,6 +53,7 @@ export function NewLocationWizard({
   const { t } = useI18n();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
+  const [locationType, setLocationType] = useState<"dine_in" | "delivery">("dine_in");
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState("UZS");
@@ -62,6 +66,23 @@ export function NewLocationWizard({
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoImageError, setLogoImageError] = useState<string | null>(null);
+
+  const coverUrlInputId = useId();
+  const coverFileInputId = useId();
+  const [coverUrlInput, setCoverUrlInput] = useState("");
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverImageError, setCoverImageError] = useState<string | null>(null);
+  const maxCoverImageSizeBytes = useMemo(
+    () => getMaxUploadSizeBytes("location-cover"),
+    [],
+  );
+  const coverPreviewSrc = coverPreviewUrl ?? coverUrlInput.trim();
+
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
   const [posOrganizationId, setPosOrganizationId] = useState("");
   const [posTerminalGroupId, setPosTerminalGroupId] = useState("");
   const [chefAlertChatId, setChefAlertChatId] = useState("");
@@ -143,6 +164,7 @@ export function NewLocationWizard({
         const loc = data.location;
         if (cancelled) return;
         setName(loc.name);
+        if (loc.type === "delivery") setLocationType("delivery");
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
         setTranslationLangs(
@@ -151,6 +173,10 @@ export function NewLocationWizard({
             : [...DEFAULT_LOCATION_TRANSLATION_SELECTION],
         );
         setLogoUrlInput(loc.logoUrl ?? "");
+        if (loc.coverImageUrl) setCoverUrlInput(loc.coverImageUrl);
+        if (loc.phoneNumber) setPhoneNumber(loc.phoneNumber);
+        if (loc.latitude != null) setLatitude(Number(loc.latitude));
+        if (loc.longitude != null) setLongitude(Number(loc.longitude));
         setPosOrganizationId(loc.posOrganizationId ?? "");
         setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
         setChefAlertChatId(loc.chefAlertChatId ?? "");
@@ -162,7 +188,13 @@ export function NewLocationWizard({
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
+        setCoverFile(null);
+        setCoverPreviewUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
         setLogoImageError(null);
+        setCoverImageError(null);
         setCreatedLocationId(loc.id);
         setSelectedCategoryIds(
           loc.enabledCategoryIds?.length ? [...loc.enabledCategoryIds] : [],
@@ -319,8 +351,11 @@ export function NewLocationWizard({
       if (logoPreviewUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(logoPreviewUrl);
       }
+      if (coverPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(coverPreviewUrl);
+      }
     };
-  }, [logoPreviewUrl]);
+  }, [coverPreviewUrl, logoPreviewUrl]);
 
   const toggleCategory = useCallback((id: string) => {
     setSelectedCategoryIds((prev) =>
@@ -402,8 +437,13 @@ export function NewLocationWizard({
         if (logoFile) {
           uploadedLogoUrl = await uploadFileToR2(logoFile, "location-logo");
         }
+        let uploadedCoverUrl: string | undefined;
+        if (coverFile) {
+          uploadedCoverUrl = await uploadFileToR2(coverFile, "location-cover");
+        }
         const trimmedAddress = address.trim();
         const logoForPatch = uploadedLogoUrl ?? logoUrlInput.trim();
+        const coverForPatch = uploadedCoverUrl ?? coverUrlInput.trim();
         const res = await fetch(
           `/api/settings/locations/${encodeURIComponent(createdLocationId)}`,
           {
@@ -411,9 +451,14 @@ export function NewLocationWizard({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: name.trim(),
+              type: locationType,
               currency: currency.trim().toUpperCase(),
               address: trimmedAddress.length ? trimmedAddress : null,
-              logoUrl: logoForPatch,
+              logoUrl: logoForPatch || null,
+              coverImageUrl: coverForPatch || null,
+              phoneNumber: phoneNumber.trim() || null,
+              latitude: latitude != null ? latitude : null,
+              longitude: longitude != null ? longitude : null,
               translationLangs,
               posOrganizationId: posOrganizationId.trim() || null,
               posTerminalGroupId: posTerminalGroupId.trim() || null,
@@ -431,6 +476,7 @@ export function NewLocationWizard({
         const payload = (await res.json()) as UpdateLocationDetailsResponse;
         const loc = payload.location;
         setName(loc.name);
+        if (loc.type === "delivery") setLocationType("delivery");
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
         setTranslationLangs(
@@ -439,6 +485,10 @@ export function NewLocationWizard({
             : [...DEFAULT_LOCATION_TRANSLATION_SELECTION],
         );
         setLogoUrlInput(loc.logoUrl ?? "");
+        if (loc.coverImageUrl) setCoverUrlInput(loc.coverImageUrl);
+        if (loc.phoneNumber) setPhoneNumber(loc.phoneNumber);
+        if (loc.latitude != null) setLatitude(Number(loc.latitude));
+        if (loc.longitude != null) setLongitude(Number(loc.longitude));
         setPosOrganizationId(loc.posOrganizationId ?? "");
         setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
         setChefAlertChatId(loc.chefAlertChatId ?? "");
@@ -446,7 +496,12 @@ export function NewLocationWizard({
         setTwoGisUrl(loc.twoGisUrl ?? "");
         setOrdersEnabled(loc.ordersEnabled ?? false);
         setLogoFile(null);
+        setCoverFile(null);
         setLogoPreviewUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setCoverPreviewUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
@@ -468,17 +523,26 @@ export function NewLocationWizard({
         const trimmedLogo = logoUrlInput.trim();
         if (trimmedLogo) logoUrl = trimmedLogo;
       }
+      let coverImageUrl: string | undefined;
+      if (coverFile) {
+        coverImageUrl = await uploadFileToR2(coverFile, "location-cover");
+      } else {
+        const trimmedCover = coverUrlInput.trim();
+        if (trimmedCover) coverImageUrl = trimmedCover;
+      }
       const trimmedAddress = address.trim();
-      const body: Record<string, string> = {
-        name: name.trim(),
-        currency: currency.trim().toUpperCase(),
-      };
       const bodyWithLangs: Record<string, unknown> = {
-        ...body,
+        name: name.trim(),
+        type: locationType,
+        currency: currency.trim().toUpperCase(),
         translationLangs,
       };
       if (logoUrl) bodyWithLangs.logoUrl = logoUrl;
+      if (coverImageUrl) bodyWithLangs.coverImageUrl = coverImageUrl;
       if (trimmedAddress) bodyWithLangs.address = trimmedAddress;
+      if (phoneNumber.trim()) bodyWithLangs.phoneNumber = phoneNumber.trim();
+      if (latitude != null) bodyWithLangs.latitude = latitude;
+      if (longitude != null) bodyWithLangs.longitude = longitude;
 
       const res = await fetch("/api/settings/locations", {
         method: "POST",
@@ -632,7 +696,10 @@ export function NewLocationWizard({
       setQrDataUrl(null);
       return;
     }
-    const menuUrl = buildLocationMenuPublicUrl(publishedLocationId);
+    const menuUrl =
+      locationType === "delivery"
+        ? buildDeliveryMenuPublicUrl(publishedLocationId)
+        : buildLocationMenuPublicUrl(publishedLocationId);
     setPublicMenuUrl(menuUrl);
     let cancelled = false;
     void styledQrToDataUrl({
@@ -649,7 +716,7 @@ export function NewLocationWizard({
     return () => {
       cancelled = true;
     };
-  }, [logoPreviewSrc, publishedLocationId, step]);
+  }, [locationType, logoPreviewSrc, publishedLocationId, step]);
 
   const downloadQr = useCallback(() => {
     if (!publishedLocationId || !publicMenuUrl) return;
@@ -657,9 +724,9 @@ export function NewLocationWizard({
       url: publicMenuUrl,
       width: STYLED_QR_PRINT_WIDTH,
       logoUrl: logoPreviewSrc || undefined,
-      filename: `qr-code-${publishedLocationId}.png`,
+      filename: `${locationType === "delivery" ? "delivery" : "dinein"}-qr-${publishedLocationId}.png`,
     });
-  }, [logoPreviewSrc, publicMenuUrl, publishedLocationId]);
+  }, [locationType, logoPreviewSrc, publicMenuUrl, publishedLocationId]);
 
   const selectedSet = useMemo(
     () => new Set(selectedCategoryIds),
@@ -741,6 +808,8 @@ export function NewLocationWizard({
           <WizardStepBasics
             name={name}
             setName={setName}
+            locationType={locationType}
+            setLocationType={setLocationType}
             address={address}
             setAddress={setAddress}
             currency={currency}
@@ -758,6 +827,25 @@ export function NewLocationWizard({
             logoImageError={logoImageError}
             setLogoImageError={setLogoImageError}
             maxLogoImageSizeBytes={maxLogoImageSizeBytes}
+            coverUrlInputId={coverUrlInputId}
+            coverFileInputId={coverFileInputId}
+            coverUrlInput={coverUrlInput}
+            setCoverUrlInput={setCoverUrlInput}
+            coverPreviewSrc={coverPreviewSrc}
+            coverFile={coverFile}
+            setCoverFile={setCoverFile}
+            setCoverPreviewUrl={setCoverPreviewUrl}
+            coverImageError={coverImageError}
+            setCoverImageError={setCoverImageError}
+            maxCoverImageSizeBytes={maxCoverImageSizeBytes}
+            phoneNumber={phoneNumber}
+            setPhoneNumber={setPhoneNumber}
+            latitude={latitude}
+            longitude={longitude}
+            setCoordinates={([lng, lat]) => {
+              setLongitude(lng);
+              setLatitude(lat);
+            }}
             posOrganizationId={posOrganizationId}
             setPosOrganizationId={setPosOrganizationId}
             posTerminalGroupId={posTerminalGroupId}
@@ -831,6 +919,7 @@ export function NewLocationWizard({
           address={address}
           currency={currency}
           logoSrc={logoPreviewSrc || undefined}
+          coverSrc={coverPreviewSrc || undefined}
           sections={menuPreviewSections}
           placeholderLocationName={t("restaurants.newWizard.previewPlaceholderName")}
           caption={t("restaurants.newWizard.menuPreviewCaption")}

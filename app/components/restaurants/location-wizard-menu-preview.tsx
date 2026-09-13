@@ -14,6 +14,7 @@ type LocationWizardMenuPreviewProps = {
   address: string;
   currency: string;
   logoSrc: string | null | undefined;
+  coverSrc?: string | null | undefined;
   sections: MenuPreviewSection[];
   placeholderLocationName: string;
   caption: string;
@@ -40,6 +41,7 @@ export function LocationWizardMenuPreview({
   address,
   currency,
   logoSrc,
+  coverSrc,
   sections,
   placeholderLocationName,
   caption,
@@ -62,6 +64,18 @@ export function LocationWizardMenuPreview({
               <div className="h-1 w-10 rounded-full bg-stone-400/50" aria-hidden />
             </div>
             <div className="max-h-[min(520px,58vh)] overflow-y-auto overscroll-contain bg-[#fafaf9] px-3 pb-4 pt-2">
+              {coverSrc ? (
+                <div className="relative -mx-3 -mt-2 mb-3 h-20 w-[calc(100%+1.5rem)] overflow-hidden bg-stone-200">
+                  <Image
+                    src={coverSrc}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="280px"
+                    unoptimized={imageSrcIsNonOptimizable(coverSrc)}
+                  />
+                </div>
+              ) : null}
               <header className="border-b border-stone-200/90 pb-3">
                 <div className="flex items-start gap-2.5">
                   <div className="relative size-11 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">

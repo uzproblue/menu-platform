@@ -50,3 +50,30 @@ export function buildTableMenuPublicUrl(
   const sep = path.includes("?") ? "&" : "?";
   return `${path}${sep}table=${encodeURIComponent(table)}`;
 }
+
+/** `data-delivery-public-base-url` on `<body>` — set in root layout from runtime env. */
+export const DELIVERY_PUBLIC_BASE_URL_DATA_ATTR = "data-delivery-public-base-url";
+
+/** Client: build-time env, then runtime body attribute, then guest menu origin. */
+export function getDeliveryPublicBaseUrlForClient(): string {
+  const fromBuild = trimBaseUrl(process.env.NEXT_PUBLIC_DELIVERY_URL);
+  if (fromBuild.length > 0) return fromBuild;
+
+  if (typeof document !== "undefined") {
+    const fromDom = trimBaseUrl(
+      document.body.getAttribute(DELIVERY_PUBLIC_BASE_URL_DATA_ATTR) ?? undefined,
+    );
+    if (fromDom.length > 0) return fromDom;
+  }
+
+  return getMenuPublicBaseUrlForClient();
+}
+
+/** Full URL to a delivery storefront (for QR encoding and copy). */
+export function buildDeliveryMenuPublicUrl(locationId: string): string {
+  const id = locationId.trim();
+  const base = getDeliveryPublicBaseUrlForClient();
+  if (!base.length) return `/?locationId=${encodeURIComponent(id)}`;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}locationId=${encodeURIComponent(id)}`;
+}

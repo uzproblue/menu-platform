@@ -20,6 +20,7 @@ export type R2UploadConfig = {
 const targetFolderMap: Record<UploadTarget, string> = {
   "menu-item": "menu-items",
   "location-logo": "locations",
+  "location-cover": "locations/covers",
   "qr-center-image": "qr-center-images",
   "category-cover": "category-covers",
   "section-background": "section-backgrounds",

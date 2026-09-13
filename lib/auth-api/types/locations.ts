@@ -1,11 +1,20 @@
 export type Location = {
   id: string;
   name: string;
+  type?: "dine_in" | "delivery";
   currency: string;
   address: string;
   logoUrl: string;
+  /** Storefront header / background banner image (delivery & public). */
+  coverImageUrl?: string;
   /** Optional center image for table QR codes; falls back to logoUrl when empty. */
   qrCenterImageUrl?: string;
+  /** Restaurant contact phone number for delivery orders & support. */
+  phoneNumber?: string;
+  /** Verified venue latitude. */
+  latitude?: number | null;
+  /** Verified venue longitude. */
+  longitude?: number | null;
   translationLangs: string[];
   /** Menu category ids enabled for this location (subset of restaurant catalog). */
   enabledCategoryIds: string[];
@@ -30,18 +39,28 @@ export type Location = {
 
 export type CreateLocationInput = {
   name: string;
+  type?: "dine_in" | "delivery";
   currency: string;
   translationLangs: string[];
   logoUrl?: string;
+  coverImageUrl?: string;
   address?: string;
+  phoneNumber?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type CreateLocationResponse = {
   location: {
     id: string;
     name: string;
+    type?: "dine_in" | "delivery";
     currency: string;
     logoUrl: string;
+    coverImageUrl?: string;
+    phoneNumber?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     translationLangs: string[];
     isDefault: boolean;
     isActive: boolean;
@@ -107,10 +126,15 @@ export type UpdateDiningTableChoicesInput = {
 
 export type UpdateLocationDetailsInput = {
   name?: string;
+  type?: "dine_in" | "delivery";
   currency?: string;
   logoUrl?: string;
+  coverImageUrl?: string | null;
   qrCenterImageUrl?: string;
   address?: string | null;
+  phoneNumber?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   translationLangs?: string[];
   posOrganizationId?: string | null;
   posTerminalGroupId?: string | null;
@@ -124,10 +148,15 @@ export type UpdateLocationDetailsResponse = {
   location: {
     id: string;
     name: string;
+    type?: "dine_in" | "delivery";
     currency: string;
     address: string;
     logoUrl: string;
+    coverImageUrl?: string;
     qrCenterImageUrl?: string;
+    phoneNumber?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     translationLangs: string[];
     enabledCategoryIds: string[];
     enabledSectionIds: string[];

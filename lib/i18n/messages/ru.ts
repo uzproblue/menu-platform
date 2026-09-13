@@ -273,8 +273,14 @@ export const ruMessages: Messages = {
   "restaurants.location": "Локация",
   "restaurants.locationId": "ID локации",
   "restaurants.addressNotAvailable": "Адрес недоступен",
-  "restaurants.defaultLocation": "По умолчанию",
-  "restaurants.toggle": "Переключатель",
+  "restaurants.deliveryBadge": "Доставка",
+  "restaurants.dineInBadge": "В заведении",
+  "restaurants.deliveryQrModalTitle": "QR-код онлайн-доставки для {name}",
+  "restaurants.deliveryQrModalBody":
+    "Этот QR-код ведет напрямую в онлайн-меню доставки ресторана. Клиенты сканируют его для оформления заказа.",
+  "restaurants.downloadPng": "Скачать PNG",
+  "restaurants.downloadPdf": "Скачать флаер в PDF",
+  "restaurants.openStorefront": "Открыть витрину",
   "restaurants.qrCode": "QR-код",
   "restaurants.qrModalTitle": "QR-коды столов для {name}",
   "restaurants.qrModalBody":

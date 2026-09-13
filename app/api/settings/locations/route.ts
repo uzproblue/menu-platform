@@ -90,15 +90,28 @@ export async function POST(req: Request) {
   }
   const translationLangs = translationParsed.value;
 
+  const type = o.type === "delivery" ? ("delivery" as const) : ("dine_in" as const);
+  const coverImageUrl = typeof o.coverImageUrl === "string" ? o.coverImageUrl.trim() : "";
+  const phoneNumber = typeof o.phoneNumber === "string" ? o.phoneNumber.trim() : "";
+  const latitude =
+    typeof o.latitude === "number" && Number.isFinite(o.latitude) ? o.latitude : undefined;
+  const longitude =
+    typeof o.longitude === "number" && Number.isFinite(o.longitude) ? o.longitude : undefined;
+
   const restaurantId = await getSelectedRestaurantIdFromCookies();
   const result = await createLocationWithAuthServer(
     token,
     {
       name,
+      type,
       currency,
       translationLangs,
       logoUrl: logoUrl || undefined,
+      coverImageUrl: coverImageUrl || undefined,
       address: rawAddress || undefined,
+      phoneNumber: phoneNumber || undefined,
+      latitude,
+      longitude,
     },
     restaurantId,
   );
