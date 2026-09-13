@@ -182,7 +182,7 @@ export function WizardStepBasics({
 
       {/* 3. Translation Languages */}
       <div>
-        <p className="text-xs font-medium text-foreground/70">Translation languages</p>
+        <p className="text-xs font-medium text-foreground/70">{t("restaurants.translationLangsHeading")}</p>
         <div className="mt-2 flex flex-wrap gap-3">
           {LOCATION_TRANSLATION_OPTIONS.map((lang) => {
             const checked = translationLangs.includes(lang);
@@ -211,10 +211,10 @@ export function WizardStepBasics({
       {locationType === "delivery" ? (
         <div className="space-y-2">
           <label className="text-xs font-medium text-foreground/70">
-            Restaurant Address & Kitchen Pin
+            {t("restaurants.deliveryAddressTitle")}
           </label>
           <p className="text-xs text-foreground/50">
-            Search your address or drag the pin on the map. Delivery distances and arrival times will be calculated from this exact location.
+            {t("restaurants.deliveryAddressHint")}
           </p>
           <MapboxLocationPicker
             address={address}
@@ -245,16 +245,16 @@ export function WizardStepBasics({
       <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-4 space-y-4">
         <div>
           <p className="text-sm font-medium text-foreground">
-            Contact & Social Links
+            {t("restaurants.contactAndSocialTitle")}
           </p>
           <p className="mt-1 text-xs text-foreground/55">
-            Shown to customers on the delivery storefront and order receipts.
+            {t("restaurants.contactAndSocialHint")}
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="text-xs font-medium text-foreground/70" htmlFor="nw-phone">
-              Phone Number
+              {t("restaurants.phoneNumber")}
             </label>
             <input
               id="nw-phone"
@@ -262,7 +262,7 @@ export function WizardStepBasics({
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               disabled={formDisabled}
-              placeholder="+7 (701) 000-00-00"
+              placeholder="+998 (90) 123-45-67"
               className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
@@ -410,10 +410,10 @@ export function WizardStepBasics({
       <div className="space-y-3">
         <div>
           <label htmlFor={coverUrlInputId} className="text-sm font-medium text-foreground">
-            Background / Cover Banner Image
+            {t("restaurants.coverImageTitle")}
           </label>
           <p className="text-xs text-foreground/50 mt-0.5">
-            Wide banner displayed at the top of the delivery storefront header.
+            {t("restaurants.coverImageHint")}
           </p>
         </div>
         <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.03] p-3 ring-1 ring-foreground/5 sm:p-4">
@@ -422,7 +422,7 @@ export function WizardStepBasics({
               <div className="relative h-36 w-full overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5 ring-1 ring-foreground/5">
                 <Image
                   src={coverPreviewSrc}
-                  alt="Cover preview"
+                  alt={t("restaurants.coverPreviewAlt")}
                   fill
                   className="object-cover"
                   unoptimized
@@ -445,12 +445,12 @@ export function WizardStepBasics({
               }}
               disabled={formDisabled}
               className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground outline-none ring-offset-background placeholder:text-foreground/40 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-60"
-              placeholder="https://... (or choose a file below)"
+              placeholder={t("restaurants.coverUrlPlaceholder")}
             />
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-foreground/15" />
               <span className="text-[11px] font-medium uppercase tracking-wide text-foreground/45">
-                or
+                {t("restaurants.orDivider")}
               </span>
               <div className="h-px flex-1 bg-foreground/15" />
             </div>
@@ -556,7 +556,9 @@ export function WizardStepBasics({
             ? createdLocationId
               ? t("restaurants.newWizard.updatingLocation")
               : t("restaurants.newWizard.creatingLocation")
-            : t("restaurants.newWizard.next")}
+            : createdLocationId
+              ? t("restaurants.newWizard.submitSave")
+              : t("restaurants.newWizard.submitCreate")}
         </button>
       </div>
     </div>

@@ -1,49 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
-import { CategoryNameModal } from "@/app/components/global-menu/category-name-modal";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useMemo, useState } from "react";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
 import type {
-  Category,
-  CategoriesResponse,
   GetLocationResponse,
-  GlobalMenuItemApi,
-  GlobalMenuResponse,
-  MenuSectionEntity,
   UpdateLocationDetailsResponse,
 } from "@/lib/auth-api";
 import { useI18n } from "../i18n-provider";
-import {
-  LocationWizardMenuPreview,
-  type MenuPreviewSection,
-} from "./location-wizard-menu-preview";
-import {
-  buildSelectedItemsForAllMenuItems,
-  computeOverrideFromRow,
-  findMenuItemInGlobalMenu,
-  getMatchingCatalogPrices,
-  createDefaultItemRow,
-  reconcileItemRow,
-} from "./location-wizard/pricing";
+import { LocationWizardMenuPreview } from "./location-wizard-menu-preview";
 import { DEFAULT_LOCATION_TRANSLATION_SELECTION } from "@/lib/menu-translation-langs";
-import type { NewLocationWizardProps, SelectedItemRow } from "./location-wizard/types";
+import type { NewLocationWizardProps } from "./location-wizard/types";
 import { WizardStepBasics } from "./location-wizard/wizard-step-basics";
-import { WizardStepCategories } from "./location-wizard/wizard-step-categories";
-import { WizardStepDone } from "./location-wizard/wizard-step-done";
-import { WizardStepMenu } from "./location-wizard/wizard-step-menu";
-import {
-  buildDeliveryMenuPublicUrl,
-  buildLocationMenuPublicUrl,
-} from "@/lib/location-menu-url";
-import {
-  STYLED_QR_PRINT_WIDTH,
-  STYLED_QR_WIZARD_PREVIEW_WIDTH,
-  downloadStyledQrPng,
-  styledQrToDataUrl,
-} from "@/lib/styled-qr";
-import { WizardStepsNav } from "./location-wizard/wizard-steps-nav";
 
 export type { NewLocationWizardProps };
 
@@ -51,7 +21,7 @@ export function NewLocationWizard({
   initialLocationId = null,
 }: NewLocationWizardProps) {
   const { t } = useI18n();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const router = useRouter();
 
   const [locationType, setLocationType] = useState<"dine_in" | "delivery">("dine_in");
   const [name, setName] = useState("");
@@ -95,34 +65,9 @@ export function NewLocationWizard({
   );
   const logoPreviewSrc = logoPreviewUrl ?? logoUrlInput.trim();
 
-  const [categoriesPayload, setCategoriesPayload] =
-    useState<CategoriesResponse | null>(null);
-  const [globalMenu, setGlobalMenu] = useState<GlobalMenuResponse | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(true);
-  const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(
-    null,
-  );
-  const [menuLoadError, setMenuLoadError] = useState<string | null>(null);
-
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false);
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [menuSections, setMenuSections] = useState<MenuSectionEntity[]>([]);
-
-  const [selectedItems, setSelectedItems] = useState<Record<string, SelectedItemRow>>(
-    {},
-  );
-
-  const [publishedLocationId, setPublishedLocationId] = useState<string | null>(
-    null,
-  );
   const [createdLocationId, setCreatedLocationId] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [publicMenuUrl, setPublicMenuUrl] = useState("");
   const [stepError, setStepError] = useState<string | null>(null);
-  const [publishing, setPublishing] = useState(false);
   const [isSavingStep1, setIsSavingStep1] = useState(false);
-  const [isSavingStep2, setIsSavingStep2] = useState(false);
   const [isLoadingLocationEdit, setIsLoadingLocationEdit] = useState(false);
   const [editLoadError, setEditLoadError] = useState<string | null>(null);
 
@@ -196,9 +141,6 @@ export function NewLocationWizard({
         setLogoImageError(null);
         setCoverImageError(null);
         setCreatedLocationId(loc.id);
-        setSelectedCategoryIds(
-          loc.enabledCategoryIds?.length ? [...loc.enabledCategoryIds] : [],
-        );
       } catch {
         if (!cancelled) {
           setEditLoadError(t("restaurants.newWizard.errLoadLocationEdit"));
@@ -213,140 +155,6 @@ export function NewLocationWizard({
   }, [initialLocationId, t]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setCatalogLoading(true);
-      setCategoriesLoadError(null);
-      setMenuLoadError(null);
-      try {
-        const [cRes, mRes, sRes] = await Promise.all([
-          fetch("/api/settings/categories", { cache: "no-store" }),
-          fetch("/api/settings/global-menu", { cache: "no-store" }),
-          fetch("/api/settings/menu-sections", { cache: "no-store" }),
-        ]);
-        if (cancelled) return;
-        if (cRes.ok) {
-          setCategoriesPayload((await cRes.json()) as CategoriesResponse);
-        } else {
-          setCategoriesPayload(null);
-          setCategoriesLoadError(
-            cRes.status === 401
-              ? t("restaurants.newWizard.catalogUnauthorized")
-              : t("restaurants.newWizard.categoriesLoadFailed"),
-          );
-        }
-        if (mRes.ok) {
-          setGlobalMenu((await mRes.json()) as GlobalMenuResponse);
-        } else {
-          setGlobalMenu(null);
-          setMenuLoadError(
-            mRes.status === 401
-              ? t("restaurants.newWizard.catalogUnauthorized")
-              : t("restaurants.newWizard.menuLoadFailed"),
-          );
-        }
-        if (sRes.ok) {
-          const secPayload = (await sRes.json()) as { sections?: MenuSectionEntity[] };
-          setMenuSections(Array.isArray(secPayload.sections) ? secPayload.sections : []);
-        }
-      } catch {
-        if (!cancelled) {
-          setCategoriesLoadError(t("restaurants.newWizard.categoriesLoadFailed"));
-          setMenuLoadError(t("restaurants.newWizard.menuLoadFailed"));
-        }
-      } finally {
-        if (!cancelled) setCatalogLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
-
-  const reloadCategories = useCallback(async () => {
-    try {
-      const cRes = await fetch("/api/settings/categories", { cache: "no-store" });
-      if (cRes.ok) {
-        setCategoriesPayload((await cRes.json()) as CategoriesResponse);
-        setCategoriesLoadError(null);
-        return true;
-      }
-      setCategoriesLoadError(
-        cRes.status === 401
-          ? t("restaurants.newWizard.catalogUnauthorized")
-          : t("restaurants.newWizard.categoriesLoadFailed"),
-      );
-      return false;
-    } catch {
-      setCategoriesLoadError(t("restaurants.newWizard.categoriesLoadFailed"));
-      return false;
-    }
-  }, [t]);
-
-  const allCategories = useMemo((): Category[] => {
-    const fromApi = categoriesPayload?.categories ?? [];
-    return [...fromApi].sort(
-      (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-    );
-  }, [categoriesPayload]);
-
-  // Edit-mode prefill (`loc.enabledCategoryIds`) can include ids for categories
-  // that no longer exist in the catalog (deleted, or revoked from the
-  // restaurant). Those ids are invisible in the step-2 UI because it only
-  // renders rows from `allCategories`, but they remain in `selectedCategoryIds`
-  // and trip the click-time validation in `handleNextFrom2` with the
-  // misleading "categories no longer available — refresh" error. Reconcile
-  // silently as soon as the catalog has loaded successfully.
-  useEffect(() => {
-    if (catalogLoading) return;
-    if (categoriesLoadError) return;
-    setSelectedCategoryIds((prev) => {
-      const known = new Set(allCategories.map((c) => c.id));
-      const filtered = prev.filter((id) => known.has(id) && !id.startsWith("local-"));
-      return filtered.length === prev.length ? prev : filtered;
-    });
-  }, [allCategories, catalogLoading, categoriesLoadError]);
-
-  const handleCreateCategorySave = useCallback(
-    async (payload: {
-      name: string;
-      description?: string;
-      coverPhoto?: string;
-      menuSectionId: string;
-    }) => {
-      setIsCreatingCategory(true);
-      try {
-        const res = await fetch("/api/settings/categories", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: payload.name,
-            description: payload.description,
-            coverPhoto: payload.coverPhoto,
-            menuSectionId: payload.menuSectionId,
-          }),
-        });
-        if (!res.ok) {
-          const msg = (await res.json().catch(() => null)) as { message?: string } | null;
-          throw new Error(msg?.message ?? t("newCategory.createFailed"));
-        }
-        const body = (await res.json()) as { category?: { id?: string } };
-        const newId = body.category?.id;
-        await reloadCategories();
-        if (newId) {
-          setSelectedCategoryIds((prev) =>
-            prev.includes(newId) ? prev : [...prev, newId],
-          );
-        }
-        setCreateCategoryModalOpen(false);
-      } finally {
-        setIsCreatingCategory(false);
-      }
-    },
-    [reloadCategories, t],
-  );
-
-  useEffect(() => {
     return () => {
       if (logoPreviewUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(logoPreviewUrl);
@@ -357,74 +165,7 @@ export function NewLocationWizard({
     };
   }, [coverPreviewUrl, logoPreviewUrl]);
 
-  const toggleCategory = useCallback((id: string) => {
-    setSelectedCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }, []);
-
-  const toggleItem = useCallback(
-    (categoryId: string, item: GlobalMenuItemApi) => {
-      setSelectedItems((prev) => {
-        const next = { ...prev };
-        if (next[item.id]) {
-          delete next[item.id];
-          return next;
-        }
-        next[item.id] = createDefaultItemRow(categoryId, item, currency);
-        return next;
-      });
-    },
-    [currency],
-  );
-
-  const patchItemPrice = useCallback(
-    (itemId: string, item: GlobalMenuItemApi, patch: Partial<SelectedItemRow>) => {
-      setSelectedItems((prev) => {
-        const row = prev[itemId];
-        if (!row) return prev;
-        const m = getMatchingCatalogPrices(item, currency);
-        const merged = { ...row, ...patch };
-        return {
-          ...prev,
-          [itemId]: {
-            ...merged,
-            overridePrice: computeOverrideFromRow(merged, m),
-          },
-        };
-      });
-    },
-    [currency],
-  );
-
-  const setCategoryItemsSelected = useCallback(
-    (catId: string, items: GlobalMenuItemApi[], selectAll: boolean) => {
-      setSelectedItems((prev) => {
-        const next = { ...prev };
-        if (selectAll) {
-          for (const item of items) {
-            if (item.active === false) continue;
-            const prevRow = prev[item.id];
-            next[item.id] = prevRow
-              ? reconcileItemRow(
-                  { ...prevRow, categoryId: catId, name: item.name },
-                  item,
-                  currency,
-                )
-              : createDefaultItemRow(catId, item, currency);
-          }
-        } else {
-          for (const item of items) {
-            delete next[item.id];
-          }
-        }
-        return next;
-      });
-    },
-    [currency],
-  );
-
-  const handleNextFrom1 = async () => {
+  const handleSave = async () => {
     setStepError(null);
     if (!name.trim()) {
       setStepError(t("restaurants.newWizard.errNameRequired"));
@@ -505,7 +246,9 @@ export function NewLocationWizard({
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
-        setStep(2);
+
+        router.push(wizardBackHref);
+        router.refresh();
       } catch {
         setStepError(t("restaurants.newWizard.errUpdateLocation"));
       } finally {
@@ -559,215 +302,14 @@ export function NewLocationWizard({
         setStepError(t("restaurants.newWizard.errCreateLocation"));
         return;
       }
-      setCreatedLocationId(id);
-      setStep(2);
+      router.push(`/restaurants/${encodeURIComponent(id)}`);
+      router.refresh();
     } catch {
       setStepError(t("restaurants.newWizard.errCreateLocation"));
     } finally {
       setIsSavingStep1(false);
     }
   };
-
-  const handleNextFrom2 = async () => {
-    setStepError(null);
-    if (selectedCategoryIds.length === 0) {
-      setStepError(t("restaurants.newWizard.errCategoriesRequired"));
-      return;
-    }
-    if (!createdLocationId) {
-      setStepError(t("restaurants.newWizard.errCompleteBasicsFirst"));
-      return;
-    }
-
-    const knownIds = new Set(allCategories.map((c) => c.id));
-    const categoryIds = selectedCategoryIds.filter(
-      (id) => knownIds.has(id) && !id.startsWith("local-"),
-    );
-    if (categoryIds.length !== selectedCategoryIds.length) {
-      setStepError(t("restaurants.newWizard.errCategoriesInvalid"));
-      return;
-    }
-
-    setIsSavingStep2(true);
-    try {
-      const res = await fetch(
-        `/api/settings/locations/${encodeURIComponent(createdLocationId)}/categories`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ categoryIds }),
-        },
-      );
-      if (!res.ok) {
-        setStepError(t("restaurants.newWizard.errSaveCategories"));
-        return;
-      }
-      setSelectedItems(
-        buildSelectedItemsForAllMenuItems(
-          selectedCategoryIds,
-          globalMenu,
-          currency,
-        ),
-      );
-      setStep(3);
-    } catch {
-      setStepError(t("restaurants.newWizard.errSaveCategories"));
-    } finally {
-      setIsSavingStep2(false);
-    }
-  };
-
-  const handlePublish = async () => {
-    setStepError(null);
-    const count = Object.keys(selectedItems).length;
-    if (count === 0) {
-      setStepError(t("restaurants.newWizard.errItemsRequired"));
-      return;
-    }
-    if (!createdLocationId) {
-      setStepError(t("restaurants.newWizard.errCompleteBasicsFirst"));
-      return;
-    }
-    setPublishing(true);
-    try {
-      const items: { menuItemId: string; price: string }[] = [];
-      for (const [menuItemId, row] of Object.entries(selectedItems)) {
-        const catalogItem = findMenuItemInGlobalMenu(globalMenu, menuItemId);
-        if (!catalogItem) {
-          setStepError(t("restaurants.newWizard.errPublishMenuCatalogMissing"));
-          return;
-        }
-        const matching = getMatchingCatalogPrices(catalogItem, currency);
-        const amount = computeOverrideFromRow(row, matching).trim();
-        if (!amount.length) {
-          setStepError(t("restaurants.newWizard.errItemsPriceInvalid"));
-          return;
-        }
-        items.push({ menuItemId, price: amount });
-      }
-
-      const res = await fetch(
-        `/api/settings/locations/${encodeURIComponent(createdLocationId)}/menu-items`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items }),
-        },
-      );
-      if (!res.ok) {
-        let detail = "";
-        try {
-          const errBody = (await res.json()) as { message?: string };
-          if (typeof errBody?.message === "string" && errBody.message.trim()) {
-            detail = errBody.message.trim();
-          }
-        } catch {
-          /* ignore */
-        }
-        setStepError(
-          detail
-            ? t("restaurants.newWizard.errPublishLocationMenuWithDetail", { detail })
-            : t("restaurants.newWizard.errPublishLocationMenu"),
-        );
-        return;
-      }
-
-      setPublishedLocationId(createdLocationId);
-      setStep(4);
-
-      void fetch("/api/settings/global-menu", { cache: "no-store" }).then(async (mRes) => {
-        if (mRes.ok) {
-          try {
-            setGlobalMenu((await mRes.json()) as GlobalMenuResponse);
-          } catch {
-            /* ignore */
-          }
-        }
-      });
-    } catch {
-      setStepError(t("restaurants.newWizard.publishFailed"));
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (step !== 4 || !publishedLocationId) {
-      setQrDataUrl(null);
-      return;
-    }
-    const menuUrl =
-      locationType === "delivery"
-        ? buildDeliveryMenuPublicUrl(publishedLocationId)
-        : buildLocationMenuPublicUrl(publishedLocationId);
-    setPublicMenuUrl(menuUrl);
-    let cancelled = false;
-    void styledQrToDataUrl({
-      url: menuUrl,
-      width: STYLED_QR_WIZARD_PREVIEW_WIDTH,
-      logoUrl: logoPreviewSrc || undefined,
-    })
-      .then((dataUrl) => {
-        if (!cancelled) setQrDataUrl(dataUrl);
-      })
-      .catch(() => {
-        if (!cancelled) setQrDataUrl(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [locationType, logoPreviewSrc, publishedLocationId, step]);
-
-  const downloadQr = useCallback(() => {
-    if (!publishedLocationId || !publicMenuUrl) return;
-    void downloadStyledQrPng({
-      url: publicMenuUrl,
-      width: STYLED_QR_PRINT_WIDTH,
-      logoUrl: logoPreviewSrc || undefined,
-      filename: `${locationType === "delivery" ? "delivery" : "dinein"}-qr-${publishedLocationId}.png`,
-    });
-  }, [locationType, logoPreviewSrc, publicMenuUrl, publishedLocationId]);
-
-  const selectedSet = useMemo(
-    () => new Set(selectedCategoryIds),
-    [selectedCategoryIds],
-  );
-
-  const itemsByCategory = useMemo(() => {
-    const map = new Map<string, GlobalMenuItemApi[]>();
-    if (!globalMenu) return map;
-    for (const cat of globalMenu.categories) {
-      if (selectedSet.has(cat.id)) {
-        map.set(cat.id, cat.items.filter((i) => i.active !== false));
-      }
-    }
-    return map;
-  }, [globalMenu, selectedSet]);
-
-  const menuPreviewSections = useMemo((): MenuPreviewSection[] => {
-    const out: MenuPreviewSection[] = [];
-    for (const catId of selectedCategoryIds) {
-      const meta = allCategories.find((c) => c.id === catId);
-      if (!meta) continue;
-      const items: { name: string; price: string }[] = [];
-      for (const row of Object.values(selectedItems)) {
-        if (row.categoryId !== catId) continue;
-        items.push({
-          name: row.name,
-          price: `${row.overridePrice.replace(/([.,]00)(?!\d)/g, "").trim()} ${currency}`.trim(),
-        });
-      }
-      out.push({ categoryName: meta.name, items });
-    }
-    return out;
-  }, [selectedCategoryIds, allCategories, selectedItems, currency]);
-
-  const steps = [
-    { n: 1 as const, label: t("restaurants.newWizard.stepBasics") },
-    { n: 2 as const, label: t("restaurants.newWizard.stepCategories") },
-    { n: 3 as const, label: t("restaurants.newWizard.stepMenu") },
-    { n: 4 as const, label: t("restaurants.newWizard.stepDone") },
-  ];
 
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] lg:items-start lg:gap-10 xl:gap-12">
@@ -793,8 +335,6 @@ export function NewLocationWizard({
           </Link>
         </div>
 
-        <WizardStepsNav step={step} steps={steps} ariaLabel={t("restaurants.newWizard.stepsNav")} />
-
         {stepError && (
           <p
             className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-800 dark:text-red-200"
@@ -804,7 +344,7 @@ export function NewLocationWizard({
           </p>
         )}
 
-        {step === 1 && (
+        <div className="mt-6">
           <WizardStepBasics
             name={name}
             setName={setName}
@@ -862,83 +402,28 @@ export function NewLocationWizard({
             editLoadError={editLoadError}
             isSavingStep1={isSavingStep1}
             createdLocationId={createdLocationId}
-            onNext={handleNextFrom1}
+            onNext={handleSave}
           />
-        )}
-
-        {step === 2 && (
-          <WizardStepCategories
-            catalogLoading={catalogLoading}
-            categoriesLoadError={categoriesLoadError}
-            allCategories={allCategories}
-            selectedCategoryIds={selectedCategoryIds}
-            toggleCategory={toggleCategory}
-            onOpenCreateCategory={() => setCreateCategoryModalOpen(true)}
-            isSavingStep2={isSavingStep2}
-            onBack={() => {
-              setStep(1);
-              setStepError(null);
-            }}
-            onNext={handleNextFrom2}
-          />
-        )}
-
-        {step === 3 && (
-          <WizardStepMenu
-            menuLoadError={menuLoadError}
-            selectedCategoryIds={selectedCategoryIds}
-            allCategories={allCategories}
-            itemsByCategory={itemsByCategory}
-            currency={currency}
-            selectedItems={selectedItems}
-            toggleItem={toggleItem}
-            setCategoryItemsSelected={setCategoryItemsSelected}
-            patchItemPrice={patchItemPrice}
-            publishing={publishing}
-            onBack={() => {
-              setStep(2);
-              setStepError(null);
-            }}
-            onPublish={handlePublish}
-          />
-        )}
-
-        {step === 4 && publishedLocationId && (
-          <WizardStepDone
-            publishedLocationId={publishedLocationId}
-            qrDataUrl={qrDataUrl}
-            publicMenuUrl={publicMenuUrl}
-            onDownloadQr={downloadQr}
-          />
-        )}
+        </div>
       </div>
 
       <aside className="mt-10 hidden lg:mt-0 lg:flex lg:justify-center xl:sticky xl:top-24 xl:justify-end xl:self-start">
         <LocationWizardMenuPreview
           locationName={name}
+          locationType={locationType}
           address={address}
           currency={currency}
           logoSrc={logoPreviewSrc || undefined}
           coverSrc={coverPreviewSrc || undefined}
-          sections={menuPreviewSections}
+          sections={[]}
           placeholderLocationName={t("restaurants.newWizard.previewPlaceholderName")}
-          caption={t("restaurants.newWizard.menuPreviewCaption")}
+          caption={
+            locationType === "delivery"
+              ? t("restaurants.newWizard.deliveryPreviewCaption")
+              : t("restaurants.newWizard.menuPreviewCaption")
+          }
         />
       </aside>
-
-      <CategoryNameModal
-        open={createCategoryModalOpen}
-        mode="create"
-        initialName=""
-        initialDescription=""
-        initialCoverPhoto=""
-        sections={menuSections}
-        isSaving={isCreatingCategory}
-        onClose={() => {
-          if (!isCreatingCategory) setCreateCategoryModalOpen(false);
-        }}
-        onSave={handleCreateCategorySave}
-      />
     </div>
   );
 }

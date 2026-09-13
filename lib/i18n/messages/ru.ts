@@ -374,24 +374,40 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.entryCta": "Создать локацию",
   "restaurants.newWizard.pageTitle": "Создать локацию",
   "restaurants.newWizard.pageSubtitle":
-    "Настройте новую локацию за четыре шага. Основное сохраняется при переходе далее; завершите выбор меню и опубликуйте, чтобы получить QR-код.",
+    "Укажите информацию о локации, адрес и параметры работы.",
   "restaurants.newWizard.backToList": "К ресторанам",
-  "restaurants.newWizard.stepsNav": "Шаги настройки локации",
-  "restaurants.newWizard.stepBasics": "Основное",
-  "restaurants.newWizard.stepCategories": "Категории",
-  "restaurants.newWizard.stepMenu": "Меню и цены",
-  "restaurants.newWizard.stepDone": "Готово",
+  "restaurants.newWizard.submitCreate": "Создать локацию",
+  "restaurants.newWizard.submitSave": "Сохранить изменения",
+  "restaurants.locationType.label": "Тип локации",
+  "restaurants.locationType.dineInTitle": "В заведении (стандарт)",
+  "restaurants.locationType.dineInDesc":
+    "Обслуживание в зале: столики, QR-коды для каждого стола, вызов персонала и синхронизация с кассой.",
+  "restaurants.locationType.deliveryTitle": "Онлайн-доставка",
+  "restaurants.locationType.deliveryDesc":
+    "Витрина онлайн-заказов: адрес и геометка на карте, обложка, телефон для заказов и один общий QR-код доставки.",
+  "restaurants.locationType.selected": "Выбрано",
+  "restaurants.deliveryAddressTitle": "Адрес ресторана и геометка кухни",
+  "restaurants.deliveryAddressHint":
+    "Найдите адрес через поиск или переместите метку на карте. Расстояние и время доставки рассчитываются от этой точки.",
+  "restaurants.mapboxSearchPlaceholder": "Поиск адреса (улица, дом, город)...",
+  "restaurants.mapboxLocateMeTitle": "Использовать текущее местоположение",
+  "restaurants.mapboxDragPinHint": "📍 Перетащите метку или нажмите на карту для точного указания входа",
+  "restaurants.mapboxCoordinatesLabel": "Координаты",
+  "restaurants.mapboxUpdatingAddress": "Обновление адреса...",
+  "restaurants.mapboxLoadingMap": "Загрузка карты...",
+  "restaurants.mapboxNotConfigured": "Mapbox токен не настроен",
+  "restaurants.mapboxManualFallback": "Вы можете ввести адрес вручную в поле выше.",
+  "restaurants.contactAndSocialTitle": "Контакты и соцсети",
+  "restaurants.contactAndSocialHint": "Отображаются клиентам на витрине доставки и в чеках заказов.",
+  "restaurants.phoneNumber": "Номер телефона",
+  "restaurants.coverImageTitle": "Обложка / баннер локации",
+  "restaurants.coverImageHint": "Широкий баннер в верхней части витрины доставки.",
+  "restaurants.coverPreviewAlt": "Предпросмотр обложки",
+  "restaurants.coverUrlPlaceholder": "https://... (или выберите файл ниже)",
+  "restaurants.orDivider": "или",
+  "restaurants.translationLangsHeading": "Языки перевода",
   "restaurants.newWizard.errNameRequired": "Введите название локации.",
   "restaurants.newWizard.errAddressRequired": "Введите адрес.",
-  "restaurants.newWizard.errCategoriesRequired":
-    "Выберите хотя бы одну категорию.",
-  "restaurants.newWizard.errCategoriesInvalid":
-    "Некоторые выбранные категории больше недоступны. Обновите страницу и попробуйте снова.",
-  "restaurants.newWizard.errSaveCategories":
-    "Не удалось сохранить категории для этой локации. Попробуйте снова.",
-  "restaurants.newWizard.savingCategories": "Сохранение категорий…",
-  "restaurants.newWizard.errItemsRequired":
-    "Выберите хотя бы одну позицию меню.",
   "restaurants.newWizard.errCreateLocation":
     "Не удалось создать локацию. Проверьте подключение и попробуйте снова.",
   "restaurants.newWizard.errUpdateLocation":
@@ -406,13 +422,8 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.updatingLocation": "Сохранение изменений…",
   "restaurants.newWizard.editPageTitle": "Редактирование локации",
   "restaurants.newWizard.editPageSubtitle":
-    "Обновите основные данные, категории и меню для этой локации.",
-  "restaurants.newWizard.errCompleteBasicsFirst":
-    "Сначала завершите шаг 1 (Основное), затем публикуйте.",
-  "restaurants.newWizard.continue": "Продолжить",
+    "Обновите информацию о локации, адрес и параметры работы.",
   "restaurants.newWizard.creatingLocation": "Создание локации…",
-  "restaurants.newWizard.basicsLockedHint":
-    "Локация уже сохранена. Нажмите «Продолжить», чтобы выбрать категории и меню, или покиньте страницу, чтобы начать заново.",
   "restaurants.newWizard.logoLabel": "Логотип (необязательно)",
   "restaurants.newWizard.logoPreviewAlt": "Предпросмотр логотипа",
   "restaurants.newWizard.removeLogo": "Убрать логотип",
@@ -441,6 +452,8 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.previewMenuHeading": "Меню",
   "restaurants.newWizard.menuPreviewCaption":
     "Предпросмотр меню для гостей (мобильный)",
+  "restaurants.newWizard.deliveryPreviewCaption":
+    "Предпросмотр витрины доставки (мобильный)",
   "restaurants.newWizard.next": "Далее",
   "restaurants.newWizard.back": "Назад",
   "restaurants.newWizard.loadingCatalog": "Загрузка каталога…",

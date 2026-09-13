@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useI18n } from "@/app/components/i18n-provider";
 import type { GeoCoordinates, MapboxGeocodeFeature } from "@/lib/address-types";
 import { searchMapboxAddress, reverseGeocodeMapbox } from "@/lib/geo-utils";
 
@@ -21,6 +22,7 @@ export function MapboxLocationPicker({
   onChangeCoordinates,
   disabled = false,
 }: MapboxLocationPickerProps) {
+  const { t } = useI18n();
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() || "";
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -272,7 +274,7 @@ export function MapboxLocationPicker({
               onFocus={() => {
                 if (searchResults.length > 0) setShowDropdown(true);
               }}
-              placeholder="Search restaurant address (street, building, city)..."
+              placeholder={t("restaurants.mapboxSearchPlaceholder")}
               disabled={disabled}
               className="w-full rounded-xl border border-foreground/15 bg-background/80 px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/40 outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 pr-9"
             />
@@ -302,7 +304,7 @@ export function MapboxLocationPicker({
             type="button"
             onClick={handleLocateMe}
             disabled={disabled || isLocatingUser}
-            title="Use Current GPS Location"
+            title={t("restaurants.mapboxLocateMeTitle")}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-foreground/15 bg-background hover:bg-foreground/5 text-foreground/70 hover:text-foreground disabled:opacity-50 transition"
           >
             {isLocatingUser ? (
@@ -351,10 +353,10 @@ export function MapboxLocationPicker({
         {!mapboxToken ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 p-4 text-center">
             <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-              Mapbox token not configured (<code className="font-mono">NEXT_PUBLIC_MAPBOX_TOKEN</code>)
+              {t("restaurants.mapboxNotConfigured")} (<code className="font-mono">NEXT_PUBLIC_MAPBOX_TOKEN</code>)
             </p>
             <p className="text-[11px] text-foreground/50 mt-1">
-              You can still type the address manually above.
+              {t("restaurants.mapboxManualFallback")}
             </p>
           </div>
         ) : !mapLoaded ? (
@@ -364,26 +366,26 @@ export function MapboxLocationPicker({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span>Loading vector map...</span>
+              <span>{t("restaurants.mapboxLoadingMap")}</span>
             </div>
           </div>
         ) : null}
 
         {/* Pin Helper Badge */}
         <div className="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground/70 shadow border border-foreground/10">
-          📍 Drag the pin or click on the map to pinpoint kitchen entrance
+          {t("restaurants.mapboxDragPinHint")}
         </div>
       </div>
 
       {/* Lat/Lon Coordinates Display */}
       <div className="flex items-center justify-between text-[11px] text-foreground/50 px-1">
         <span>
-          Coordinates:{" "}
+          {t("restaurants.mapboxCoordinatesLabel")}:{" "}
           <span className="font-mono font-medium text-foreground/70">
             {currentCoords[1].toFixed(5)}, {currentCoords[0].toFixed(5)}
           </span>
         </span>
-        {isReverseGeocoding && <span className="text-blue-600 dark:text-blue-400">Updating address...</span>}
+        {isReverseGeocoding && <span className="text-blue-600 dark:text-blue-400">{t("restaurants.mapboxUpdatingAddress")}</span>}
       </div>
     </div>
   );
