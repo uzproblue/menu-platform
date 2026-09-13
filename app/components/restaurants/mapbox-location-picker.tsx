@@ -12,6 +12,7 @@ interface MapboxLocationPickerProps {
   longitude: number | null;
   onChangeCoordinates: (coords: GeoCoordinates) => void;
   disabled?: boolean;
+  mapboxToken?: string;
 }
 
 export function MapboxLocationPicker({
@@ -21,9 +22,50 @@ export function MapboxLocationPicker({
   longitude,
   onChangeCoordinates,
   disabled = false,
+  mapboxToken: initialToken,
 }: MapboxLocationPickerProps) {
   const { t } = useI18n();
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() || "";
+  const [activeToken, setActiveToken] = useState<string>(
+    initialToken?.trim() || process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() || "",
+  );
+  const [isFetchingToken, setIsFetchingToken] = useState<boolean>(!activeToken);
+
+  useEffect(() => {
+    if (initialToken?.trim()) {
+      setActiveToken(initialToken.trim());
+      setIsFetchingToken(false);
+      return;
+    }
+    if (activeToken) {
+      setIsFetchingToken(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetchingToken(true);
+    fetch("/api/settings/mapbox-token")
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { token?: string };
+      })
+      .then((data) => {
+        if (!cancelled) {
+          if (data?.token?.trim()) {
+            setActiveToken(data.token.trim());
+          }
+          setIsFetchingToken(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setIsFetchingToken(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialToken, activeToken]);
+
+  const mapboxToken = activeToken;
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -350,16 +392,7 @@ export function MapboxLocationPicker({
       <div className="relative overflow-hidden rounded-xl border border-foreground/15 bg-foreground/5">
         <div ref={mapContainerRef} className="h-72 w-full" />
 
-        {!mapboxToken ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 p-4 text-center">
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-              {t("restaurants.mapboxNotConfigured")} (<code className="font-mono">NEXT_PUBLIC_MAPBOX_TOKEN</code>)
-            </p>
-            <p className="text-[11px] text-foreground/50 mt-1">
-              {t("restaurants.mapboxManualFallback")}
-            </p>
-          </div>
-        ) : !mapLoaded ? (
+        {isFetchingToken || (mapboxToken && !mapLoaded) ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <div className="flex items-center gap-2 text-xs text-foreground/60">
               <svg className="size-4 animate-spin text-foreground/50" fill="none" viewBox="0 0 24 24">
@@ -368,6 +401,15 @@ export function MapboxLocationPicker({
               </svg>
               <span>{t("restaurants.mapboxLoadingMap")}</span>
             </div>
+          </div>
+        ) : !mapboxToken ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 p-4 text-center">
+            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+              {t("restaurants.mapboxNotConfigured")} (<code className="font-mono">NEXT_PUBLIC_MAPBOX_TOKEN</code>)
+            </p>
+            <p className="text-[11px] text-foreground/50 mt-1">
+              {t("restaurants.mapboxManualFallback")}
+            </p>
           </div>
         ) : null}
 

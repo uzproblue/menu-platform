@@ -2,6 +2,7 @@ import type { CatalogPriceApi } from "@/lib/auth-api";
 
 export type NewLocationWizardProps = {
   initialLocationId?: string | null;
+  mapboxToken?: string;
 };
 
 export type SelectedItemRow = {

@@ -62,6 +62,7 @@ type WizardStepBasicsProps = {
   isSavingStep1: boolean;
   createdLocationId: string | null;
   onNext: () => void;
+  mapboxToken?: string;
 };
 
 export function WizardStepBasics({
@@ -119,6 +120,7 @@ export function WizardStepBasics({
   isSavingStep1,
   createdLocationId,
   onNext,
+  mapboxToken,
 }: WizardStepBasicsProps) {
   const { t } = useI18n();
   const formDisabled = isLoadingLocationEdit || Boolean(editLoadError);
@@ -223,6 +225,7 @@ export function WizardStepBasics({
             longitude={longitude}
             onChangeCoordinates={setCoordinates}
             disabled={formDisabled}
+            mapboxToken={mapboxToken}
           />
         </div>
       ) : (

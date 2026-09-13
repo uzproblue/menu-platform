@@ -19,6 +19,7 @@ export type { NewLocationWizardProps };
 
 export function NewLocationWizard({
   initialLocationId = null,
+  mapboxToken,
 }: NewLocationWizardProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -403,6 +404,7 @@ export function NewLocationWizard({
             isSavingStep1={isSavingStep1}
             createdLocationId={createdLocationId}
             onNext={handleSave}
+            mapboxToken={mapboxToken}
           />
         </div>
       </div>

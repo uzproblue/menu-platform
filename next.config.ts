@@ -12,6 +12,11 @@ const resolvedMenuUrl =
   process.env.MENU_URL?.trim() ||
   "";
 
+const resolvedMapboxToken =
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() ||
+  process.env.MAPBOX_TOKEN?.trim() ||
+  "";
+
 if (
   process.env.NODE_ENV === "production" &&
   !resolvedR2PublicBaseUrl
@@ -25,13 +30,16 @@ if (
 
 const nextConfig: NextConfig = {
   transpilePackages: ["konva", "react-konva"],
-  ...(resolvedR2PublicBaseUrl || resolvedMenuUrl
+  ...(resolvedR2PublicBaseUrl || resolvedMenuUrl || resolvedMapboxToken
     ? {
         env: {
           ...(resolvedR2PublicBaseUrl
             ? { NEXT_PUBLIC_R2_PUBLIC_BASE_URL: resolvedR2PublicBaseUrl }
             : {}),
           ...(resolvedMenuUrl ? { NEXT_PUBLIC_MENU_URL: resolvedMenuUrl } : {}),
+          ...(resolvedMapboxToken
+            ? { NEXT_PUBLIC_MAPBOX_TOKEN: resolvedMapboxToken }
+            : {}),
         },
       }
     : {}),
