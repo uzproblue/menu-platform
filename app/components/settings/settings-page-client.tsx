@@ -57,6 +57,29 @@ function formatLastLogin(value: string | null, neverLabel: string): string {
   }).format(date);
 }
 
+function getMenuSyncStage(seconds: number): { percent: number; labelKey: string } {
+  if (seconds < 3) {
+    return { percent: 20, labelKey: "settings.syncStageAuth" };
+  }
+  if (seconds < 12) {
+    return { percent: 55, labelKey: "settings.menuSyncStageFetch" };
+  }
+  if (seconds < 22) {
+    return { percent: 80, labelKey: "settings.menuSyncStageApply" };
+  }
+  return { percent: 92, labelKey: "settings.menuSyncStageExport" };
+}
+
+function getTableSyncStage(seconds: number): { percent: number; labelKey: string } {
+  if (seconds < 2) {
+    return { percent: 25, labelKey: "settings.syncStageAuth" };
+  }
+  if (seconds < 6) {
+    return { percent: 60, labelKey: "settings.tablesSyncStageFetch" };
+  }
+  return { percent: 88, labelKey: "settings.tablesSyncStageApply" };
+}
+
 export function SettingsPageClient({
   initialName,
   initialEmail,
@@ -112,6 +135,7 @@ export function SettingsPageClient({
   const [syncLocations, setSyncLocations] = useState<PosSyncLocationOption[]>([]);
   const [selectedSyncLocationId, setSelectedSyncLocationId] = useState<string>("");
   const [syncLoading, setSyncLoading] = useState(false);
+  const [syncSeconds, setSyncSeconds] = useState(0);
   const [syncStatusPending, setSyncStatusPending] = useState(false);
   const [syncResult, setSyncResult] = useState<{
     ok: boolean;
@@ -123,6 +147,41 @@ export function SettingsPageClient({
     timestamp?: Date;
   } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  const [tablesSyncLoading, setTablesSyncLoading] = useState(false);
+  const [tableSyncSeconds, setTableSyncSeconds] = useState(0);
+  const [tablesSyncResult, setTablesSyncResult] = useState<{
+    ok: boolean;
+    message?: string;
+    sectionsCount?: number;
+    tablesCount?: number;
+    tablesCreated?: number;
+    tablesUpdated?: number;
+    timestamp?: Date;
+  } | null>(null);
+  const [tablesSyncError, setTablesSyncError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!syncLoading) {
+      setSyncSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setSyncSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [syncLoading]);
+
+  useEffect(() => {
+    if (!tablesSyncLoading) {
+      setTableSyncSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setTableSyncSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [tablesSyncLoading]);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -202,6 +261,53 @@ export function SettingsPageClient({
       setSyncError(t("settings.menuSyncError"));
     } finally {
       setSyncLoading(false);
+    }
+  }
+
+  async function handleRefreshTables() {
+    setTablesSyncLoading(true);
+    setTablesSyncError(null);
+    setTablesSyncResult(null);
+
+    try {
+      const res = await fetch("/api/settings/tables-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: selectedSyncLocationId || undefined,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+        sectionsCount?: number;
+        tablesCount?: number;
+        tablesCreated?: number;
+        tablesUpdated?: number;
+      } | null;
+
+      if (!res.ok || !data?.ok) {
+        setTablesSyncError(
+          data?.message ?? data?.error ?? t("settings.tablesSyncError"),
+        );
+        return;
+      }
+
+      setTablesSyncResult({
+        ok: true,
+        message: data.message,
+        sectionsCount: data.sectionsCount ?? 0,
+        tablesCount: data.tablesCount ?? 0,
+        tablesCreated: data.tablesCreated ?? 0,
+        tablesUpdated: data.tablesUpdated ?? 0,
+        timestamp: new Date(),
+      });
+    } catch {
+      setTablesSyncError(t("settings.tablesSyncError"));
+    } finally {
+      setTablesSyncLoading(false);
     }
   }
 
@@ -819,7 +925,7 @@ export function SettingsPageClient({
                     id="pos-location-select"
                     value={selectedSyncLocationId}
                     onChange={(e) => setSelectedSyncLocationId(e.target.value)}
-                    disabled={syncLoading}
+                    disabled={syncLoading || tablesSyncLoading}
                     className="min-h-11 rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-50"
                   >
                     {syncLocations.map((loc) => (
@@ -835,7 +941,7 @@ export function SettingsPageClient({
                 type="button"
                 onClick={handleRefreshMenu}
                 disabled={
-                  syncLoading || (syncLocations.length === 0 && !syncStatusPending)
+                  syncLoading || tablesSyncLoading || (syncLocations.length === 0 && !syncStatusPending)
                 }
                 className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-all hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -856,6 +962,33 @@ export function SettingsPageClient({
                 {syncLoading
                   ? t("settings.refreshingMenu")
                   : t("settings.refreshMenuBtn")}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRefreshTables}
+                disabled={
+                  syncLoading || tablesSyncLoading || (syncLocations.length === 0 && !syncStatusPending)
+                }
+                className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/90 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg
+                  className={`size-4 shrink-0 ${tablesSyncLoading ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h18M3 14h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"
+                  />
+                </svg>
+                {tablesSyncLoading
+                  ? t("settings.refreshingTables")
+                  : t("settings.refreshTablesBtn")}
               </button>
             </div>
           </div>
@@ -894,9 +1027,65 @@ export function SettingsPageClient({
               </div>
             )}
 
+            {syncLoading ? (
+              <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <span className="relative flex size-2.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {t(getMenuSyncStage(syncSeconds).labelKey)}
+                    </span>
+                  </div>
+                  <span className="tabular-nums font-mono text-xs text-foreground/60">
+                    ⏱ {syncSeconds}s
+                  </span>
+                </div>
+                <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-700 ease-out"
+                    style={{ width: `${getMenuSyncStage(syncSeconds).percent}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {tablesSyncLoading ? (
+              <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+                <div className="flex items-center justify-between text-xs font-medium">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <span className="relative flex size-2.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex size-2.5 rounded-full bg-blue-500" />
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {t(getTableSyncStage(tableSyncSeconds).labelKey)}
+                    </span>
+                  </div>
+                  <span className="tabular-nums font-mono text-xs text-foreground/60">
+                    ⏱ {tableSyncSeconds}s
+                  </span>
+                </div>
+                <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-700 ease-out"
+                    style={{ width: `${getTableSyncStage(tableSyncSeconds).percent}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
             {syncError ? (
               <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600 dark:text-red-400">
                 {syncError}
+              </p>
+            ) : null}
+
+            {tablesSyncError ? (
+              <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600 dark:text-red-400">
+                {tablesSyncError}
               </p>
             ) : null}
 
@@ -938,6 +1127,40 @@ export function SettingsPageClient({
                     ) : null}
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+
+            {tablesSyncResult ? (
+              <div className="mt-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2.5 text-sm text-blue-800 dark:text-blue-300">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    {t("settings.tablesSyncSuccess")}
+                  </span>
+                  {tablesSyncResult.timestamp ? (
+                    <span className="text-xs opacity-75">
+                      {t("settings.tablesSyncLastRefreshed")}:{" "}
+                      {formatLastLogin(tablesSyncResult.timestamp.toISOString(), "")}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-3 text-xs opacity-90">
+                  <span>
+                    🏛️ {tablesSyncResult.sectionsCount} {t("settings.tablesSyncSectionsCount")}
+                  </span>
+                  <span>
+                    🪑 {tablesSyncResult.tablesCount} {t("settings.tablesSyncTablesCount")}
+                  </span>
+                  {(tablesSyncResult.tablesCreated ?? 0) > 0 ? (
+                    <span>
+                      + {tablesSyncResult.tablesCreated} {t("settings.tablesSyncTablesCreated")}
+                    </span>
+                  ) : null}
+                  {(tablesSyncResult.tablesUpdated ?? 0) > 0 ? (
+                    <span>
+                      ✓ {tablesSyncResult.tablesUpdated} {t("settings.tablesSyncTablesUpdated")}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>

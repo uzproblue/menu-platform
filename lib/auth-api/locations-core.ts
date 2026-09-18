@@ -190,6 +190,40 @@ export async function triggerLocationPosSyncWithAuthServer(
     accessToken,
     restaurantId,
     body: locationId ? { locationId } : {},
+    timeoutMs: 60_000,
+  });
+}
+
+export type PosTablesSyncResponse = {
+  ok: boolean;
+  locationId: string;
+  locationName: string;
+  sectionsCount: number;
+  tablesCount: number;
+  tablesCreated: number;
+  tablesUpdated: number;
+  message?: string;
+};
+
+export async function triggerLocationTablesSyncWithAuthServer(
+  accessToken: string,
+  restaurantId?: string,
+  locationId?: string,
+): Promise<
+  | { ok: true; data: PosTablesSyncResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  const path = locationId
+    ? `/api/locations/${encodeURIComponent(locationId)}/tables-sync`
+    : "/api/locations/tables-sync";
+
+  return authApiJson<PosTablesSyncResponse>({
+    path,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: locationId ? { locationId } : {},
+    timeoutMs: 45_000,
   });
 }
 

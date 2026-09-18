@@ -143,13 +143,32 @@ function unavailableResult(): AuthApiResult<never> {
   };
 }
 
-function networkFailure(opts: AuthApiRequestOpts): AuthApiResult<never> {
-  const err = opts.networkError ?? DEFAULT_NETWORK_ERROR;
+function networkFailure(
+  opts: AuthApiRequestOpts,
+  err?: unknown,
+): AuthApiResult<never> {
+  const isTimeout =
+    err instanceof Error &&
+    (err.name === "TimeoutError" ||
+      err.name === "AbortError" ||
+      err.message.toLowerCase().includes("timeout") ||
+      err.message.toLowerCase().includes("aborted"));
+
+  if (isTimeout) {
+    return {
+      ok: false,
+      status: 504,
+      error: "upstream_timeout",
+      message: "Request timed out waiting for server response",
+    };
+  }
+
+  const defaultErr = opts.networkError ?? DEFAULT_NETWORK_ERROR;
   return {
     ok: false,
-    status: err.status,
-    error: err.error,
-    message: err.message,
+    status: defaultErr.status,
+    error: defaultErr.error,
+    message: defaultErr.message,
   };
 }
 
@@ -170,8 +189,9 @@ export async function authApiJson<T>(opts: AuthApiRequestOpts): Promise<AuthApiR
       return { ok: false, status: res.status, error, message };
     }
     return { ok: true, data: (await res.json()) as T };
-  } catch {
-    return networkFailure(opts);
+  } catch (err) {
+    console.error("[authApiJson] request failed", opts.path, err);
+    return networkFailure(opts, err);
   }
 }
 
@@ -192,8 +212,9 @@ export async function authApiVoid(opts: AuthApiRequestOpts): Promise<AuthApiVoid
       return { ok: false, status: res.status, error, message };
     }
     return { ok: true };
-  } catch {
-    return networkFailure(opts);
+  } catch (err) {
+    console.error("[authApiVoid] request failed", opts.path, err);
+    return networkFailure(opts, err);
   }
 }
 
