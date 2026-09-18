@@ -101,6 +101,7 @@ export async function PATCH(
     translationLangs?: string[];
     posOrganizationId?: string | null;
     posTerminalGroupId?: string | null;
+    posApiToken?: string | null;
     chefAlertChatId?: string | null;
     instagramUrl?: string | null;
     twoGisUrl?: string | null;
@@ -258,6 +259,22 @@ export async function PATCH(
       o.posTerminalGroupId === null ? null : (o.posTerminalGroupId as string).trim();
     payload.posTerminalGroupId = v?.length ? v : null;
   }
+  if ("posApiToken" in o) {
+    if (o.posApiToken !== null && typeof o.posApiToken !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "posApiToken must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v = o.posApiToken === null ? null : (o.posApiToken as string).trim();
+    if (v && v.length > 256) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "posApiToken must be at most 256 characters" },
+        { status: 400 },
+      );
+    }
+    payload.posApiToken = v?.length ? v : null;
+  }
   if ("chefAlertChatId" in o) {
     if (o.chefAlertChatId !== null && typeof o.chefAlertChatId !== "string") {
       return NextResponse.json(
@@ -319,6 +336,7 @@ export async function PATCH(
     payload.translationLangs === undefined &&
     payload.posOrganizationId === undefined &&
     payload.posTerminalGroupId === undefined &&
+    payload.posApiToken === undefined &&
     payload.chefAlertChatId === undefined &&
     payload.instagramUrl === undefined &&
     payload.twoGisUrl === undefined &&
@@ -328,7 +346,7 @@ export async function PATCH(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled is required",
+          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled is required",
       },
       { status: 400 },
     );

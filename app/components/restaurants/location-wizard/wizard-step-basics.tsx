@@ -49,6 +49,8 @@ type WizardStepBasicsProps = {
   setPosOrganizationId: (v: string) => void;
   posTerminalGroupId: string;
   setPosTerminalGroupId: (v: string) => void;
+  posApiToken: string;
+  setPosApiToken: (v: string) => void;
   chefAlertChatId: string;
   setChefAlertChatId: (v: string) => void;
   instagramUrl: string;
@@ -107,6 +109,8 @@ export function WizardStepBasics({
   setPosOrganizationId,
   posTerminalGroupId,
   setPosTerminalGroupId,
+  posApiToken,
+  setPosApiToken,
   chefAlertChatId,
   setChefAlertChatId,
   instagramUrl,
@@ -516,6 +520,21 @@ export function WizardStepBasics({
                 onChange={(e) => setPosOrganizationId(e.target.value)}
                 disabled={formDisabled}
                 placeholder={t("restaurants.newWizard.posOrganizationIdPlaceholder")}
+                className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium text-foreground/70" htmlFor="nw-pos-token">
+                {t("restaurants.newWizard.posApiToken")}
+              </label>
+              <input
+                id="nw-pos-token"
+                type="password"
+                value={posApiToken}
+                onChange={(e) => setPosApiToken(e.target.value)}
+                disabled={formDisabled}
+                placeholder={t("restaurants.newWizard.posApiTokenPlaceholder")}
+                autoComplete="off"
                 className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>

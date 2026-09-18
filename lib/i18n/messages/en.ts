@@ -451,6 +451,8 @@ export const enMessages: Messages = {
     "Map this location to your iikoCloud organization so stop-list webhooks update the guest menu automatically.",
   "restaurants.newWizard.posOrganizationId": "iiko organization ID",
   "restaurants.newWizard.posOrganizationIdPlaceholder": "e.g. 550e8400-e29b-41d4-a716-446655440000",
+  "restaurants.newWizard.posApiToken": "iiko API key (posApiToken)",
+  "restaurants.newWizard.posApiTokenPlaceholder": "API key from iikoCloud for v2 auth",
   "restaurants.newWizard.posTerminalGroupId": "iiko terminal group ID (optional)",
   "restaurants.newWizard.chefAlertChatId": "Telegram alert chat ID (optional)",
   "restaurants.newWizard.linksAndOrderingTitle": "Links & ordering",

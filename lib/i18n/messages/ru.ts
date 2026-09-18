@@ -454,6 +454,8 @@ export const ruMessages: Messages = {
     "Укажите organization ID из iikoCloud — вебхуки стоп-листа будут автоматически обновлять гостевое меню.",
   "restaurants.newWizard.posOrganizationId": "ID организации iiko",
   "restaurants.newWizard.posOrganizationIdPlaceholder": "например 550e8400-e29b-41d4-a716-446655440000",
+  "restaurants.newWizard.posApiToken": "API ключ iiko (posApiToken)",
+  "restaurants.newWizard.posApiTokenPlaceholder": "API ключ из iikoCloud для v2 авторизации",
   "restaurants.newWizard.posTerminalGroupId": "ID группы терминалов iiko (необязательно)",
   "restaurants.newWizard.chefAlertChatId": "Telegram chat ID для оповещений (необязательно)",
   "restaurants.newWizard.linksAndOrderingTitle": "Ссылки и заказы",

@@ -446,6 +446,8 @@ export const uzMessages: Messages = {
     "iikoCloud tashkilot ID sini kiriting — stop-list vebhooklari mehmon menyusini avtomatik yangilaydi.",
   "restaurants.newWizard.posOrganizationId": "iiko tashkilot ID",
   "restaurants.newWizard.posOrganizationIdPlaceholder": "masalan 550e8400-e29b-41d4-a716-446655440000",
+  "restaurants.newWizard.posApiToken": "iiko API kaliti (posApiToken)",
+  "restaurants.newWizard.posApiTokenPlaceholder": "v2 autentifikatsiyasi uchun iikoCloud API kaliti",
   "restaurants.newWizard.posTerminalGroupId": "iiko terminal guruhi ID (ixtiyoriy)",
   "restaurants.newWizard.chefAlertChatId": "Telegram ogohlantirish chat ID (ixtiyoriy)",
   "restaurants.newWizard.linksAndOrderingTitle": "Havolalar va buyurtmalar",

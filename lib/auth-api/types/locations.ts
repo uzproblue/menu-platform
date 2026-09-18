@@ -24,6 +24,8 @@ export type Location = {
   posOrganizationId?: string;
   /** Optional iiko terminal group UUID. */
   posTerminalGroupId?: string;
+  /** Optional iiko API token for stop-list and pos sync. */
+  posApiToken?: string | null;
   /** Telegram chat id for staff stop-list alerts. */
   chefAlertChatId?: string;
   instagramUrl?: string;
@@ -138,6 +140,7 @@ export type UpdateLocationDetailsInput = {
   translationLangs?: string[];
   posOrganizationId?: string | null;
   posTerminalGroupId?: string | null;
+  posApiToken?: string | null;
   chefAlertChatId?: string | null;
   instagramUrl?: string | null;
   twoGisUrl?: string | null;
@@ -162,6 +165,7 @@ export type UpdateLocationDetailsResponse = {
     enabledSectionIds: string[];
     posOrganizationId?: string;
     posTerminalGroupId?: string;
+    posApiToken?: string;
     chefAlertChatId?: string;
     instagramUrl?: string;
     twoGisUrl?: string;

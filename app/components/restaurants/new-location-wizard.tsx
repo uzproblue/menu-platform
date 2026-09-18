@@ -56,6 +56,7 @@ export function NewLocationWizard({
 
   const [posOrganizationId, setPosOrganizationId] = useState("");
   const [posTerminalGroupId, setPosTerminalGroupId] = useState("");
+  const [posApiToken, setPosApiToken] = useState("");
   const [chefAlertChatId, setChefAlertChatId] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [twoGisUrl, setTwoGisUrl] = useState("");
@@ -125,6 +126,7 @@ export function NewLocationWizard({
         if (loc.longitude != null) setLongitude(Number(loc.longitude));
         setPosOrganizationId(loc.posOrganizationId ?? "");
         setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
+        setPosApiToken(loc.posApiToken ?? "");
         setChefAlertChatId(loc.chefAlertChatId ?? "");
         setInstagramUrl(loc.instagramUrl ?? "");
         setTwoGisUrl(loc.twoGisUrl ?? "");
@@ -204,6 +206,7 @@ export function NewLocationWizard({
               translationLangs,
               posOrganizationId: posOrganizationId.trim() || null,
               posTerminalGroupId: posTerminalGroupId.trim() || null,
+              posApiToken: posApiToken.trim() || null,
               chefAlertChatId: chefAlertChatId.trim() || null,
               instagramUrl: instagramUrl.trim() || null,
               twoGisUrl: twoGisUrl.trim() || null,
@@ -233,6 +236,7 @@ export function NewLocationWizard({
         if (loc.longitude != null) setLongitude(Number(loc.longitude));
         setPosOrganizationId(loc.posOrganizationId ?? "");
         setPosTerminalGroupId(loc.posTerminalGroupId ?? "");
+        setPosApiToken(loc.posApiToken ?? "");
         setChefAlertChatId(loc.chefAlertChatId ?? "");
         setInstagramUrl(loc.instagramUrl ?? "");
         setTwoGisUrl(loc.twoGisUrl ?? "");
@@ -391,6 +395,8 @@ export function NewLocationWizard({
             setPosOrganizationId={setPosOrganizationId}
             posTerminalGroupId={posTerminalGroupId}
             setPosTerminalGroupId={setPosTerminalGroupId}
+            posApiToken={posApiToken}
+            setPosApiToken={setPosApiToken}
             chefAlertChatId={chefAlertChatId}
             setChefAlertChatId={setChefAlertChatId}
             instagramUrl={instagramUrl}
