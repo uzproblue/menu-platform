@@ -31,6 +31,7 @@ function locationToDisplayInfo(loc: {
   isActive: boolean;
   type?: "dine_in" | "delivery";
   customDomain?: string | null;
+  coverImageUrl?: string | null;
 }): RestaurantDisplayInfo {
   return {
     id: loc.id,
@@ -41,6 +42,7 @@ function locationToDisplayInfo(loc: {
     isActive: loc.isActive,
     type: loc.type,
     customDomain: loc.customDomain ?? null,
+    coverImageUrl: loc.coverImageUrl?.trim() || null,
   };
 }
 

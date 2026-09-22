@@ -22,6 +22,7 @@ export type RestaurantDisplayInfo = {
   isActive?: boolean;
   type?: "dine_in" | "delivery";
   customDomain?: string | null;
+  coverImageUrl?: string | null;
 };
 
 /**

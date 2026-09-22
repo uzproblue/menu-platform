@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ItemThumbnail } from "@/app/components/global-menu/global-menu-item-row";
 import { useI18n } from "@/app/components/i18n-provider";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { LOCATION_TRANSLATION_OPTIONS } from "@/lib/menu-translation-langs";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { LocationTypeSelector } from "./location-type-selector";
@@ -503,9 +504,28 @@ export function WizardStepBasics({
                   src={coverPreviewSrc}
                   alt={t("restaurants.coverPreviewAlt")}
                   fill
+                  sizes="(max-width: 768px) 100vw, 600px"
                   className="object-cover"
-                  unoptimized
+                  unoptimized={imageSrcIsNonOptimizable(coverPreviewSrc)}
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverFile(null);
+                    setCoverUrlInput("");
+                    setCoverPreviewUrl((prev) => {
+                      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+                      return null;
+                    });
+                  }}
+                  disabled={formDisabled}
+                  className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-lg bg-black/60 px-2.5 py-1 text-xs font-medium text-white shadow backdrop-blur hover:bg-black/80 transition cursor-pointer"
+                >
+                  <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {t("common.delete")}
+                </button>
               </div>
             ) : null}
             <input

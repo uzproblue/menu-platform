@@ -1060,23 +1060,38 @@ export function RestaurantDetailClient({
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <div className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href="/restaurants"
-            className="text-sm font-medium text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
-          >
-            {`← ${t("restaurantDetail.backToList")}`}
-          </Link>
-          <Link
-            href={`/restaurants/${encodeURIComponent(restaurant.id)}/edit`}
-            className="text-sm font-medium text-foreground/80 underline-offset-2 hover:text-foreground hover:underline"
-          >
-            {t("restaurantDetail.editLocation")}
-          </Link>
-        </div>
+      <div className="overflow-hidden rounded-2xl border border-foreground/10 bg-background/60 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md">
+        {restaurant.coverImageUrl ? (
+          <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-zinc-900 border-b border-foreground/10">
+            <Image
+              src={restaurant.coverImageUrl}
+              alt={displayName}
+              fill
+              priority
+              sizes="(max-width: 1280px) 100vw, 1280px"
+              className="object-cover opacity-90"
+              unoptimized={imageSrcIsNonOptimizable(restaurant.coverImageUrl)}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          </div>
+        ) : null}
+        <div className="p-5 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href="/restaurants"
+              className="text-sm font-medium text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {`← ${t("restaurantDetail.backToList")}`}
+            </Link>
+            <Link
+              href={`/restaurants/${encodeURIComponent(restaurant.id)}/edit`}
+              className="text-sm font-medium text-foreground/80 underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {t("restaurantDetail.editLocation")}
+            </Link>
+          </div>
 
-        <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
+          <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border border-foreground/10 bg-background/80 ring-1 ring-foreground/5">
             {hasLogo ? (
               <Image
@@ -1151,6 +1166,7 @@ export function RestaurantDetailClient({
                 : t("restaurantDetail.noPublishedMenu")}
             </p>
           </div>
+        </div>
         </div>
       </div>
 
