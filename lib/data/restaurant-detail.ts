@@ -20,6 +20,8 @@ export type RestaurantDisplayInfo = {
   currency?: string;
   /** Whether the location is active in admin / list views. */
   isActive?: boolean;
+  type?: "dine_in" | "delivery";
+  customDomain?: string | null;
 };
 
 /**

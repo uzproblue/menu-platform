@@ -59,6 +59,11 @@ type WizardStepBasicsProps = {
   setTwoGisUrl: (v: string) => void;
   ordersEnabled: boolean;
   setOrdersEnabled: (v: boolean) => void;
+  customDomain?: string;
+  setCustomDomain?: (v: string) => void;
+  existingLocations?: Array<{ id: string; name: string; type?: "dine_in" | "delivery" }>;
+  copyMenuFromLocationId?: string;
+  setCopyMenuFromLocationId?: (v: string) => void;
   isLoadingLocationEdit: boolean;
   editLoadError: string | null;
   isSavingStep1: boolean;
@@ -76,6 +81,11 @@ export function WizardStepBasics({
   setAddress,
   currency,
   setCurrency,
+  customDomain = "",
+  setCustomDomain,
+  existingLocations,
+  copyMenuFromLocationId,
+  setCopyMenuFromLocationId,
   translationLangs,
   setTranslationLangs,
   logoUrlInputId,
@@ -149,6 +159,70 @@ export function WizardStepBasics({
         onChange={setLocationType}
         disabled={formDisabled || Boolean(createdLocationId)}
       />
+
+      {/* Custom Domain (Only for Delivery) */}
+      {locationType === "delivery" && setCustomDomain && (
+        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 space-y-2">
+          <div>
+            <label className="text-xs font-semibold text-foreground" htmlFor="nw-custom-domain">
+              {t("restaurants.customDomainTitle") || "Custom Domain (Delivery Storefront)"}
+            </label>
+            <p className="mt-0.5 text-xs text-foreground/60">
+              {t("restaurants.customDomainHint") ||
+                "Configure a custom domain (e.g. order.woodly.uz) for this delivery location. Point a DNS CNAME to your Cloudflare Worker."}
+            </p>
+          </div>
+          <input
+            id="nw-custom-domain"
+            value={customDomain}
+            onChange={(e) => setCustomDomain(e.target.value.toLowerCase().trim())}
+            disabled={formDisabled}
+            placeholder="order.woodly.uz"
+            className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 font-mono"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </div>
+      )}
+
+      {/* Initial Menu Selection (Only on Creation) */}
+      {!createdLocationId && setCopyMenuFromLocationId && (
+        <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-4 space-y-2">
+          <div>
+            <label className="text-xs font-semibold text-foreground" htmlFor="nw-copy-menu">
+              {t("restaurants.initialMenuTitle") || "Initial Menu Setup"}
+            </label>
+            <p className="mt-0.5 text-xs text-foreground/60">
+              {t("restaurants.initialMenuHint") ||
+                "Choose which menu items and categories to initially populate in this location."}
+            </p>
+          </div>
+          <select
+            id="nw-copy-menu"
+            value={copyMenuFromLocationId ?? "catalog"}
+            onChange={(e) => setCopyMenuFromLocationId(e.target.value)}
+            disabled={formDisabled}
+            className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="catalog">
+              {t("restaurants.initialMenuCatalog") || "Global Catalog (All active items & categories)"}
+            </option>
+            {existingLocations && existingLocations.length > 0 && (
+              <optgroup label={t("restaurants.copyFromExisting") || "Copy from existing location"}>
+                {existingLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.type === "delivery" ? "Delivery" : "Dine-In"})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <option value="none">
+              {t("restaurants.initialMenuEmpty") || "Empty Menu (Configure from scratch)"}
+            </option>
+          </select>
+        </div>
+      )}
 
       {/* 2. Basic Info: Name & Currency */}
       <div className="grid gap-4 sm:grid-cols-2">

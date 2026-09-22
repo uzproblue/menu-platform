@@ -33,6 +33,7 @@ export function RestaurantsList() {
     logoUrl: string;
     qrCenterImageUrl: string;
     type?: "dine_in" | "delivery";
+    customDomain?: string | null;
   } | null>(null);
   const [deleteLocationTarget, setDeleteLocationTarget] = useState<{
     id: string;

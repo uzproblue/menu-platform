@@ -15,6 +15,7 @@ import {
   toLocationExportApiField,
 } from "@/lib/sync-location-public-export";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
+import { syncDeliveryDomainKV } from "@/lib/delivery-domain-kv";
 
 export async function GET(
   _req: Request,
@@ -106,6 +107,7 @@ export async function PATCH(
     instagramUrl?: string | null;
     twoGisUrl?: string | null;
     ordersEnabled?: boolean;
+    customDomain?: string | null;
   } = {};
 
   if ("name" in o) {
@@ -326,6 +328,16 @@ export async function PATCH(
     }
     payload.ordersEnabled = o.ordersEnabled;
   }
+  if ("customDomain" in o) {
+    if (o.customDomain !== null && typeof o.customDomain !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "customDomain must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v = o.customDomain === null ? null : (o.customDomain as string).trim();
+    payload.customDomain = v?.length ? v : null;
+  }
 
   if (
     payload.name === undefined &&
@@ -340,16 +352,25 @@ export async function PATCH(
     payload.chefAlertChatId === undefined &&
     payload.instagramUrl === undefined &&
     payload.twoGisUrl === undefined &&
-    payload.ordersEnabled === undefined
+    payload.ordersEnabled === undefined &&
+    payload.customDomain === undefined
   ) {
     return NextResponse.json(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled is required",
+          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, customDomain is required",
       },
       { status: 400 },
     );
+  }
+
+  let oldDomain: string | null = null;
+  if (payload.customDomain !== undefined) {
+    const existing = await getLocationWithAuthServer(token, trimmedId, restaurantId);
+    if (existing.ok && existing.data?.location) {
+      oldDomain = existing.data.location.customDomain ?? null;
+    }
   }
 
   const result = await updateLocationDetailsWithAuthServer(token, trimmedId, payload, restaurantId);
@@ -358,6 +379,18 @@ export async function PATCH(
       { error: result.error, message: result.message },
       { status: result.status },
     );
+  }
+
+  if (payload.customDomain !== undefined) {
+    try {
+      await syncDeliveryDomainKV({
+        oldDomain,
+        newDomain: payload.customDomain,
+        locationId: trimmedId,
+      });
+    } catch (err) {
+      console.error("[PATCH location] failed to sync delivery domain KV:", err);
+    }
   }
 
   const exportResult = await scheduleOrAwaitLocationPublicExport(token, trimmedId);
@@ -412,12 +445,30 @@ export async function DELETE(
     );
   }
 
+  let existingDomain: string | null = null;
+  const existing = await getLocationWithAuthServer(token, trimmedId, restaurantId);
+  if (existing.ok && existing.data?.location?.customDomain) {
+    existingDomain = existing.data.location.customDomain;
+  }
+
   const result = await deleteLocationWithAuthServer(token, trimmedId, restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
       { status: result.status },
     );
+  }
+
+  if (existingDomain) {
+    try {
+      await syncDeliveryDomainKV({
+        oldDomain: existingDomain,
+        newDomain: null,
+        locationId: trimmedId,
+      });
+    } catch (err) {
+      console.error("[DELETE location] failed to remove delivery domain KV:", err);
+    }
   }
 
   const purgeResult = await purgeLocationPublicExportUrl(trimmedId);

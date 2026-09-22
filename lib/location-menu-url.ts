@@ -70,7 +70,16 @@ export function getDeliveryPublicBaseUrlForClient(): string {
 }
 
 /** Full URL to a delivery storefront (for QR encoding and copy). */
-export function buildDeliveryMenuPublicUrl(locationId: string): string {
+export function buildDeliveryMenuPublicUrl(
+  locationId: string,
+  customDomain?: string | null,
+): string {
+  if (customDomain?.trim()) {
+    const domain = customDomain.trim();
+    return domain.startsWith("http://") || domain.startsWith("https://")
+      ? domain
+      : `https://${domain}`;
+  }
   const id = locationId.trim();
   const base = getDeliveryPublicBaseUrlForClient();
   if (!base.length) return `/?locationId=${encodeURIComponent(id)}`;

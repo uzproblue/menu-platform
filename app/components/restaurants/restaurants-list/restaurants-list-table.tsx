@@ -20,6 +20,7 @@ type RestaurantsListTableProps = {
     logoUrl: string;
     qrCenterImageUrl: string;
     type?: "dine_in" | "delivery";
+    customDomain?: string | null;
   }) => void;
   onRequestDelete: (location: { id: string; name: string }) => void;
   onRefreshLocation?: (location: { id: string; name: string }) => void;
@@ -95,6 +96,11 @@ export function RestaurantsListTable({
                       {t("restaurants.deliveryBadge")}
                     </span>
                   ) : null}
+                  {location.customDomain ? (
+                    <span className="font-mono text-[11px] text-foreground/55">
+                      {location.customDomain}
+                    </span>
+                  ) : null}
                 </div>
               </td>
               <td className="px-4 py-3.5 font-mono text-sm text-foreground/80">
@@ -140,16 +146,17 @@ export function RestaurantsListTable({
               >
                
                 <div className="flex items-center gap-1">
-                 <OpenQrButton
-                  onClick={() =>
-                    onOpenQr({
-                      id: location.id,
-                      name: location.name,
-                      logoUrl: location.logoUrl,
-                      qrCenterImageUrl: location.qrCenterImageUrl ?? "",
-                      type: location.type,
-                    })
-                  }
+                  <OpenQrButton
+                   onClick={() =>
+                     onOpenQr({
+                       id: location.id,
+                       name: location.name,
+                       logoUrl: location.logoUrl,
+                       qrCenterImageUrl: location.qrCenterImageUrl ?? "",
+                       type: location.type,
+                       customDomain: location.customDomain,
+                     })
+                   }
                   ariaLabel={t("restaurants.openQrModalAria", {
                     name: location.name,
                   })}

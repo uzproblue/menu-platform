@@ -227,3 +227,22 @@ export async function triggerLocationTablesSyncWithAuthServer(
   });
 }
 
+export async function cloneLocationMenuWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  input?: { sourceLocationId?: string },
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: import("./types").CloneLocationMenuResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<import("./types").CloneLocationMenuResponse>({
+    path: `/api/locations/${encodeURIComponent(locationId)}/clone-menu`,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: input ?? {},
+  });
+}
+
+

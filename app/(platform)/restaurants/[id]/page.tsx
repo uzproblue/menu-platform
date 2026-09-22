@@ -10,6 +10,7 @@ import {
   getGlobalMenuWithAuthServer,
   getLocationMenuItemsWithAuthServer,
   getLocationWithAuthServer,
+  getLocationsWithAuthServer,
   getMenuSectionsWithAuthServer,
 } from "@/lib/auth-api";
 import type { GlobalMenuResponse } from "@/lib/auth-api";
@@ -28,6 +29,8 @@ function locationToDisplayInfo(loc: {
   address: string;
   logoUrl: string;
   isActive: boolean;
+  type?: "dine_in" | "delivery";
+  customDomain?: string | null;
 }): RestaurantDisplayInfo {
   return {
     id: loc.id,
@@ -36,6 +39,8 @@ function locationToDisplayInfo(loc: {
     address: loc.address?.trim() ?? "",
     currency: loc.currency,
     isActive: loc.isActive,
+    type: loc.type,
+    customDomain: loc.customDomain ?? null,
   };
 }
 
@@ -75,12 +80,14 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
 
-  const [locResult, manageResult, catalogResult, sectionsResult] = await Promise.all([
-    getLocationWithAuthServer(token, decoded, restaurantId),
-    getLocationMenuItemsWithAuthServer(token, decoded, restaurantId),
-    getGlobalMenuWithAuthServer(token, restaurantId),
-    getMenuSectionsWithAuthServer(token, restaurantId),
-  ]);
+  const [locResult, manageResult, catalogResult, sectionsResult, allLocationsResult] =
+    await Promise.all([
+      getLocationWithAuthServer(token, decoded, restaurantId),
+      getLocationMenuItemsWithAuthServer(token, decoded, restaurantId),
+      getGlobalMenuWithAuthServer(token, restaurantId),
+      getMenuSectionsWithAuthServer(token, restaurantId),
+      getLocationsWithAuthServer(token, restaurantId),
+    ]);
 
   if (!locResult.ok) {
     if (locResult.status === 401) redirect("/login");
@@ -125,6 +132,14 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
     menuSectionId: c.menuSectionId,
   }));
 
+  const availableLocations = allLocationsResult.ok
+    ? allLocationsResult.data.locations.map((l) => ({
+        id: l.id,
+        name: l.name,
+        type: l.type,
+      }))
+    : [];
+
   return (
     <div className="mx-auto max-w-7xl px-0 py-6 sm:py-8">
       <RestaurantDetailClient
@@ -136,6 +151,7 @@ export default async function RestaurantDetailPage({ params }: PageProps) {
         enabledSectionIds={enabledSectionIds}
         categoriesCatalog={categoriesCatalog}
         menuSections={menuSections}
+        availableLocations={availableLocations}
       />
     </div>
   );

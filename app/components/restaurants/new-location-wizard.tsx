@@ -61,6 +61,11 @@ export function NewLocationWizard({
   const [instagramUrl, setInstagramUrl] = useState("");
   const [twoGisUrl, setTwoGisUrl] = useState("");
   const [ordersEnabled, setOrdersEnabled] = useState(false);
+  const [customDomain, setCustomDomain] = useState("");
+  const [copyMenuFromLocationId, setCopyMenuFromLocationId] = useState<string>("catalog");
+  const [existingLocations, setExistingLocations] = useState<
+    Array<{ id: string; name: string; type?: "dine_in" | "delivery" }>
+  >([]);
   const maxLogoImageSizeBytes = useMemo(
     () => getMaxUploadSizeBytes("location-logo"),
     [],
@@ -81,6 +86,27 @@ export function NewLocationWizard({
   const wizardBackLabel = isEditRouteMode
     ? t("common.back")
     : t("restaurants.newWizard.backToList");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/settings/locations", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          locations?: Array<{ id: string; name: string; type?: "dine_in" | "delivery" }>;
+        };
+        if (!cancelled && Array.isArray(data.locations)) {
+          setExistingLocations(data.locations);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const id = initialLocationId?.trim();
@@ -112,6 +138,7 @@ export function NewLocationWizard({
         if (cancelled) return;
         setName(loc.name);
         if (loc.type === "delivery") setLocationType("delivery");
+        if (loc.customDomain) setCustomDomain(loc.customDomain);
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
         setTranslationLangs(
@@ -211,6 +238,7 @@ export function NewLocationWizard({
               instagramUrl: instagramUrl.trim() || null,
               twoGisUrl: twoGisUrl.trim() || null,
               ordersEnabled,
+              customDomain: customDomain.trim() || null,
             }),
           },
         );
@@ -222,6 +250,7 @@ export function NewLocationWizard({
         const loc = payload.location;
         setName(loc.name);
         if (loc.type === "delivery") setLocationType("delivery");
+        if (loc.customDomain !== undefined) setCustomDomain(loc.customDomain ?? "");
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
         setTranslationLangs(
@@ -291,6 +320,8 @@ export function NewLocationWizard({
       if (phoneNumber.trim()) bodyWithLangs.phoneNumber = phoneNumber.trim();
       if (latitude != null) bodyWithLangs.latitude = latitude;
       if (longitude != null) bodyWithLangs.longitude = longitude;
+      if (customDomain.trim()) bodyWithLangs.customDomain = customDomain.trim();
+      if (copyMenuFromLocationId) bodyWithLangs.copyMenuFromLocationId = copyMenuFromLocationId;
 
       const res = await fetch("/api/settings/locations", {
         method: "POST",
@@ -359,6 +390,11 @@ export function NewLocationWizard({
             setAddress={setAddress}
             currency={currency}
             setCurrency={setCurrency}
+            customDomain={customDomain}
+            setCustomDomain={setCustomDomain}
+            existingLocations={existingLocations}
+            copyMenuFromLocationId={copyMenuFromLocationId}
+            setCopyMenuFromLocationId={setCopyMenuFromLocationId}
             translationLangs={translationLangs}
             setTranslationLangs={setTranslationLangs}
             logoUrlInputId={logoUrlInputId}

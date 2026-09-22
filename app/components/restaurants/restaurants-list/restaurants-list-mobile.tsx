@@ -20,6 +20,7 @@ type RestaurantsListMobileProps = {
     logoUrl: string;
     qrCenterImageUrl: string;
     type?: "dine_in" | "delivery";
+    customDomain?: string | null;
   }) => void;
   onRequestDelete: (location: { id: string; name: string }) => void;
   onRefreshLocation?: (location: { id: string; name: string }) => void;
@@ -67,6 +68,11 @@ export function RestaurantsListMobile({
                         </span>
                       ) : null}
                     </div>
+                    {location.customDomain ? (
+                      <p className="mt-0.5 font-mono text-[11px] text-foreground/55">
+                        {location.customDomain}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-sm text-foreground/60">
                       {location.address || t("restaurants.addressNotAvailable")}
                     </p>
@@ -142,6 +148,7 @@ export function RestaurantsListMobile({
                       logoUrl: location.logoUrl,
                       qrCenterImageUrl: location.qrCenterImageUrl ?? "",
                       type: location.type,
+                      customDomain: location.customDomain,
                     });
                   }}
                   ariaLabel={t("restaurants.openQrModalAria", {

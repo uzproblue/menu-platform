@@ -19,6 +19,7 @@ export type DeliveryQrLocationRef = {
   name: string;
   logoUrl: string;
   qrCenterImageUrl?: string;
+  customDomain?: string | null;
 };
 
 type DeliveryQrModalProps = {
@@ -38,7 +39,7 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
   const [copyFailed, setCopyFailed] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
-  const menuUrl = buildDeliveryMenuPublicUrl(location.id);
+  const menuUrl = buildDeliveryMenuPublicUrl(location.id, location.customDomain);
   const centerImageUrl = resolveQrCenterImageUrl(qrCenterImageUrl, location.logoUrl);
 
   useEffect(() => {

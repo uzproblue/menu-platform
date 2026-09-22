@@ -112,6 +112,7 @@ type RestaurantDetailClientProps = {
   enabledSectionIds: string[];
   categoriesCatalog: CategoryCatalogEntry[];
   menuSections: MenuSectionEntity[];
+  availableLocations?: Array<{ id: string; name: string; type?: "dine_in" | "delivery" }>;
 };
 
 type AddCategoryState = {
@@ -233,6 +234,7 @@ export function RestaurantDetailClient({
   enabledSectionIds: initialEnabledSectionIds,
   categoriesCatalog,
   menuSections,
+  availableLocations = [],
 }: RestaurantDetailClientProps) {
   const { t } = useI18n();
   const enqueueToggle = useSerializedAsyncQueue();
@@ -271,6 +273,12 @@ export function RestaurantDetailClient({
     saving: false,
     error: null,
   });
+
+  const [isPublishingSnapshot, setIsPublishingSnapshot] = useState(false);
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+  const [selectedCloneSourceId, setSelectedCloneSourceId] = useState<string>("catalog");
+  const [isCloningMenu, setIsCloningMenu] = useState(false);
+  const [cloneError, setCloneError] = useState<string | null>(null);
   const standardSections = useMemo(
     () =>
       menuSections
@@ -952,6 +960,90 @@ export function RestaurantDetailClient({
     [enabledSectionIds, menuTab, restaurant.id, t],
   );
 
+  const handlePublishSnapshot = useCallback(async () => {
+    setIsPublishingSnapshot(true);
+    const toastId = "publish-snapshot-" + Date.now();
+    try {
+      const res = await fetch(
+        `/api/settings/locations/${encodeURIComponent(restaurant.id)}/refresh`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        let msg = "Failed to publish menu snapshot";
+        try {
+          const body = (await res.json()) as { message?: string };
+          if (body?.message) msg = body.message;
+        } catch {
+          /* ignore */
+        }
+        upsertToast({
+          id: toastId,
+          variant: "error",
+          message: msg,
+          durationMs: 5000,
+        });
+        return;
+      }
+      upsertToast({
+        id: toastId,
+        variant: "success",
+        message: "Menu snapshot published and CDN cache purged successfully!",
+        durationMs: 4000,
+      });
+    } catch {
+      upsertToast({
+        id: toastId,
+        variant: "error",
+        message: "Network error while publishing menu snapshot",
+        durationMs: 5000,
+      });
+    } finally {
+      setIsPublishingSnapshot(false);
+    }
+  }, [restaurant.id, upsertToast]);
+
+  const handleCloneMenu = useCallback(async () => {
+    setIsCloningMenu(true);
+    setCloneError(null);
+    const toastId = "clone-menu-" + Date.now();
+    try {
+      const res = await fetch(
+        `/api/settings/locations/${encodeURIComponent(restaurant.id)}/clone-menu`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceLocationId:
+              selectedCloneSourceId === "catalog" ? undefined : selectedCloneSourceId,
+          }),
+        },
+      );
+      if (!res.ok) {
+        let msg = "Failed to copy menu";
+        try {
+          const body = (await res.json()) as { message?: string };
+          if (body?.message) msg = body.message;
+        } catch {
+          /* ignore */
+        }
+        setCloneError(msg);
+        return;
+      }
+      upsertToast({
+        id: toastId,
+        variant: "success",
+        message: "Menu cloned and snapshot published successfully!",
+        durationMs: 4000,
+      });
+      setIsCloneModalOpen(false);
+      window.location.reload();
+    } catch {
+      setCloneError("Network error while copying menu");
+    } finally {
+      setIsCloningMenu(false);
+    }
+  }, [restaurant.id, selectedCloneSourceId, upsertToast]);
+
   const renderEditButton = useCallback(
     (categoryId: string, name: string) => (
       <button
@@ -1027,6 +1119,24 @@ export function RestaurantDetailClient({
                     : t("restaurantDetail.statusInactive")}
                 </span>
               ) : null}
+              {restaurant.type === "delivery" ? (
+                <span className="inline-flex items-center rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                  {t("restaurants.deliveryBadge")}
+                </span>
+              ) : null}
+              {restaurant.customDomain ? (
+                <a
+                  href={`https://${restaurant.customDomain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-background/80 px-2.5 py-0.5 text-xs font-mono text-foreground/80 hover:text-foreground hover:border-foreground/30 transition"
+                >
+                  <span>🌐 {restaurant.customDomain}</span>
+                  <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ) : null}
             </div>
             {restaurant.address.trim().length ? (
               <p className="mt-3 text-sm text-foreground/65">{restaurant.address}</p>
@@ -1050,6 +1160,28 @@ export function RestaurantDetailClient({
             {t("restaurantDetail.menuHeading")}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePublishSnapshot}
+              disabled={isPublishingSnapshot}
+              title="Publish a fresh JSON snapshot to R2 CDN for guest & delivery apps"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-foreground/5 disabled:opacity-60"
+            >
+              <svg
+                className={`size-4 shrink-0 ${isPublishingSnapshot ? "animate-spin" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {isPublishingSnapshot ? "Publishing..." : "Publish Snapshot"}
+            </button>
             <button
               type="button"
               onClick={handleOpenSectionsModal}
@@ -1105,6 +1237,33 @@ export function RestaurantDetailClient({
             ) : null}
           </div>
         </div>
+
+        {enabledCategoryIds.length === 0 && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  {t("restaurants.emptyMenuTitle") || "Menu is currently empty"}
+                </h3>
+                <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-300/80">
+                  {t("restaurants.emptyMenuHint") ||
+                    "This location does not have any categories or items enabled yet. You can copy the menu from another location or catalog, or manually add categories below."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCloneError(null);
+                  setIsCloneModalOpen(true);
+                }}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-semibold text-white shadow hover:bg-amber-700 transition cursor-pointer"
+              >
+                {t("restaurants.copyMenuButton") || "Copy Menu from Location / Catalog"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-1">
           {locationSectionTabs.map((section) => (
             <button
@@ -1199,6 +1358,84 @@ export function RestaurantDetailClient({
         onClose={handleCloseReorder}
         onSave={handleSaveReorder}
       />
+
+      {isCloneModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-md rounded-2xl border border-foreground/15 bg-background p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">
+                  {t("restaurants.cloneMenuModalTitle") || "Copy Menu to Location"}
+                </h3>
+                <p className="mt-1 text-xs text-foreground/60">
+                  {t("restaurants.cloneMenuModalHint") ||
+                    "Select a source to populate categories and items for this location."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isCloningMenu && setIsCloneModalOpen(false)}
+                className="rounded-lg p-1 text-foreground/50 hover:bg-foreground/5 hover:text-foreground cursor-pointer"
+              >
+                <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {cloneError && (
+              <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+                {cloneError}
+              </p>
+            )}
+
+            <div>
+              <label className="text-xs font-medium text-foreground/70" htmlFor="clone-source-select">
+                {t("restaurants.sourceMenuLabel") || "Source Menu"}
+              </label>
+              <select
+                id="clone-source-select"
+                value={selectedCloneSourceId}
+                onChange={(e) => setSelectedCloneSourceId(e.target.value)}
+                disabled={isCloningMenu}
+                className="mt-1.5 w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2"
+              >
+                <option value="catalog">
+                  {t("restaurants.initialMenuCatalog") || "Global Catalog (All active items & categories)"}
+                </option>
+                {availableLocations
+                  .filter((l) => l.id !== restaurant.id)
+                  .map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name} ({loc.type === "delivery" ? "Delivery" : "Dine-In"})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsCloneModalOpen(false)}
+                disabled={isCloningMenu}
+                className="rounded-xl border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground/80 hover:bg-foreground/5 cursor-pointer"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCloneMenu()}
+                disabled={isCloningMenu}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-60 cursor-pointer"
+              >
+                {isCloningMenu
+                  ? t("restaurants.cloningMenu") || "Copying & Publishing..."
+                  : t("restaurants.confirmCopyMenu") || "Copy Menu"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>

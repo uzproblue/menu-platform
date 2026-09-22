@@ -31,6 +31,8 @@ export type Location = {
   instagramUrl?: string;
   twoGisUrl?: string;
   ordersEnabled: boolean;
+  /** Optional custom domain for delivery storefront routing via Cloudflare KV. */
+  customDomain?: string | null;
   isDefault: boolean;
   isActive: boolean;
   categoryCount: number;
@@ -50,6 +52,8 @@ export type CreateLocationInput = {
   phoneNumber?: string;
   latitude?: number | null;
   longitude?: number | null;
+  customDomain?: string | null;
+  copyMenuFromLocationId?: string | null;
 };
 
 export type CreateLocationResponse = {
@@ -64,6 +68,7 @@ export type CreateLocationResponse = {
     latitude?: number | null;
     longitude?: number | null;
     translationLangs: string[];
+    customDomain?: string | null;
     isDefault: boolean;
     isActive: boolean;
     createdAt: string;
@@ -145,6 +150,7 @@ export type UpdateLocationDetailsInput = {
   instagramUrl?: string | null;
   twoGisUrl?: string | null;
   ordersEnabled?: boolean;
+  customDomain?: string | null;
 };
 
 export type UpdateLocationDetailsResponse = {
@@ -170,11 +176,19 @@ export type UpdateLocationDetailsResponse = {
     instagramUrl?: string;
     twoGisUrl?: string;
     ordersEnabled: boolean;
+    customDomain?: string | null;
     isDefault: boolean;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
   };
+};
+
+export type CloneLocationMenuResponse = {
+  ok: boolean;
+  categoryCount: number;
+  itemCount: number;
+  location?: Location;
 };
 
 export type PutLocationMenuItemInput = {

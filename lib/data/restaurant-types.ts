@@ -11,6 +11,7 @@ export type LocationListRow = {
   latitude?: number | null;
   longitude?: number | null;
   enabledCategoryIds: string[];
+  customDomain?: string | null;
   isDefault: boolean;
   isActive: boolean;
   categoryCount: number;

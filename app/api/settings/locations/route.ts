@@ -8,6 +8,8 @@ import {
 } from "@/lib/auth-api";
 import { validateTranslationLangsInput } from "@/lib/menu-translation-langs";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
+import { syncDeliveryDomainKV } from "@/lib/delivery-domain-kv";
+import { scheduleOrAwaitLocationPublicExport } from "@/lib/sync-location-public-export";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -93,6 +95,9 @@ export async function POST(req: Request) {
   const type = o.type === "delivery" ? ("delivery" as const) : ("dine_in" as const);
   const coverImageUrl = typeof o.coverImageUrl === "string" ? o.coverImageUrl.trim() : "";
   const phoneNumber = typeof o.phoneNumber === "string" ? o.phoneNumber.trim() : "";
+  const customDomain = typeof o.customDomain === "string" ? o.customDomain.trim() : undefined;
+  const copyMenuFromLocationId =
+    typeof o.copyMenuFromLocationId === "string" ? o.copyMenuFromLocationId.trim() : undefined;
   const latitude =
     typeof o.latitude === "number" && Number.isFinite(o.latitude) ? o.latitude : undefined;
   const longitude =
@@ -112,6 +117,8 @@ export async function POST(req: Request) {
       phoneNumber: phoneNumber || undefined,
       latitude,
       longitude,
+      customDomain: customDomain || undefined,
+      copyMenuFromLocationId: copyMenuFromLocationId || undefined,
     },
     restaurantId,
   );
@@ -122,9 +129,26 @@ export async function POST(req: Request) {
     );
   }
 
-  void trackStaffMutation(PlatformEvent.LOCATION_CREATED, {
-    locationId: result.data.location?.id,
-  });
+  const createdId = result.data.location?.id;
+  if (createdId) {
+    void trackStaffMutation(PlatformEvent.LOCATION_CREATED, {
+      locationId: createdId,
+    });
+
+    if (customDomain) {
+      await syncDeliveryDomainKV({
+        newDomain: customDomain,
+        locationId: createdId,
+      }).catch((err) => {
+        console.error("[POST locations] KV sync failed:", err);
+      });
+    }
+
+    // Immediately trigger initial R2 public menu snapshot generation
+    await scheduleOrAwaitLocationPublicExport(token, createdId).catch((err) => {
+      console.error("[POST locations] Initial R2 export failed:", err);
+    });
+  }
 
   return NextResponse.json(result.data, { status: 201 });
 }
