@@ -426,6 +426,31 @@ export const ruMessages: Messages = {
   "restaurants.coverUrlPlaceholder": "https://... (или выберите файл ниже)",
   "restaurants.orDivider": "или",
   "restaurants.translationLangsHeading": "Языки перевода",
+  "restaurants.customDomainTitle": "Собственный домен (Витрина доставки)",
+  "restaurants.customDomainHint":
+    "Укажите собственный домен (например, order.woodly.uz) для этой точки доставки. Направьте CNAME-запись в DNS на ваш Cloudflare Worker.",
+  "restaurants.initialMenuTitle": "Начальное меню",
+  "restaurants.initialMenuHint":
+    "Выберите, какими блюдами и категориями наполнить эту точку при создании.",
+  "restaurants.initialMenuCatalog":
+    "Общий каталог (Все активные позиции и категории)",
+  "restaurants.copyFromExisting": "Скопировать из существующей точки",
+  "restaurants.initialMenuEmpty": "Пустое меню (Настроить с нуля)",
+  "restaurants.emptyMenuTitle": "Меню пока пустое",
+  "restaurants.emptyMenuHint":
+    "В этой точке пока нет включенных категорий и блюд. Вы можете скопировать меню из другой точки или каталога, либо добавить категории вручную ниже.",
+  "restaurants.copyMenuButton": "Скопировать меню из точки / каталога",
+  "restaurants.cloneMenuModalTitle": "Скопировать меню в локацию",
+  "restaurants.cloneMenuModalHint":
+    "Выберите источник для наполнения категорий и блюд этой точки.",
+  "restaurants.sourceMenuLabel": "Исходное меню",
+  "restaurants.cloningMenu": "Копирование и публикация...",
+  "restaurants.confirmCopyMenu": "Скопировать меню",
+  "restaurants.publishSnapshot": "Опубликовать снимок",
+  "restaurants.publishingSnapshot": "Публикация...",
+  "restaurants.publishSnapshotSuccess":
+    "Снимок меню опубликован, кэш CDN успешно очищен!",
+  "restaurants.publishSnapshotFailed": "Не удалось опубликовать снимок меню",
   "restaurants.newWizard.errNameRequired": "Введите название локации.",
   "restaurants.newWizard.errAddressRequired": "Введите адрес.",
   "restaurants.newWizard.errCreateLocation":

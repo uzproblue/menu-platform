@@ -421,6 +421,31 @@ export const uzMessages: Messages = {
   "restaurants.coverUrlPlaceholder": "https://... (yoki quyidan fayl tanlang)",
   "restaurants.orDivider": "yoki",
   "restaurants.translationLangsHeading": "Tarjima tillari",
+  "restaurants.customDomainTitle": "Shaxsiy domen (Yetkazib berish vitrinasi)",
+  "restaurants.customDomainHint":
+    "Ushbu yetkazib berish filiali uchun shaxsiy domenni kiriting (masalan, order.woodly.uz). DNS CNAME yozuvini Cloudflare Worker-ga yo'naltiring.",
+  "restaurants.initialMenuTitle": "Boshlang'ich menyu sozlamasi",
+  "restaurants.initialMenuHint":
+    "Ushbu filial yaratilganda qaysi taomlar va toifalar bilan to'ldirishni tanlang.",
+  "restaurants.initialMenuCatalog":
+    "Umumiy katalog (Barcha faol taomlar va toifalar)",
+  "restaurants.copyFromExisting": "Mavjud filialdan nusxalash",
+  "restaurants.initialMenuEmpty": "Bo'sh menyu (Noldan sozlash)",
+  "restaurants.emptyMenuTitle": "Menyu hozircha bo'sh",
+  "restaurants.emptyMenuHint":
+    "Ushbu filialda hali toifalar va taomlar ulanmagan. Menyuni boshqa filial yoki katalogdan nusxalashingiz, yoki pastda qo'lda toifalar qo'shishingiz mumkin.",
+  "restaurants.copyMenuButton": "Filial / katalogdan menyuni nusxalash",
+  "restaurants.cloneMenuModalTitle": "Filialga menyuni nusxalash",
+  "restaurants.cloneMenuModalHint":
+    "Ushbu filial toifalari va taomlarini to'ldirish uchun manbani tanlang.",
+  "restaurants.sourceMenuLabel": "Manba menyusi",
+  "restaurants.cloningMenu": "Nusxalanmoqda va chop etilmoqda...",
+  "restaurants.confirmCopyMenu": "Menyuni nusxalash",
+  "restaurants.publishSnapshot": "Snapshot chop etish",
+  "restaurants.publishingSnapshot": "Chop etilmoqda...",
+  "restaurants.publishSnapshotSuccess":
+    "Menyu snapshot chop etildi va CDN keshi muvaffaqiyatli tozalandi!",
+  "restaurants.publishSnapshotFailed": "Menyu snapshot chop etilmadi",
   "restaurants.newWizard.errNameRequired": "Lokatsiya nomini kiriting.",
   "restaurants.newWizard.errAddressRequired": "Manzilni kiriting.",
   "restaurants.newWizard.errCreateLocation":

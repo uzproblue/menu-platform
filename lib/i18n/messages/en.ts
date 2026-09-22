@@ -427,6 +427,31 @@ export const enMessages: Messages = {
   "restaurants.coverUrlPlaceholder": "https://... (or choose a file below)",
   "restaurants.orDivider": "or",
   "restaurants.translationLangsHeading": "Translation languages",
+  "restaurants.customDomainTitle": "Custom Domain (Delivery Storefront)",
+  "restaurants.customDomainHint":
+    "Configure a custom domain (e.g. order.woodly.uz) for this delivery location. Point a DNS CNAME to your Cloudflare Worker.",
+  "restaurants.initialMenuTitle": "Initial Menu Setup",
+  "restaurants.initialMenuHint":
+    "Choose which menu items and categories to initially populate in this location.",
+  "restaurants.initialMenuCatalog":
+    "Global Catalog (All active items & categories)",
+  "restaurants.copyFromExisting": "Copy from existing location",
+  "restaurants.initialMenuEmpty": "Empty Menu (Configure from scratch)",
+  "restaurants.emptyMenuTitle": "Menu is currently empty",
+  "restaurants.emptyMenuHint":
+    "This location does not have any categories or items enabled yet. You can copy the menu from another location or catalog, or manually add categories below.",
+  "restaurants.copyMenuButton": "Copy Menu from Location / Catalog",
+  "restaurants.cloneMenuModalTitle": "Copy Menu to Location",
+  "restaurants.cloneMenuModalHint":
+    "Select a source to populate categories and items for this location.",
+  "restaurants.sourceMenuLabel": "Source Menu",
+  "restaurants.cloningMenu": "Copying & Publishing...",
+  "restaurants.confirmCopyMenu": "Copy Menu",
+  "restaurants.publishSnapshot": "Publish Snapshot",
+  "restaurants.publishingSnapshot": "Publishing...",
+  "restaurants.publishSnapshotSuccess":
+    "Menu snapshot published and CDN cache purged successfully!",
+  "restaurants.publishSnapshotFailed": "Failed to publish menu snapshot",
   "restaurants.newWizard.errNameRequired": "Enter a location name.",
   "restaurants.newWizard.errAddressRequired": "Enter an address.",
   "restaurants.newWizard.errCreateLocation": "Could not create the location. Check your connection and try again.",

@@ -987,14 +987,14 @@ export function RestaurantDetailClient({
       upsertToast({
         id: toastId,
         variant: "success",
-        message: "Menu snapshot published and CDN cache purged successfully!",
+        message: t("restaurants.publishSnapshotSuccess"),
         durationMs: 4000,
       });
     } catch {
       upsertToast({
         id: toastId,
         variant: "error",
-        message: "Network error while publishing menu snapshot",
+        message: t("restaurants.publishSnapshotFailed"),
         durationMs: 5000,
       });
     } finally {
@@ -1180,7 +1180,9 @@ export function RestaurantDetailClient({
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              {isPublishingSnapshot ? "Publishing..." : "Publish Snapshot"}
+              {isPublishingSnapshot
+                ? t("restaurants.publishingSnapshot")
+                : t("restaurants.publishSnapshot")}
             </button>
             <button
               type="button"
@@ -1243,11 +1245,10 @@ export function RestaurantDetailClient({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                  {t("restaurants.emptyMenuTitle") || "Menu is currently empty"}
+                  {t("restaurants.emptyMenuTitle")}
                 </h3>
                 <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-300/80">
-                  {t("restaurants.emptyMenuHint") ||
-                    "This location does not have any categories or items enabled yet. You can copy the menu from another location or catalog, or manually add categories below."}
+                  {t("restaurants.emptyMenuHint")}
                 </p>
               </div>
               <button
@@ -1258,7 +1259,7 @@ export function RestaurantDetailClient({
                 }}
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-semibold text-white shadow hover:bg-amber-700 transition cursor-pointer"
               >
-                {t("restaurants.copyMenuButton") || "Copy Menu from Location / Catalog"}
+                {t("restaurants.copyMenuButton")}
               </button>
             </div>
           </div>
@@ -1365,11 +1366,10 @@ export function RestaurantDetailClient({
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-semibold text-foreground">
-                  {t("restaurants.cloneMenuModalTitle") || "Copy Menu to Location"}
+                  {t("restaurants.cloneMenuModalTitle")}
                 </h3>
                 <p className="mt-1 text-xs text-foreground/60">
-                  {t("restaurants.cloneMenuModalHint") ||
-                    "Select a source to populate categories and items for this location."}
+                  {t("restaurants.cloneMenuModalHint")}
                 </p>
               </div>
               <button
@@ -1391,7 +1391,7 @@ export function RestaurantDetailClient({
 
             <div>
               <label className="text-xs font-medium text-foreground/70" htmlFor="clone-source-select">
-                {t("restaurants.sourceMenuLabel") || "Source Menu"}
+                {t("restaurants.sourceMenuLabel")}
               </label>
               <select
                 id="clone-source-select"
@@ -1401,7 +1401,7 @@ export function RestaurantDetailClient({
                 className="mt-1.5 w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2"
               >
                 <option value="catalog">
-                  {t("restaurants.initialMenuCatalog") || "Global Catalog (All active items & categories)"}
+                  {t("restaurants.initialMenuCatalog")}
                 </option>
                 {availableLocations
                   .filter((l) => l.id !== restaurant.id)
@@ -1429,8 +1429,8 @@ export function RestaurantDetailClient({
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-60 cursor-pointer"
               >
                 {isCloningMenu
-                  ? t("restaurants.cloningMenu") || "Copying & Publishing..."
-                  : t("restaurants.confirmCopyMenu") || "Copy Menu"}
+                  ? t("restaurants.cloningMenu")
+                  : t("restaurants.confirmCopyMenu")}
               </button>
             </div>
           </div>

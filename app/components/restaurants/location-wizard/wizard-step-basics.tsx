@@ -165,11 +165,10 @@ export function WizardStepBasics({
         <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 space-y-2">
           <div>
             <label className="text-xs font-semibold text-foreground" htmlFor="nw-custom-domain">
-              {t("restaurants.customDomainTitle") || "Custom Domain (Delivery Storefront)"}
+              {t("restaurants.customDomainTitle")}
             </label>
             <p className="mt-0.5 text-xs text-foreground/60">
-              {t("restaurants.customDomainHint") ||
-                "Configure a custom domain (e.g. order.woodly.uz) for this delivery location. Point a DNS CNAME to your Cloudflare Worker."}
+              {t("restaurants.customDomainHint")}
             </p>
           </div>
           <input
@@ -191,11 +190,10 @@ export function WizardStepBasics({
         <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-4 space-y-2">
           <div>
             <label className="text-xs font-semibold text-foreground" htmlFor="nw-copy-menu">
-              {t("restaurants.initialMenuTitle") || "Initial Menu Setup"}
+              {t("restaurants.initialMenuTitle")}
             </label>
             <p className="mt-0.5 text-xs text-foreground/60">
-              {t("restaurants.initialMenuHint") ||
-                "Choose which menu items and categories to initially populate in this location."}
+              {t("restaurants.initialMenuHint")}
             </p>
           </div>
           <select
@@ -206,10 +204,10 @@ export function WizardStepBasics({
             className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="catalog">
-              {t("restaurants.initialMenuCatalog") || "Global Catalog (All active items & categories)"}
+              {t("restaurants.initialMenuCatalog")}
             </option>
             {existingLocations && existingLocations.length > 0 && (
-              <optgroup label={t("restaurants.copyFromExisting") || "Copy from existing location"}>
+              <optgroup label={t("restaurants.copyFromExisting")}>
                 {existingLocations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.name} ({loc.type === "delivery" ? "Delivery" : "Dine-In"})
@@ -218,7 +216,7 @@ export function WizardStepBasics({
               </optgroup>
             )}
             <option value="none">
-              {t("restaurants.initialMenuEmpty") || "Empty Menu (Configure from scratch)"}
+              {t("restaurants.initialMenuEmpty")}
             </option>
           </select>
         </div>
