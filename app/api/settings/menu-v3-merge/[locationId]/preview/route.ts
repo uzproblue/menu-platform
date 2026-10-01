@@ -2,7 +2,34 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
-import { previewMenuV3MergeWithAuthServer } from "@/lib/auth-api";
+import {
+  previewMenuV3MergeWithAuthServer,
+  type MenuV3PreviewResponse,
+} from "@/lib/auth-api";
+import { expandR2AssetToPublicUrl } from "@/lib/r2-object-key";
+
+function readPublicBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL?.trim() ||
+    process.env.R2_PUBLIC_BASE_URL?.trim() ||
+    ""
+  ).replace(/\/+$/, "");
+}
+
+function expandCatalogCoverPhotos(
+  data: MenuV3PreviewResponse,
+): MenuV3PreviewResponse {
+  const base = readPublicBaseUrl();
+  if (!base) return data;
+  return {
+    ...data,
+    catalogCategories: data.catalogCategories.map((cat) => ({
+      ...cat,
+      coverPhoto:
+        expandR2AssetToPublicUrl(cat.coverPhoto, base) ?? cat.coverPhoto,
+    })),
+  };
+}
 
 export async function POST(
   req: Request,
@@ -61,5 +88,5 @@ export async function POST(
     );
   }
 
-  return NextResponse.json(result.data);
+  return NextResponse.json(expandCatalogCoverPhotos(result.data));
 }

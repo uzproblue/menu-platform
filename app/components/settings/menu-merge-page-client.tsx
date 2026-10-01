@@ -38,10 +38,9 @@ function seedMatchedPairs(
   preview: MenuV3PreviewResponse,
 ): Map<string, MatchedPair> {
   const pairs = new Map<string, MatchedPair>();
-  const claimedPos = new Set<string>();
-  const claimedCatalog = new Set<string>();
 
-  // Already linked by POS id — definitive matches, no save needed.
+  // Only treat already-linked POS ids as matched. Name suggestions stay on the
+  // right so the owner can confirm Merge explicitly.
   for (const row of preview.categories) {
     if (row.bucket !== "matchedById" || !row.suggestedCatalogCategoryId) continue;
     pairs.set(row.suggestedCatalogCategoryId, {
@@ -49,25 +48,6 @@ function seedMatchedPairs(
       posName: row.posName,
       matchKind: "id",
     });
-    claimedPos.add(row.posCategoryId);
-    claimedCatalog.add(row.suggestedCatalogCategoryId);
-  }
-
-  // Exact name suggestions with no id conflict — treat as matched in UI.
-  for (const row of preview.categories) {
-    if (row.bucket !== "suggested" || row.matchKind !== "name") continue;
-    const catalogId = row.suggestedCatalogCategoryId;
-    if (!catalogId) continue;
-    if (claimedCatalog.has(catalogId) || claimedPos.has(row.posCategoryId)) {
-      continue;
-    }
-    pairs.set(catalogId, {
-      posCategoryId: row.posCategoryId,
-      posName: row.posName,
-      matchKind: "name",
-    });
-    claimedPos.add(row.posCategoryId);
-    claimedCatalog.add(catalogId);
   }
 
   return pairs;
@@ -491,6 +471,10 @@ export function MenuMergePageClient() {
                 </span>
               ) : null}
               <span className="ml-0 block sm:ml-3 sm:inline">
+                {t("menuMerge.posTotalCount", {
+                  count: String(posCards.length),
+                })}
+                {" · "}
                 {t("menuMerge.matchedCount", {
                   count: String(matchedPairs.size),
                 })}
@@ -507,6 +491,12 @@ export function MenuMergePageClient() {
               className="min-h-10 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20 sm:max-w-xs"
             />
           </div>
+
+          {posCards.length === 0 ? (
+            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              {t("menuMerge.posReturnedEmpty")}
+            </p>
+          ) : null}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="space-y-3">
@@ -596,7 +586,11 @@ export function MenuMergePageClient() {
               </h2>
               {filteredPos.length === 0 ? (
                 <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
-                  {t("menuMerge.noPosCategoryRows")}
+                  {posCards.length === 0
+                    ? t("menuMerge.posReturnedEmpty")
+                    : q
+                      ? t("menuMerge.noPosCategoryRowsSearch")
+                      : t("menuMerge.noPosCategoryRows")}
                 </p>
               ) : (
                 <ul className="space-y-2">
