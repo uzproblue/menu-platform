@@ -103,6 +103,7 @@ export async function PATCH(
     posOrganizationId?: string | null;
     posTerminalGroupId?: string | null;
     posApiToken?: string | null;
+    externalMenuId?: string | null;
     chefAlertChatId?: string | null;
     instagramUrl?: string | null;
     twoGisUrl?: string | null;
@@ -277,6 +278,23 @@ export async function PATCH(
     }
     payload.posApiToken = v?.length ? v : null;
   }
+  if ("externalMenuId" in o) {
+    if (o.externalMenuId !== null && typeof o.externalMenuId !== "string") {
+      return NextResponse.json(
+        { error: "invalid_body", message: "externalMenuId must be a string or null" },
+        { status: 400 },
+      );
+    }
+    const v =
+      o.externalMenuId === null ? null : (o.externalMenuId as string).trim();
+    if (v && v.length > 64) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "externalMenuId must be at most 64 characters" },
+        { status: 400 },
+      );
+    }
+    payload.externalMenuId = v?.length ? v : null;
+  }
   if ("chefAlertChatId" in o) {
     if (o.chefAlertChatId !== null && typeof o.chefAlertChatId !== "string") {
       return NextResponse.json(
@@ -349,6 +367,7 @@ export async function PATCH(
     payload.posOrganizationId === undefined &&
     payload.posTerminalGroupId === undefined &&
     payload.posApiToken === undefined &&
+    payload.externalMenuId === undefined &&
     payload.chefAlertChatId === undefined &&
     payload.instagramUrl === undefined &&
     payload.twoGisUrl === undefined &&
@@ -359,7 +378,7 @@ export async function PATCH(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, customDomain is required",
+          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, customDomain is required",
       },
       { status: 400 },
     );

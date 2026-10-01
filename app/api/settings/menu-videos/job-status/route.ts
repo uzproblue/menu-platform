@@ -19,11 +19,15 @@ export async function GET(req: Request) {
 
   const vpsUrl = process.env.VPS_TRANSCODER_URL?.trim() || "http://localhost:8080";
   const vpsSecret = process.env.VPS_TRANSCODER_SECRET?.trim() || "";
+  const cfAccessClientId = process.env.CF_ACCESS_CLIENT_ID?.trim() || "";
+  const cfAccessClientSecret = process.env.CF_ACCESS_CLIENT_SECRET?.trim() || "";
 
   try {
     const vpsRes = await fetch(`${vpsUrl.replace(/\/+$/, "")}/api/jobs/${encodeURIComponent(jobId)}`, {
       headers: {
         ...(vpsSecret ? { Authorization: `Bearer ${vpsSecret}` } : {}),
+        ...(cfAccessClientId ? { "CF-Access-Client-Id": cfAccessClientId } : {}),
+        ...(cfAccessClientSecret ? { "CF-Access-Client-Secret": cfAccessClientSecret } : {}),
       },
       signal: AbortSignal.timeout(5000),
     });

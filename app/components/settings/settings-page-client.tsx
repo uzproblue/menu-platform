@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useI18n } from "../i18n-provider";
@@ -908,7 +909,7 @@ export function SettingsPageClient({
                 </span>
               </div>
               <p className="mt-1 text-sm text-foreground/60">
-                {t("settings.menuSyncHelp")}
+                {t("settings.menuSyncPausedHelp")}
               </p>
             </div>
 
@@ -925,7 +926,7 @@ export function SettingsPageClient({
                     id="pos-location-select"
                     value={selectedSyncLocationId}
                     onChange={(e) => setSelectedSyncLocationId(e.target.value)}
-                    disabled={syncLoading || tablesSyncLoading}
+                    disabled={tablesSyncLoading}
                     className="min-h-11 rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-50"
                   >
                     {syncLocations.map((loc) => (
@@ -937,38 +938,18 @@ export function SettingsPageClient({
                 </div>
               ) : null}
 
-              <button
-                type="button"
-                onClick={handleRefreshMenu}
-                disabled={
-                  syncLoading || tablesSyncLoading || (syncLocations.length === 0 && !syncStatusPending)
-                }
-                className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-all hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              <Link
+                href="/settings/menu-merge"
+                className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-all hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
-                <svg
-                  className={`size-4 shrink-0 ${syncLoading ? "animate-spin" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                {syncLoading
-                  ? t("settings.refreshingMenu")
-                  : t("settings.refreshMenuBtn")}
-              </button>
+                {t("settings.openMenuMerge")}
+              </Link>
 
               <button
                 type="button"
                 onClick={handleRefreshTables}
                 disabled={
-                  syncLoading || tablesSyncLoading || (syncLocations.length === 0 && !syncStatusPending)
+                  tablesSyncLoading || (syncLocations.length === 0 && !syncStatusPending)
                 }
                 className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/90 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >

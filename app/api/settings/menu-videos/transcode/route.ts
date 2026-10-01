@@ -49,6 +49,8 @@ export async function POST(req: Request) {
 
   const vpsUrl = process.env.VPS_TRANSCODER_URL?.trim() || "http://localhost:8080";
   const vpsSecret = process.env.VPS_TRANSCODER_SECRET?.trim() || "";
+  const cfAccessClientId = process.env.CF_ACCESS_CLIENT_ID?.trim() || "";
+  const cfAccessClientSecret = process.env.CF_ACCESS_CLIENT_SECRET?.trim() || "";
 
   const reqUrl = new URL(req.url);
   const platformBaseUrl =
@@ -62,6 +64,8 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "application/json",
         ...(vpsSecret ? { Authorization: `Bearer ${vpsSecret}` } : {}),
+        ...(cfAccessClientId ? { "CF-Access-Client-Id": cfAccessClientId } : {}),
+        ...(cfAccessClientSecret ? { "CF-Access-Client-Secret": cfAccessClientSecret } : {}),
       },
       body: JSON.stringify({
         jobId: `job_${videoId}`,

@@ -26,6 +26,8 @@ export type Location = {
   posTerminalGroupId?: string;
   /** Optional iiko API token for stop-list and pos sync. */
   posApiToken?: string | null;
+  /** iiko external menu id for menu/v3/by_id. */
+  externalMenuId?: string | null;
   /** Telegram chat id for staff stop-list alerts. */
   chefAlertChatId?: string;
   instagramUrl?: string;
@@ -146,6 +148,7 @@ export type UpdateLocationDetailsInput = {
   posOrganizationId?: string | null;
   posTerminalGroupId?: string | null;
   posApiToken?: string | null;
+  externalMenuId?: string | null;
   chefAlertChatId?: string | null;
   instagramUrl?: string | null;
   twoGisUrl?: string | null;
@@ -172,6 +175,7 @@ export type UpdateLocationDetailsResponse = {
     posOrganizationId?: string;
     posTerminalGroupId?: string;
     posApiToken?: string;
+    externalMenuId?: string;
     chefAlertChatId?: string;
     instagramUrl?: string;
     twoGisUrl?: string;

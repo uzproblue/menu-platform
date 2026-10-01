@@ -12,4 +12,5 @@ export * from "./catalog-menu-sections";
 export * from "./catalog-menu-items";
 export * from "./locations-core";
 export * from "./location-menu";
+export * from "./menu-v3-merge";
 export * from "./seasonal-menus";
