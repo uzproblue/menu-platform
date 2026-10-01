@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import type {
   MenuV3CategoryPreview,
@@ -55,6 +55,8 @@ export function MenuMergePageClient() {
   const [itemDecisions, setItemDecisions] = useState<Record<string, ItemDecision>>(
     {},
   );
+  const locationsRef = useRef(locations);
+  locationsRef.current = locations;
 
   useEffect(() => {
     let cancelled = false;
@@ -93,15 +95,18 @@ export function MenuMergePageClient() {
     };
   }, [t]);
 
+  // Reset draft state only when switching locations — not when locations list
+  // is patched after Save ID / Fetch (that was wiping a successful preview).
   useEffect(() => {
-    const loc = locations.find((l) => l.id === locationId);
+    if (!locationId) return;
+    const loc = locationsRef.current.find((l) => l.id === locationId);
     setExternalMenuId(loc?.externalMenuId ?? "");
     setPreview(null);
     setCategoryDecisions({});
     setItemDecisions({});
     setSuccess(null);
     setError(null);
-  }, [locationId, locations]);
+  }, [locationId]);
 
   const pendingCount = useMemo(() => {
     let n = 0;
