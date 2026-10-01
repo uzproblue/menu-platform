@@ -1,9 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
 import type { MenuV3PreviewResponse } from "@/lib/auth-api";
+import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
+import { resolveMenuAssetToAbsoluteUrl } from "@/lib/menu-image-proxy";
 
 type MergeLocation = {
   id: string;
@@ -13,12 +16,17 @@ type MergeLocation = {
   hasPos: boolean;
 };
 
-type MatchKind = "id" | "name";
+type TabId = "categories" | "items";
 
-type MatchedPair = {
+type MatchedCategory = {
   posCategoryId: string;
   posName: string;
-  matchKind: MatchKind;
+};
+
+type MatchedItem = {
+  posMenuItemId: string;
+  posName: string;
+  sku: string | null;
 };
 
 type CatalogCategoryCard = {
@@ -29,27 +37,90 @@ type CatalogCategoryCard = {
   posCategoryId: string | null;
 };
 
-type PosCategoryCard = {
-  posCategoryId: string;
-  posName: string;
+type CatalogItemCard = {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  image: string | null;
+  gramm: string | null;
+  posMenuItemId: string | null;
+  sku: string | null;
 };
 
-function seedMatchedPairs(
-  preview: MenuV3PreviewResponse,
-): Map<string, MatchedPair> {
-  const pairs = new Map<string, MatchedPair>();
+function resolveThumb(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const t = raw.trim();
+  if (
+    /^https?:\/\//i.test(t) ||
+    t.startsWith("data:") ||
+    t.startsWith("blob:")
+  ) {
+    return t;
+  }
+  return resolveMenuAssetToAbsoluteUrl(t);
+}
 
-  // Only treat already-linked POS ids as matched. Name suggestions stay on the
-  // right so the owner can confirm Merge explicitly.
+function formatWeightAsGramm(weight: number | null | undefined): string | null {
+  if (weight == null || !Number.isFinite(weight)) return null;
+  const n = Math.round(weight * 1000) / 1000;
+  return String(n);
+}
+
+function Thumb({
+  src,
+  emptyLabel,
+}: {
+  src: string | null;
+  emptyLabel: string;
+}) {
+  const resolved = resolveThumb(src);
+  return (
+    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-foreground/5">
+      {resolved ? (
+        <Image
+          src={resolved}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="56px"
+          unoptimized={imageSrcIsNonOptimizable(resolved)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-[10px] text-foreground/35">
+          {emptyLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function seedMatchedCategories(
+  preview: MenuV3PreviewResponse,
+): Map<string, MatchedCategory> {
+  const pairs = new Map<string, MatchedCategory>();
   for (const row of preview.categories) {
     if (row.bucket !== "matchedById" || !row.suggestedCatalogCategoryId) continue;
     pairs.set(row.suggestedCatalogCategoryId, {
       posCategoryId: row.posCategoryId,
       posName: row.posName,
-      matchKind: "id",
     });
   }
+  return pairs;
+}
 
+function seedMatchedItems(
+  preview: MenuV3PreviewResponse,
+): Map<string, MatchedItem> {
+  const pairs = new Map<string, MatchedItem>();
+  for (const row of preview.items) {
+    if (row.bucket !== "matchedById" || !row.suggestedCatalogItemId) continue;
+    pairs.set(row.suggestedCatalogItemId, {
+      posMenuItemId: row.posMenuItemId,
+      posName: row.posName,
+      sku: row.sku,
+    });
+  }
   return pairs;
 }
 
@@ -65,18 +136,39 @@ export function MenuMergePageClient() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [preview, setPreview] = useState<MenuV3PreviewResponse | null>(null);
+  const [tab, setTab] = useState<TabId>("categories");
   const [search, setSearch] = useState("");
+
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(
     null,
   );
   const [selectedPosCategoryId, setSelectedPosCategoryId] = useState<
     string | null
   >(null);
-  const [matchedPairs, setMatchedPairs] = useState<Map<string, MatchedPair>>(
+  const [matchedCategories, setMatchedCategories] = useState<
+    Map<string, MatchedCategory>
+  >(() => new Map());
+  const [updateCategoryName, setUpdateCategoryName] = useState(false);
+  const [catalogCategories, setCatalogCategories] = useState<
+    CatalogCategoryCard[]
+  >([]);
+
+  const [selectedCatalogItemId, setSelectedCatalogItemId] = useState<
+    string | null
+  >(null);
+  const [selectedPosItemId, setSelectedPosItemId] = useState<string | null>(
+    null,
+  );
+  const [createNewItem, setCreateNewItem] = useState(false);
+  const [createCategoryId, setCreateCategoryId] = useState("");
+  const [matchedItems, setMatchedItems] = useState<Map<string, MatchedItem>>(
     () => new Map(),
   );
-  const [updateNameOnMerge, setUpdateNameOnMerge] = useState(false);
-  const [catalogCards, setCatalogCards] = useState<CatalogCategoryCard[]>([]);
+  const [updateItemName, setUpdateItemName] = useState(false);
+  const [updateItemSku, setUpdateItemSku] = useState(true);
+  const [updateItemGramm, setUpdateItemGramm] = useState(true);
+  const [catalogItems, setCatalogItems] = useState<CatalogItemCard[]>([]);
+
   const locationsRef = useRef(locations);
   locationsRef.current = locations;
 
@@ -92,9 +184,7 @@ export function MenuMergePageClient() {
           message?: string;
         };
         if (!res.ok) {
-          if (!cancelled) {
-            setError(data.message ?? t("menuMerge.loadError"));
-          }
+          if (!cancelled) setError(data.message ?? t("menuMerge.loadError"));
           return;
         }
         const locs = data.locations ?? [];
@@ -117,74 +207,127 @@ export function MenuMergePageClient() {
     };
   }, [t]);
 
-  // Reset draft state only when switching locations — not when locations list
-  // is patched after Save ID / Fetch (that was wiping a successful preview).
   useEffect(() => {
     if (!locationId) return;
     const loc = locationsRef.current.find((l) => l.id === locationId);
     setExternalMenuId(loc?.externalMenuId ?? "");
     setPreview(null);
-    setMatchedPairs(new Map());
-    setCatalogCards([]);
+    setMatchedCategories(new Map());
+    setMatchedItems(new Map());
+    setCatalogCategories([]);
+    setCatalogItems([]);
     setSelectedCatalogId(null);
     setSelectedPosCategoryId(null);
-    setUpdateNameOnMerge(false);
+    setSelectedCatalogItemId(null);
+    setSelectedPosItemId(null);
+    setCreateNewItem(false);
     setSearch("");
     setSuccess(null);
     setError(null);
   }, [locationId]);
 
-  const posCards: PosCategoryCard[] = useMemo(() => {
-    if (!preview) return [];
-    return preview.categories.map((c) => ({
-      posCategoryId: c.posCategoryId,
-      posName: c.posName,
-    }));
-  }, [preview]);
-
-  const matchedPosIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const pair of matchedPairs.values()) {
-      ids.add(pair.posCategoryId);
-    }
-    return ids;
-  }, [matchedPairs]);
-
   const q = search.trim().toLowerCase();
 
-  const filteredCatalog = useMemo(() => {
-    if (!q) return catalogCards;
-    return catalogCards.filter((c) => {
-      const hay = `${c.name} ${c.id} ${c.posCategoryId ?? ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [catalogCards, q]);
+  const matchedPosCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of matchedCategories.values()) ids.add(p.posCategoryId);
+    return ids;
+  }, [matchedCategories]);
 
-  const filteredPos = useMemo(() => {
-    const available = posCards.filter((p) => !matchedPosIds.has(p.posCategoryId));
-    if (!q) return available;
-    return available.filter((p) => {
-      const hay = `${p.posName} ${p.posCategoryId}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [posCards, matchedPosIds, q]);
+  const matchedPosItemIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of matchedItems.values()) ids.add(p.posMenuItemId);
+    return ids;
+  }, [matchedItems]);
 
-  const selectedCatalog = catalogCards.find((c) => c.id === selectedCatalogId);
-  const selectedPos = posCards.find(
-    (p) => p.posCategoryId === selectedPosCategoryId,
+  const posCategoryNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of preview?.categories ?? []) {
+      m.set(c.posCategoryId, c.posName);
+    }
+    return m;
+  }, [preview]);
+
+  const filteredCatalogCategories = useMemo(() => {
+    if (!q) return catalogCategories;
+    return catalogCategories.filter((c) =>
+      `${c.name} ${c.id} ${c.posCategoryId ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [catalogCategories, q]);
+
+  const filteredPosCategories = useMemo(() => {
+    const rows = (preview?.categories ?? []).filter(
+      (c) => !matchedPosCategoryIds.has(c.posCategoryId),
+    );
+    if (!q) return rows;
+    return rows.filter((c) =>
+      `${c.posName} ${c.posCategoryId}`.toLowerCase().includes(q),
+    );
+  }, [preview, matchedPosCategoryIds, q]);
+
+  const filteredCatalogItems = useMemo(() => {
+    if (!q) return catalogItems;
+    return catalogItems.filter((c) =>
+      `${c.name} ${c.id} ${c.sku ?? ""} ${c.posMenuItemId ?? ""} ${c.categoryName}`
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [catalogItems, q]);
+
+  const filteredPosItems = useMemo(() => {
+    const rows = (preview?.items ?? []).filter(
+      (i) => !matchedPosItemIds.has(i.posMenuItemId),
+    );
+    if (!q) return rows;
+    return rows.filter((i) =>
+      `${i.posName} ${i.posMenuItemId} ${i.sku ?? ""} ${i.posCategoryId}`
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [preview, matchedPosItemIds, q]);
+
+  const selectedCatalogCat = catalogCategories.find(
+    (c) => c.id === selectedCatalogId,
   );
-  const leftAlreadyMatched = selectedCatalogId
-    ? matchedPairs.has(selectedCatalogId)
-    : false;
-  const rightAlreadyTaken = selectedPosCategoryId
-    ? matchedPosIds.has(selectedPosCategoryId)
-    : false;
-  const canMerge =
+  const selectedPosCat = preview?.categories.find(
+    (c) => c.posCategoryId === selectedPosCategoryId,
+  );
+  const canMergeCategory =
     !!selectedCatalogId &&
     !!selectedPosCategoryId &&
-    !leftAlreadyMatched &&
-    !rightAlreadyTaken &&
+    !matchedCategories.has(selectedCatalogId) &&
+    !matchedPosCategoryIds.has(selectedPosCategoryId) &&
     !merging;
+
+  const selectedCatalogItem = catalogItems.find(
+    (c) => c.id === selectedCatalogItemId,
+  );
+  const selectedPosItem = preview?.items.find(
+    (i) => i.posMenuItemId === selectedPosItemId,
+  );
+
+  const defaultCreateCategoryId = useMemo(() => {
+    if (!selectedPosItem) return "";
+    const linked = catalogCategories.find(
+      (c) => c.posCategoryId === selectedPosItem.posCategoryId,
+    );
+    return linked?.id ?? catalogCategories[0]?.id ?? "";
+  }, [selectedPosItem, catalogCategories]);
+
+  useEffect(() => {
+    if (createNewItem && !createCategoryId && defaultCreateCategoryId) {
+      setCreateCategoryId(defaultCreateCategoryId);
+    }
+  }, [createNewItem, createCategoryId, defaultCreateCategoryId]);
+
+  const canMergeItem =
+    !!selectedPosItemId &&
+    !matchedPosItemIds.has(selectedPosItemId) &&
+    !merging &&
+    (createNewItem
+      ? !!createCategoryId
+      : !!selectedCatalogItemId &&
+        !matchedItems.has(selectedCatalogItemId));
 
   async function saveExternalMenuId() {
     if (!locationId) return;
@@ -250,7 +393,7 @@ export function MenuMergePageClient() {
         return;
       }
       setPreview(data);
-      setCatalogCards(
+      setCatalogCategories(
         (data.catalogCategories ?? []).map((c) => ({
           id: c.id,
           name: c.name,
@@ -259,10 +402,25 @@ export function MenuMergePageClient() {
           posCategoryId: c.posCategoryId ?? null,
         })),
       );
-      setMatchedPairs(seedMatchedPairs(data));
+      setCatalogItems(
+        (data.catalogItems ?? []).map((c) => ({
+          id: c.id,
+          name: c.name,
+          categoryId: c.categoryId,
+          categoryName: c.categoryName ?? "",
+          image: c.image ?? null,
+          gramm: c.gramm ?? null,
+          posMenuItemId: c.posMenuItemId ?? null,
+          sku: c.sku ?? null,
+        })),
+      );
+      setMatchedCategories(seedMatchedCategories(data));
+      setMatchedItems(seedMatchedItems(data));
       setSelectedCatalogId(null);
       setSelectedPosCategoryId(null);
-      setUpdateNameOnMerge(false);
+      setSelectedCatalogItemId(null);
+      setSelectedPosItemId(null);
+      setCreateNewItem(false);
       setSearch("");
       setLocations((prev) =>
         prev.map((l) =>
@@ -276,10 +434,8 @@ export function MenuMergePageClient() {
     }
   }
 
-  async function mergeSelected() {
-    if (!canMerge || !selectedCatalogId || !selectedPosCategoryId || !selectedPos) {
-      return;
-    }
+  async function mergeCategory() {
+    if (!canMergeCategory || !selectedCatalogId || !selectedPosCat) return;
     setMerging(true);
     setError(null);
     setSuccess(null);
@@ -294,50 +450,43 @@ export function MenuMergePageClient() {
               {
                 type: "linkCategory",
                 catalogCategoryId: selectedCatalogId,
-                posCategoryId: selectedPosCategoryId,
-                updateName: updateNameOnMerge,
-                name: updateNameOnMerge ? selectedPos.posName : undefined,
+                posCategoryId: selectedPosCat.posCategoryId,
+                updateName: updateCategoryName,
+                name: updateCategoryName ? selectedPosCat.posName : undefined,
               },
             ],
           }),
         },
       );
       const data = (await res.json()) as {
-        ok?: boolean;
         message?: string;
         error?: string;
-        errors?: Array<{ action: string; message: string }>;
+        errors?: Array<{ message: string }>;
       };
       if (!res.ok) {
         setError(data.message ?? data.error ?? t("menuMerge.mergeError"));
         return;
       }
-      if (data.errors && data.errors.length > 0) {
+      if (data.errors?.length) {
         setError(data.errors.map((e) => e.message).join("; "));
         return;
       }
-
-      const posName = selectedPos.posName;
-      const posId = selectedPosCategoryId;
       const catalogId = selectedCatalogId;
-      const shouldUpdateName = updateNameOnMerge;
-
-      setMatchedPairs((prev) => {
+      const posId = selectedPosCat.posCategoryId;
+      const posName = selectedPosCat.posName;
+      const rename = updateCategoryName;
+      setMatchedCategories((prev) => {
         const next = new Map(prev);
-        next.set(catalogId, {
-          posCategoryId: posId,
-          posName,
-          matchKind: "id",
-        });
+        next.set(catalogId, { posCategoryId: posId, posName });
         return next;
       });
-      setCatalogCards((prev) =>
+      setCatalogCategories((prev) =>
         prev.map((c) =>
           c.id === catalogId
             ? {
                 ...c,
                 posCategoryId: posId,
-                name: shouldUpdateName ? posName : c.name,
+                name: rename ? posName : c.name,
               }
             : c,
         ),
@@ -352,33 +501,166 @@ export function MenuMergePageClient() {
     }
   }
 
-  function toggleCatalog(id: string) {
-    if (matchedPairs.has(id)) return;
-    setSelectedCatalogId((prev) => (prev === id ? null : id));
+  async function mergeItem() {
+    if (!canMergeItem || !selectedPosItem) return;
+    setMerging(true);
+    setError(null);
+    setSuccess(null);
+    const grammValue = formatWeightAsGramm(selectedPosItem.weight);
+    try {
+      const actions = createNewItem
+        ? [
+            {
+              type: "createItem" as const,
+              posMenuItemId: selectedPosItem.posMenuItemId,
+              posProductSizeId: selectedPosItem.posProductSizeId,
+              posCategoryId: selectedPosItem.posCategoryId,
+              name: selectedPosItem.posName,
+              catalogCategoryId: createCategoryId,
+              updateSku: updateItemSku,
+              sku: updateItemSku ? selectedPosItem.sku : null,
+              updateGramm: updateItemGramm,
+              gramm: updateItemGramm ? grammValue : null,
+              priceAmount: selectedPosItem.priceAmount,
+            },
+          ]
+        : [
+            {
+              type: "linkItem" as const,
+              menuItemId: selectedCatalogItemId!,
+              posMenuItemId: selectedPosItem.posMenuItemId,
+              posProductSizeId: selectedPosItem.posProductSizeId,
+              updateName: updateItemName,
+              name: updateItemName ? selectedPosItem.posName : undefined,
+              updateSku: updateItemSku,
+              sku: updateItemSku ? selectedPosItem.sku : null,
+              updateGramm: updateItemGramm,
+              gramm: updateItemGramm ? grammValue : null,
+            },
+          ];
+
+      const res = await fetch(
+        `/api/settings/menu-v3-merge/${encodeURIComponent(locationId)}/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ actions }),
+        },
+      );
+      const data = (await res.json()) as {
+        message?: string;
+        error?: string;
+        errors?: Array<{ message: string }>;
+        createdItems?: number;
+      };
+      if (!res.ok) {
+        setError(data.message ?? data.error ?? t("menuMerge.mergeItemError"));
+        return;
+      }
+      if (data.errors?.length) {
+        setError(data.errors.map((e) => e.message).join("; "));
+        return;
+      }
+
+      const posId = selectedPosItem.posMenuItemId;
+      const posName = selectedPosItem.posName;
+      const posSku = selectedPosItem.sku;
+
+      if (createNewItem) {
+        // Refresh local lists: hide POS, add a synthetic catalog card
+        const newId = `created-${posId}`;
+        const catName =
+          catalogCategories.find((c) => c.id === createCategoryId)?.name ?? "";
+        setCatalogItems((prev) => [
+          {
+            id: newId,
+            name: selectedPosItem.posName,
+            categoryId: createCategoryId,
+            categoryName: catName,
+            image: null,
+            gramm: updateItemGramm ? grammValue : null,
+            posMenuItemId: posId,
+            sku: updateItemSku ? posSku : null,
+          },
+          ...prev,
+        ]);
+        setMatchedItems((prev) => {
+          const next = new Map(prev);
+          next.set(newId, {
+            posMenuItemId: posId,
+            posName,
+            sku: posSku,
+          });
+          return next;
+        });
+      } else if (selectedCatalogItemId) {
+        const catalogId = selectedCatalogItemId;
+        setMatchedItems((prev) => {
+          const next = new Map(prev);
+          next.set(catalogId, {
+            posMenuItemId: posId,
+            posName,
+            sku: posSku,
+          });
+          return next;
+        });
+        setCatalogItems((prev) =>
+          prev.map((c) =>
+            c.id === catalogId
+              ? {
+                  ...c,
+                  posMenuItemId: posId,
+                  name: updateItemName ? posName : c.name,
+                  sku: updateItemSku ? posSku : c.sku,
+                  gramm: updateItemGramm ? grammValue : c.gramm,
+                }
+              : c,
+          ),
+        );
+      }
+
+      setSelectedCatalogItemId(null);
+      setSelectedPosItemId(null);
+      setCreateNewItem(false);
+      setSuccess(
+        createNewItem
+          ? t("menuMerge.createItemSuccess")
+          : t("menuMerge.mergeItemSuccess"),
+      );
+    } catch {
+      setError(t("menuMerge.mergeItemError"));
+    } finally {
+      setMerging(false);
+    }
   }
 
-  function togglePos(id: string) {
-    if (matchedPosIds.has(id)) return;
-    setSelectedPosCategoryId((prev) => (prev === id ? null : id));
-  }
+  const stickyCategory =
+    tab === "categories" &&
+    selectedCatalogCat &&
+    selectedPosCat &&
+    !matchedCategories.has(selectedCatalogCat.id);
+
+  const stickyItem =
+    tab === "items" &&
+    selectedPosItem &&
+    !matchedPosItemIds.has(selectedPosItem.posMenuItemId) &&
+    (createNewItem || selectedCatalogItem);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-28">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link
-            href="/settings"
-            className="text-sm text-foreground/60 transition-colors hover:text-foreground"
-          >
-            ← {t("menuMerge.backToSettings")}
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-            {t("menuMerge.title")}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-foreground/60">
-            {t("menuMerge.helpCategories")}
-          </p>
-        </div>
+      <div>
+        <Link
+          href="/settings"
+          className="text-sm text-foreground/60 transition-colors hover:text-foreground"
+        >
+          ← {t("menuMerge.backToSettings")}
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+          {t("menuMerge.title")}
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-foreground/60">
+          {t("menuMerge.helpCategories")}
+        </p>
       </div>
 
       <section className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">
@@ -460,6 +742,28 @@ export function MenuMergePageClient() {
         </section>
       ) : (
         <>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["categories", t("menuMerge.tabCategories")],
+                ["items", t("menuMerge.tabItems")],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`min-h-10 rounded-xl px-4 text-sm font-medium transition-colors ${
+                  tab === id
+                    ? "bg-foreground text-background"
+                    : "border border-foreground/15 hover:bg-foreground/5"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-foreground/60">
               {preview.menuName ? (
@@ -470,165 +774,322 @@ export function MenuMergePageClient() {
                   </span>
                 </span>
               ) : null}
-              <span className="ml-0 block sm:ml-3 sm:inline">
-                {t("menuMerge.posTotalCount", {
-                  count: String(posCards.length),
-                })}
-                {" · "}
-                {t("menuMerge.matchedCount", {
-                  count: String(matchedPairs.size),
-                })}
-                {" · "}
-                {t("menuMerge.unmatchedPosCount", {
-                  count: String(filteredPos.length),
-                })}
-              </span>
+              {tab === "categories" ? (
+                <span className="ml-0 block sm:ml-3 sm:inline">
+                  {t("menuMerge.posTotalCount", {
+                    count: String(preview.categories.length),
+                  })}
+                  {" · "}
+                  {t("menuMerge.matchedCount", {
+                    count: String(matchedCategories.size),
+                  })}
+                  {" · "}
+                  {t("menuMerge.unmatchedPosCount", {
+                    count: String(filteredPosCategories.length),
+                  })}
+                </span>
+              ) : (
+                <span className="ml-0 block sm:ml-3 sm:inline">
+                  {t("menuMerge.posItemTotalCount", {
+                    count: String(preview.items.length),
+                  })}
+                  {" · "}
+                  {t("menuMerge.matchedItemCount", {
+                    count: String(matchedItems.size),
+                  })}
+                  {" · "}
+                  {t("menuMerge.unmatchedPosItemCount", {
+                    count: String(filteredPosItems.length),
+                  })}
+                </span>
+              )}
             </div>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("menuMerge.searchCategories")}
+              placeholder={
+                tab === "categories"
+                  ? t("menuMerge.searchCategories")
+                  : t("menuMerge.searchItems")
+              }
               className="min-h-10 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20 sm:max-w-xs"
             />
           </div>
 
-          {posCards.length === 0 ? (
+          {tab === "categories" && preview.categories.length === 0 ? (
             <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
               {t("menuMerge.posReturnedEmpty")}
             </p>
           ) : null}
+          {tab === "items" && preview.items.length === 0 ? (
+            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              {t("menuMerge.posItemsReturnedEmpty")}
+            </p>
+          ) : null}
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">
-                {t("menuMerge.dbCategories")}
-              </h2>
-              {filteredCatalog.length === 0 ? (
-                <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
-                  {t("menuMerge.noCategoryRows")}
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredCatalog.map((cat) => {
-                    const match = matchedPairs.get(cat.id);
-                    const selected = selectedCatalogId === cat.id;
-                    return (
-                      <li key={cat.id}>
-                        <button
-                          type="button"
-                          disabled={!!match}
-                          onClick={() => toggleCatalog(cat.id)}
-                          className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition-colors ${
-                            match
-                              ? "cursor-default border-emerald-500/30 bg-emerald-500/5"
-                              : selected
-                                ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
-                                : "border-foreground/10 bg-background/60 hover:border-foreground/25 hover:bg-foreground/[0.03]"
-                          }`}
-                        >
-                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-foreground/5">
-                            {cat.coverPhoto ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={cat.coverPhoto}
-                                alt=""
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] text-foreground/35">
-                                {t("menuMerge.noPhoto")}
+          {tab === "categories" ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {t("menuMerge.dbCategories")}
+                </h2>
+                {filteredCatalogCategories.length === 0 ? (
+                  <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
+                    {t("menuMerge.noCategoryRows")}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {filteredCatalogCategories.map((cat) => {
+                      const match = matchedCategories.get(cat.id);
+                      const selected = selectedCatalogId === cat.id;
+                      return (
+                        <li key={cat.id}>
+                          <button
+                            type="button"
+                            disabled={!!match}
+                            onClick={() =>
+                              setSelectedCatalogId((prev) =>
+                                prev === cat.id ? null : cat.id,
+                              )
+                            }
+                            className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                              match
+                                ? "cursor-default border-emerald-500/30 bg-emerald-500/5"
+                                : selected
+                                  ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
+                                  : "border-foreground/10 bg-background/60 hover:border-foreground/25"
+                            }`}
+                          >
+                            <Thumb
+                              src={cat.coverPhoto}
+                              emptyLabel={t("menuMerge.noPhoto")}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate font-medium text-foreground">
+                                  {cat.name}
+                                </p>
+                                {match ? (
+                                  <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                                    {t("menuMerge.matchBadge")}
+                                  </span>
+                                ) : null}
                               </div>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate font-medium text-foreground">
-                                {cat.name}
+                              {cat.description ? (
+                                <p className="mt-0.5 line-clamp-2 text-xs text-foreground/55">
+                                  {cat.description}
+                                </p>
+                              ) : null}
+                              <p className="mt-1 break-all text-[11px] text-foreground/40">
+                                {cat.id}
                               </p>
                               {match ? (
-                                <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                                  {t("menuMerge.matchBadge")}
-                                </span>
+                                <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                                  {t("menuMerge.matchedTo", {
+                                    name: match.posName,
+                                    id: match.posCategoryId,
+                                  })}
+                                </p>
+                              ) : cat.posCategoryId ? (
+                                <p className="mt-1 text-[11px] text-foreground/45">
+                                  POS: {cat.posCategoryId}
+                                </p>
                               ) : null}
                             </div>
-                            {cat.description ? (
-                              <p className="mt-0.5 line-clamp-2 text-xs text-foreground/55">
-                                {cat.description}
-                              </p>
-                            ) : null}
-                            <p className="mt-1 break-all text-[11px] text-foreground/40">
-                              {cat.id}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {t("menuMerge.posCategories")}
+                </h2>
+                {filteredPosCategories.length === 0 ? (
+                  <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
+                    {preview.categories.length === 0
+                      ? t("menuMerge.posReturnedEmpty")
+                      : q
+                        ? t("menuMerge.noPosCategoryRowsSearch")
+                        : t("menuMerge.noPosCategoryRows")}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {filteredPosCategories.map((pos) => {
+                      const selected =
+                        selectedPosCategoryId === pos.posCategoryId;
+                      return (
+                        <li key={pos.posCategoryId}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedPosCategoryId((prev) =>
+                                prev === pos.posCategoryId
+                                  ? null
+                                  : pos.posCategoryId,
+                              )
+                            }
+                            className={`w-full rounded-2xl border p-3 text-left transition-colors ${
+                              selected
+                                ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
+                                : "border-foreground/10 bg-background/60 hover:border-foreground/25"
+                            }`}
+                          >
+                            <p className="font-medium text-foreground">
+                              {pos.posName}
                             </p>
-                            {match ? (
-                              <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                                {t("menuMerge.matchedTo", {
-                                  name: match.posName,
-                                  id: match.posCategoryId,
-                                })}
+                            <p className="mt-1 break-all text-[11px] text-foreground/40">
+                              {pos.posCategoryId}
+                            </p>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {t("menuMerge.dbItems")}
+                </h2>
+                {filteredCatalogItems.length === 0 ? (
+                  <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
+                    {t("menuMerge.noItemRows")}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {filteredCatalogItems.map((item) => {
+                      const match = matchedItems.get(item.id);
+                      const selected = selectedCatalogItemId === item.id;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            disabled={!!match || createNewItem}
+                            onClick={() => {
+                              setCreateNewItem(false);
+                              setSelectedCatalogItemId((prev) =>
+                                prev === item.id ? null : item.id,
+                              );
+                            }}
+                            className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                              match
+                                ? "cursor-default border-emerald-500/30 bg-emerald-500/5"
+                                : selected
+                                  ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
+                                  : "border-foreground/10 bg-background/60 hover:border-foreground/25 disabled:opacity-50"
+                            }`}
+                          >
+                            <Thumb
+                              src={item.image}
+                              emptyLabel={t("menuMerge.noPhoto")}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate font-medium text-foreground">
+                                  {item.name}
+                                </p>
+                                {match ? (
+                                  <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                                    {t("menuMerge.matchBadge")}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="mt-0.5 text-xs text-foreground/55">
+                                {item.categoryName}
+                                {item.sku ? ` · SKU ${item.sku}` : ""}
+                                {item.gramm ? ` · ${item.gramm}` : ""}
                               </p>
-                            ) : cat.posCategoryId ? (
-                              <p className="mt-1 text-[11px] text-foreground/45">
-                                POS: {cat.posCategoryId}
+                              <p className="mt-1 break-all text-[11px] text-foreground/40">
+                                {item.id}
                               </p>
-                            ) : null}
-                          </div>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+                              {match ? (
+                                <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                                  {t("menuMerge.matchedItemTo", {
+                                    name: match.posName,
+                                    id: match.posMenuItemId,
+                                  })}
+                                </p>
+                              ) : item.posMenuItemId ? (
+                                <p className="mt-1 text-[11px] text-foreground/45">
+                                  POS: {item.posMenuItemId}
+                                </p>
+                              ) : null}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
 
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">
-                {t("menuMerge.posCategories")}
-              </h2>
-              {filteredPos.length === 0 ? (
-                <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
-                  {posCards.length === 0
-                    ? t("menuMerge.posReturnedEmpty")
-                    : q
-                      ? t("menuMerge.noPosCategoryRowsSearch")
-                      : t("menuMerge.noPosCategoryRows")}
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredPos.map((pos) => {
-                    const selected = selectedPosCategoryId === pos.posCategoryId;
-                    return (
-                      <li key={pos.posCategoryId}>
-                        <button
-                          type="button"
-                          onClick={() => togglePos(pos.posCategoryId)}
-                          className={`w-full rounded-2xl border p-3 text-left transition-colors ${
-                            selected
-                              ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
-                              : "border-foreground/10 bg-background/60 hover:border-foreground/25 hover:bg-foreground/[0.03]"
-                          }`}
-                        >
-                          <p className="font-medium text-foreground">
-                            {pos.posName}
-                          </p>
-                          <p className="mt-1 break-all text-[11px] text-foreground/40">
-                            {pos.posCategoryId}
-                          </p>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          </div>
-
-          <p className="text-center text-xs text-foreground/45">
-            {t("menuMerge.itemsComingSoon")}
-          </p>
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {t("menuMerge.posItems")}
+                </h2>
+                {filteredPosItems.length === 0 ? (
+                  <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
+                    {preview.items.length === 0
+                      ? t("menuMerge.posItemsReturnedEmpty")
+                      : q
+                        ? t("menuMerge.noPosItemRowsSearch")
+                        : t("menuMerge.noPosItemRows")}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {filteredPosItems.map((pos) => {
+                      const selected = selectedPosItemId === pos.posMenuItemId;
+                      return (
+                        <li key={pos.posMenuItemId}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedPosItemId((prev) =>
+                                prev === pos.posMenuItemId
+                                  ? null
+                                  : pos.posMenuItemId,
+                              )
+                            }
+                            className={`w-full rounded-2xl border p-3 text-left transition-colors ${
+                              selected
+                                ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
+                                : "border-foreground/10 bg-background/60 hover:border-foreground/25"
+                            }`}
+                          >
+                            <p className="font-medium text-foreground">
+                              {pos.posName}
+                            </p>
+                            <p className="mt-0.5 text-xs text-foreground/55">
+                              {posCategoryNameById.get(pos.posCategoryId) ??
+                                pos.posCategoryId}
+                              {pos.sku ? ` · SKU ${pos.sku}` : ""}
+                              {pos.weight != null
+                                ? ` · ${formatWeightAsGramm(pos.weight)}`
+                                : ""}
+                            </p>
+                            <p className="mt-1 break-all text-[11px] text-foreground/40">
+                              {pos.posMenuItemId}
+                            </p>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            </div>
+          )}
         </>
       )}
 
-      {selectedCatalog && selectedPos && !leftAlreadyMatched ? (
+      {stickyCategory ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-foreground/10 bg-background/95 px-4 py-3 backdrop-blur-md">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 text-sm">
@@ -636,13 +1097,13 @@ export function MenuMergePageClient() {
                 {t("menuMerge.mergePairTitle")}
               </p>
               <p className="truncate text-foreground/60">
-                {selectedCatalog.name} ← {selectedPos.posName}
+                {selectedCatalogCat!.name} ← {selectedPosCat!.posName}
               </p>
               <label className="mt-2 flex items-center gap-2 text-xs text-foreground/70">
                 <input
                   type="checkbox"
-                  checked={updateNameOnMerge}
-                  onChange={(e) => setUpdateNameOnMerge(e.target.checked)}
+                  checked={updateCategoryName}
+                  onChange={(e) => setUpdateCategoryName(e.target.checked)}
                   className="rounded border-foreground/30"
                 />
                 {t("menuMerge.updateNameToo")}
@@ -662,11 +1123,118 @@ export function MenuMergePageClient() {
               </button>
               <button
                 type="button"
-                disabled={!canMerge}
-                onClick={() => void mergeSelected()}
+                disabled={!canMergeCategory}
+                onClick={() => void mergeCategory()}
                 className="min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
               >
                 {merging ? t("menuMerge.merging") : t("menuMerge.merge")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {stickyItem ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-foreground/10 bg-background/95 px-4 py-3 backdrop-blur-md">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0 space-y-2 text-sm">
+              <p className="font-medium text-foreground">
+                {createNewItem
+                  ? t("menuMerge.createItemTitle")
+                  : t("menuMerge.mergeItemTitle")}
+              </p>
+              <p className="truncate text-foreground/60">
+                {createNewItem
+                  ? selectedPosItem!.posName
+                  : `${selectedCatalogItem!.name} ← ${selectedPosItem!.posName}`}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/70">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={createNewItem}
+                    onChange={(e) => {
+                      setCreateNewItem(e.target.checked);
+                      if (e.target.checked) {
+                        setSelectedCatalogItemId(null);
+                        setCreateCategoryId(defaultCreateCategoryId);
+                      }
+                    }}
+                    className="rounded border-foreground/30"
+                  />
+                  {t("menuMerge.createNewItem")}
+                </label>
+                {!createNewItem ? (
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={updateItemName}
+                      onChange={(e) => setUpdateItemName(e.target.checked)}
+                      className="rounded border-foreground/30"
+                    />
+                    {t("menuMerge.updateItemName")}
+                  </label>
+                ) : null}
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={updateItemSku}
+                    onChange={(e) => setUpdateItemSku(e.target.checked)}
+                    className="rounded border-foreground/30"
+                  />
+                  {t("menuMerge.updateItemSku")}
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={updateItemGramm}
+                    onChange={(e) => setUpdateItemGramm(e.target.checked)}
+                    className="rounded border-foreground/30"
+                  />
+                  {t("menuMerge.updateItemGramm")}
+                </label>
+              </div>
+              {createNewItem ? (
+                <label className="block space-y-1 text-xs text-foreground/70">
+                  <span>{t("menuMerge.createIntoCategory")}</span>
+                  <select
+                    value={createCategoryId}
+                    onChange={(e) => setCreateCategoryId(e.target.value)}
+                    className="min-h-9 w-full max-w-sm rounded-lg border border-foreground/15 bg-background px-2 text-sm"
+                  >
+                    {catalogCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={merging}
+                onClick={() => {
+                  setSelectedCatalogItemId(null);
+                  setSelectedPosItemId(null);
+                  setCreateNewItem(false);
+                }}
+                className="min-h-11 rounded-xl border border-foreground/15 px-4 text-sm font-medium hover:bg-foreground/5 disabled:opacity-50"
+              >
+                {t("menuMerge.cancelSelection")}
+              </button>
+              <button
+                type="button"
+                disabled={!canMergeItem}
+                onClick={() => void mergeItem()}
+                className="min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
+              >
+                {merging
+                  ? t("menuMerge.merging")
+                  : createNewItem
+                    ? t("menuMerge.createItem")
+                    : t("menuMerge.merge")}
               </button>
             </div>
           </div>

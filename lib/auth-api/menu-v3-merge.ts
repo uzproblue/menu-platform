@@ -16,6 +16,7 @@ export type MenuV3ItemPreview = {
   posName: string;
   sku: string | null;
   priceAmount: string | null;
+  weight: number | null;
   matchKind: "id" | "sku" | "name" | null;
   suggestedCatalogItemId: string | null;
   suggestedCatalogName: string | null;
@@ -60,6 +61,9 @@ export type MenuV3PreviewResponse = {
     id: string;
     name: string;
     categoryId: string;
+    categoryName: string;
+    image: string | null;
+    gramm: string | null;
     posMenuItemId: string | null;
     sku: string | null;
   }>;
@@ -79,7 +83,12 @@ export type MenuV3MergeAction =
       menuItemId: string;
       posMenuItemId: string;
       posProductSizeId?: string | null;
+      updateName?: boolean;
+      name?: string;
+      updateSku?: boolean;
       sku?: string | null;
+      updateGramm?: boolean;
+      gramm?: string | null;
       priceAmount?: string | null;
       catalogCategoryId?: string | null;
     }
@@ -89,8 +98,11 @@ export type MenuV3MergeAction =
       posProductSizeId?: string | null;
       posCategoryId: string;
       name: string;
+      updateSku?: boolean;
       sku?: string | null;
-      priceAmount: string;
+      updateGramm?: boolean;
+      gramm?: string | null;
+      priceAmount?: string | null;
       catalogCategoryId?: string | null;
     };
 

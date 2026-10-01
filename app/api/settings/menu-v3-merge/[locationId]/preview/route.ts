@@ -16,7 +16,7 @@ function readPublicBaseUrl(): string {
   ).replace(/\/+$/, "");
 }
 
-function expandCatalogCoverPhotos(
+function expandCatalogAssets(
   data: MenuV3PreviewResponse,
 ): MenuV3PreviewResponse {
   const base = readPublicBaseUrl();
@@ -27,6 +27,10 @@ function expandCatalogCoverPhotos(
       ...cat,
       coverPhoto:
         expandR2AssetToPublicUrl(cat.coverPhoto, base) ?? cat.coverPhoto,
+    })),
+    catalogItems: data.catalogItems.map((item) => ({
+      ...item,
+      image: expandR2AssetToPublicUrl(item.image, base) ?? item.image,
     })),
   };
 }
@@ -88,5 +92,5 @@ export async function POST(
     );
   }
 
-  return NextResponse.json(expandCatalogCoverPhotos(result.data));
+  return NextResponse.json(expandCatalogAssets(result.data));
 }
