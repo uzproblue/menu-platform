@@ -52,6 +52,8 @@ export type MenuV3PreviewResponse = {
   catalogCategories: Array<{
     id: string;
     name: string;
+    description: string | null;
+    coverPhoto: string | null;
     posCategoryId: string | null;
   }>;
   catalogItems: Array<{
@@ -64,7 +66,13 @@ export type MenuV3PreviewResponse = {
 };
 
 export type MenuV3MergeAction =
-  | { type: "linkCategory"; catalogCategoryId: string; posCategoryId: string }
+  | {
+      type: "linkCategory";
+      catalogCategoryId: string;
+      posCategoryId: string;
+      updateName?: boolean;
+      name?: string;
+    }
   | { type: "createCategory"; posCategoryId: string; name: string }
   | {
       type: "linkItem";
