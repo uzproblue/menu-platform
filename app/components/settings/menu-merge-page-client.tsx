@@ -49,6 +49,7 @@ type CatalogItemCard = {
   sku: string | null;
   deleted: boolean;
   locationPrice: string | null;
+  locationPrices: Array<{ locationId: string; price: string }>;
 };
 
 type DuplicateReason = "pos" | "sku" | "name";
@@ -259,6 +260,9 @@ export function MenuMergePageClient() {
   >("all");
   const [itemCategoryFilter, setItemCategoryFilter] = useState("");
   const [itemsStep, setItemsStep] = useState<1 | 2 | 3>(1);
+  const [mergeScope, setMergeScope] = useState<"global" | "location">(
+    "location",
+  );
   const [selectedPriceItemIds, setSelectedPriceItemIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -316,9 +320,11 @@ export function MenuMergePageClient() {
     setSelectedPosItemId(null);
     setCreateNewItem(false);
     setSearch("");
+    setItemsStep(1);
+    setSelectedPriceItemIds(new Set());
     setSuccess(null);
     setError(null);
-  }, [locationId]);
+  }, [locationId, mergeScope]);
 
   const q = search.trim().toLowerCase();
 
@@ -538,6 +544,12 @@ export function MenuMergePageClient() {
           sku: c.sku ?? null,
           deleted: c.deleted === true,
           locationPrice: c.locationPrice ?? null,
+          locationPrices: Array.isArray(c.locationPrices)
+            ? c.locationPrices.map((lp) => ({
+                locationId: lp.locationId,
+                price: lp.price,
+              }))
+            : [],
         })),
       );
       setMatchedCategories(seedMatchedCategories(data));
@@ -715,6 +727,9 @@ export function MenuMergePageClient() {
             sku: updateItemSku ? posSku : null,
             deleted: false,
             locationPrice: selectedPosItem.priceAmount,
+            locationPrices: selectedPosItem.priceAmount
+              ? [{ locationId, price: selectedPosItem.priceAmount }]
+              : [],
           },
           ...prev,
         ]);
@@ -918,6 +933,10 @@ export function MenuMergePageClient() {
     setMerging(true);
     setError(null);
     setSuccess(null);
+    const actionType =
+      mergeScope === "global"
+        ? ("updateAllLocationPrices" as const)
+        : ("updateLocationPrice" as const);
     try {
       const res = await fetch(
         `/api/settings/menu-v3-merge/${encodeURIComponent(locationId)}/apply`,
@@ -926,7 +945,7 @@ export function MenuMergePageClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             actions: rows.map((r) => ({
-              type: "updateLocationPrice" as const,
+              type: actionType,
               menuItemId: r.menuItemId,
               priceAmount: r.priceAmount,
             })),
@@ -950,14 +969,35 @@ export function MenuMergePageClient() {
       }
       const byId = new Map(rows.map((r) => [r.menuItemId, r.priceAmount]));
       setCatalogItems((prev) =>
-        prev.map((c) =>
-          byId.has(c.id)
-            ? { ...c, locationPrice: byId.get(c.id) ?? c.locationPrice }
-            : c,
-        ),
+        prev.map((c) => {
+          const nextPrice = byId.get(c.id);
+          if (nextPrice == null) return c;
+          if (mergeScope === "global") {
+            return {
+              ...c,
+              locationPrice:
+                c.locationPrice != null ? nextPrice : c.locationPrice,
+              locationPrices: c.locationPrices.map((lp) => ({
+                ...lp,
+                price: nextPrice,
+              })),
+            };
+          }
+          return {
+            ...c,
+            locationPrice: nextPrice,
+            locationPrices: c.locationPrices.map((lp) =>
+              lp.locationId === locationId ? { ...lp, price: nextPrice } : lp,
+            ),
+          };
+        }),
       );
       setSelectedPriceItemIds(new Set());
-      setSuccess(t("menuMerge.applyPricesSuccess"));
+      setSuccess(
+        mergeScope === "global"
+          ? t("menuMerge.applyAllPricesSuccess")
+          : t("menuMerge.applyPricesSuccess"),
+      );
     } catch {
       setError(t("menuMerge.applyPricesError"));
     } finally {
@@ -997,6 +1037,7 @@ export function MenuMergePageClient() {
       locationPrice: string | null;
       posPrice: string;
       differs: boolean;
+      differingLocationCount: number;
     }> = [];
     for (const item of catalogItems) {
       if (item.deleted) continue;
@@ -1005,19 +1046,45 @@ export function MenuMergePageClient() {
       if (!posId) continue;
       const pos = posById.get(posId);
       if (!pos?.priceAmount?.trim()) continue;
-      const locNorm = normalizePriceAmount(item.locationPrice);
       const posNorm = normalizePriceAmount(pos.priceAmount);
-      rows.push({
-        menuItemId: item.id,
-        menuItemName: item.name,
-        posName: pos.posName,
-        locationPrice: item.locationPrice,
-        posPrice: pos.priceAmount,
-        differs: locNorm !== posNorm,
-      });
+      if (mergeScope === "global") {
+        const prices =
+          item.locationPrices.length > 0
+            ? item.locationPrices
+            : item.locationPrice != null
+              ? [{ locationId: locationId, price: item.locationPrice }]
+              : [];
+        if (prices.length === 0) continue;
+        let differingLocationCount = 0;
+        for (const lp of prices) {
+          if (normalizePriceAmount(lp.price) !== posNorm) {
+            differingLocationCount += 1;
+          }
+        }
+        rows.push({
+          menuItemId: item.id,
+          menuItemName: item.name,
+          posName: pos.posName,
+          locationPrice: item.locationPrice,
+          posPrice: pos.priceAmount,
+          differs: differingLocationCount > 0,
+          differingLocationCount,
+        });
+      } else {
+        const locNorm = normalizePriceAmount(item.locationPrice);
+        rows.push({
+          menuItemId: item.id,
+          menuItemName: item.name,
+          posName: pos.posName,
+          locationPrice: item.locationPrice,
+          posPrice: pos.priceAmount,
+          differs: locNorm !== posNorm,
+          differingLocationCount: locNorm !== posNorm ? 1 : 0,
+        });
+      }
     }
     return rows;
-  }, [catalogItems, matchedItems, preview]);
+  }, [catalogItems, matchedItems, mergeScope, locationId, preview]);
 
   const differingPriceRows = useMemo(
     () => priceCompareRows.filter((r) => r.differs),
@@ -1042,10 +1109,28 @@ export function MenuMergePageClient() {
       </div>
 
       <section className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto_auto]">
+        <div className="grid gap-4 lg:grid-cols-[auto_1fr_1fr_auto_auto]">
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-foreground/60">
-              {t("menuMerge.location")}
+              {t("menuMerge.mergeScope")}
+            </span>
+            <select
+              value={mergeScope}
+              disabled={loadingMeta || fetching || merging}
+              onChange={(e) =>
+                setMergeScope(e.target.value as "global" | "location")
+              }
+              className="min-h-11 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm outline-none focus:border-foreground/30 focus:ring-2 focus:ring-foreground/20 disabled:opacity-50"
+            >
+              <option value="location">{t("menuMerge.scopeLocation")}</option>
+              <option value="global">{t("menuMerge.scopeGlobal")}</option>
+            </select>
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-foreground/60">
+              {mergeScope === "global"
+                ? t("menuMerge.posSourceLocation")
+                : t("menuMerge.location")}
             </span>
             <select
               value={locationId}
@@ -1094,7 +1179,9 @@ export function MenuMergePageClient() {
           </button>
         </div>
         <p className="mt-3 text-xs text-foreground/50">
-          {t("menuMerge.fetchSafeNoteCategories")}
+          {mergeScope === "global"
+            ? t("menuMerge.fetchSafeNoteGlobal")
+            : t("menuMerge.fetchSafeNoteCategories")}
         </p>
       </section>
 
@@ -1679,10 +1766,14 @@ export function MenuMergePageClient() {
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
                       <h2 className="text-sm font-semibold text-foreground">
-                        {t("menuMerge.pricesTitle")}
+                        {mergeScope === "global"
+                          ? t("menuMerge.pricesTitleGlobal")
+                          : t("menuMerge.pricesTitle")}
                       </h2>
                       <p className="mt-1 text-xs text-foreground/55">
-                        {t("menuMerge.pricesHelp")}
+                        {mergeScope === "global"
+                          ? t("menuMerge.pricesHelpGlobal")
+                          : t("menuMerge.pricesHelp")}
                       </p>
                     </div>
                     <button
@@ -1705,7 +1796,9 @@ export function MenuMergePageClient() {
                     >
                       {merging
                         ? t("menuMerge.merging")
-                        : t("menuMerge.applySelectedPrices")}
+                        : mergeScope === "global"
+                          ? t("menuMerge.applySelectedPricesGlobal")
+                          : t("menuMerge.applySelectedPrices")}
                     </button>
                   </div>
                   {priceCompareRows.length === 0 ? (
@@ -1750,10 +1843,20 @@ export function MenuMergePageClient() {
                               <p className="text-xs text-foreground/50">
                                 POS: {row.posName}
                               </p>
+                              {mergeScope === "global" ? (
+                                <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-300/90">
+                                  {t("menuMerge.locationsDifferCount", {
+                                    count: String(row.differingLocationCount),
+                                  })}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="text-right text-sm">
                               <p className="text-foreground/55">
-                                {t("menuMerge.locationPrice")}:{" "}
+                                {mergeScope === "global"
+                                  ? t("menuMerge.sourceLocationPrice")
+                                  : t("menuMerge.locationPrice")}
+                                :{" "}
                                 <span className="font-medium text-foreground">
                                   {row.locationPrice ?? "—"}
                                 </span>

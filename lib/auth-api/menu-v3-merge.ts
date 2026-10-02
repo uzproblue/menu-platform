@@ -69,6 +69,7 @@ export type MenuV3PreviewResponse = {
     sku: string | null;
     deleted: boolean;
     locationPrice: string | null;
+    locationPrices: Array<{ locationId: string; price: string }>;
   }>;
 };
 
@@ -111,6 +112,11 @@ export type MenuV3MergeAction =
   | { type: "softDeleteItem"; menuItemId: string }
   | { type: "restoreItem"; menuItemId: string }
   | { type: "updateLocationPrice"; menuItemId: string; priceAmount: string }
+  | {
+      type: "updateAllLocationPrices";
+      menuItemId: string;
+      priceAmount: string;
+    }
   | { type: "unlinkItem"; menuItemId: string };
 
 export type MenuV3ApplyResponse = {
