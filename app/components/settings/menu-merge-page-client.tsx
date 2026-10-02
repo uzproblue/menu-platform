@@ -43,11 +43,95 @@ type CatalogItemCard = {
   categoryId: string;
   categoryName: string;
   image: string | null;
+  videoId: string | null;
   gramm: string | null;
   posMenuItemId: string | null;
   sku: string | null;
   deleted: boolean;
+  locationPrice: string | null;
 };
+
+type DuplicateReason = "pos" | "sku" | "name";
+
+type DuplicateGroup = {
+  key: string;
+  reason: DuplicateReason;
+  label: string;
+  items: CatalogItemCard[];
+};
+
+function normItemName(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function buildMenuItemDuplicateGroups(
+  items: CatalogItemCard[],
+): DuplicateGroup[] {
+  const active = items.filter((i) => !i.deleted);
+  const groups: DuplicateGroup[] = [];
+
+  const byPos = new Map<string, CatalogItemCard[]>();
+  const bySku = new Map<string, CatalogItemCard[]>();
+  const byName = new Map<string, CatalogItemCard[]>();
+
+  for (const item of active) {
+    if (item.posMenuItemId) {
+      const list = byPos.get(item.posMenuItemId) ?? [];
+      list.push(item);
+      byPos.set(item.posMenuItemId, list);
+    }
+    if (item.sku) {
+      const list = bySku.get(item.sku) ?? [];
+      list.push(item);
+      bySku.set(item.sku, list);
+    }
+    const n = normItemName(item.name);
+    if (n) {
+      const list = byName.get(n) ?? [];
+      list.push(item);
+      byName.set(n, list);
+    }
+  }
+
+  for (const [posId, list] of byPos) {
+    if (list.length < 2) continue;
+    groups.push({
+      key: `pos:${posId}`,
+      reason: "pos",
+      label: posId,
+      items: list,
+    });
+  }
+  for (const [sku, list] of bySku) {
+    if (list.length < 2) continue;
+    groups.push({
+      key: `sku:${sku}`,
+      reason: "sku",
+      label: sku,
+      items: list,
+    });
+  }
+  for (const [name, list] of byName) {
+    if (list.length < 2) continue;
+    groups.push({
+      key: `name:${name}`,
+      reason: "name",
+      label: list[0]?.name ?? name,
+      items: list,
+    });
+  }
+
+  return groups;
+}
+
+function normalizePriceAmount(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const t = String(value).trim();
+  if (!t) return null;
+  const n = Number(t.replace(",", "."));
+  if (!Number.isFinite(n)) return t;
+  return String(n);
+}
 
 function resolveThumb(raw: string | null | undefined): string | null {
   if (!raw?.trim()) return null;
@@ -174,6 +258,10 @@ export function MenuMergePageClient() {
     "all" | "matched" | "unmatched"
   >("all");
   const [itemCategoryFilter, setItemCategoryFilter] = useState("");
+  const [itemsStep, setItemsStep] = useState<1 | 2 | 3>(1);
+  const [selectedPriceItemIds, setSelectedPriceItemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const locationsRef = useRef(locations);
   locationsRef.current = locations;
@@ -427,10 +515,12 @@ export function MenuMergePageClient() {
           categoryId: c.categoryId,
           categoryName: c.categoryName ?? "",
           image: c.image ?? null,
+          videoId: c.videoId ?? null,
           gramm: c.gramm ?? null,
           posMenuItemId: c.posMenuItemId ?? null,
           sku: c.sku ?? null,
           deleted: c.deleted === true,
+          locationPrice: c.locationPrice ?? null,
         })),
       );
       setMatchedCategories(seedMatchedCategories(data));
@@ -444,6 +534,8 @@ export function MenuMergePageClient() {
       setItemMatchFilter("all");
       setItemCategoryFilter("");
       setShowDeletedItems(false);
+      setItemsStep(1);
+      setSelectedPriceItemIds(new Set());
       setLocations((prev) =>
         prev.map((l) =>
           l.id === locationId ? { ...l, externalMenuId: menuId } : l,
@@ -600,10 +692,12 @@ export function MenuMergePageClient() {
             categoryId: createCategoryId,
             categoryName: catName,
             image: null,
+            videoId: null,
             gramm: updateItemGramm ? grammValue : null,
             posMenuItemId: posId,
             sku: updateItemSku ? posSku : null,
             deleted: false,
+            locationPrice: selectedPosItem.priceAmount,
           },
           ...prev,
         ]);
@@ -749,6 +843,60 @@ export function MenuMergePageClient() {
     }
   }
 
+  async function applySelectedLocationPrices(
+    rows: Array<{ menuItemId: string; priceAmount: string }>,
+  ) {
+    if (!locationId || merging || rows.length === 0) return;
+    setMerging(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/settings/menu-v3-merge/${encodeURIComponent(locationId)}/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actions: rows.map((r) => ({
+              type: "updateLocationPrice" as const,
+              menuItemId: r.menuItemId,
+              priceAmount: r.priceAmount,
+            })),
+          }),
+        },
+      );
+      const data = (await res.json()) as {
+        message?: string;
+        error?: string;
+        errors?: Array<{ message: string }>;
+      };
+      if (!res.ok) {
+        setError(
+          data.message ?? data.error ?? t("menuMerge.applyPricesError"),
+        );
+        return;
+      }
+      if (data.errors?.length) {
+        setError(data.errors.map((e) => e.message).join("; "));
+        return;
+      }
+      const byId = new Map(rows.map((r) => [r.menuItemId, r.priceAmount]));
+      setCatalogItems((prev) =>
+        prev.map((c) =>
+          byId.has(c.id)
+            ? { ...c, locationPrice: byId.get(c.id) ?? c.locationPrice }
+            : c,
+        ),
+      );
+      setSelectedPriceItemIds(new Set());
+      setSuccess(t("menuMerge.applyPricesSuccess"));
+    } catch {
+      setError(t("menuMerge.applyPricesError"));
+    } finally {
+      setMerging(false);
+    }
+  }
+
   const stickyCategory =
     tab === "categories" &&
     selectedCatalogCat &&
@@ -757,9 +905,54 @@ export function MenuMergePageClient() {
 
   const stickyItem =
     tab === "items" &&
+    itemsStep === 1 &&
     selectedPosItem &&
     !matchedPosItemIds.has(selectedPosItem.posMenuItemId) &&
     (createNewItem || (selectedCatalogItem && !selectedCatalogItem.deleted));
+
+  const menuItemDuplicateGroups = useMemo(
+    () => buildMenuItemDuplicateGroups(catalogItems),
+    [catalogItems],
+  );
+
+  const priceCompareRows = useMemo(() => {
+    if (!preview) return [];
+    const posById = new Map(
+      preview.items.map((i) => [i.posMenuItemId, i] as const),
+    );
+    const rows: Array<{
+      menuItemId: string;
+      menuItemName: string;
+      posName: string;
+      locationPrice: string | null;
+      posPrice: string;
+      differs: boolean;
+    }> = [];
+    for (const item of catalogItems) {
+      if (item.deleted) continue;
+      const posId =
+        matchedItems.get(item.id)?.posMenuItemId ?? item.posMenuItemId;
+      if (!posId) continue;
+      const pos = posById.get(posId);
+      if (!pos?.priceAmount?.trim()) continue;
+      const locNorm = normalizePriceAmount(item.locationPrice);
+      const posNorm = normalizePriceAmount(pos.priceAmount);
+      rows.push({
+        menuItemId: item.id,
+        menuItemName: item.name,
+        posName: pos.posName,
+        locationPrice: item.locationPrice,
+        posPrice: pos.priceAmount,
+        differs: locNorm !== posNorm,
+      });
+    }
+    return rows;
+  }, [catalogItems, matchedItems, preview]);
+
+  const differingPriceRows = useMemo(
+    () => priceCompareRows.filter((r) => r.differs),
+    [priceCompareRows],
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-28">
@@ -921,9 +1114,10 @@ export function MenuMergePageClient() {
             </div>
             <div
               className={`flex w-full flex-col gap-2 ${
-                tab === "items" ? "sm:max-w-xl" : "sm:max-w-xs"
+                tab === "items" && itemsStep === 1 ? "sm:max-w-xl" : "sm:max-w-xs"
               }`}
             >
+              {tab === "categories" || itemsStep === 1 ? (
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -934,7 +1128,8 @@ export function MenuMergePageClient() {
                 }
                 className="min-h-10 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
               />
-              {tab === "items" ? (
+              ) : null}
+              {tab === "items" && itemsStep === 1 ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <select
                     value={itemMatchFilter}
@@ -1118,6 +1313,31 @@ export function MenuMergePageClient() {
               </section>
             </div>
           ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    [1, t("menuMerge.stepMatch")],
+                    [2, t("menuMerge.stepDuplicates")],
+                    [3, t("menuMerge.stepPrices")],
+                  ] as const
+                ).map(([step, label]) => (
+                  <button
+                    key={step}
+                    type="button"
+                    onClick={() => setItemsStep(step)}
+                    className={`min-h-9 rounded-xl px-3 text-xs font-medium transition-colors ${
+                      itemsStep === step
+                        ? "bg-foreground/10 text-foreground ring-1 ring-foreground/20"
+                        : "text-foreground/50 hover:bg-foreground/5 hover:text-foreground"
+                    }`}
+                  >
+                    {step}. {label}
+                  </button>
+                ))}
+              </div>
+
+              {itemsStep === 1 ? (
             <div className="grid gap-4 lg:grid-cols-2">
               <section className="space-y-3">
                 <h2 className="text-sm font-semibold text-foreground">
@@ -1287,6 +1507,228 @@ export function MenuMergePageClient() {
                 )}
               </section>
             </div>
+              ) : itemsStep === 2 ? (
+                <section className="space-y-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">
+                      {t("menuMerge.duplicatesTitle")}
+                    </h2>
+                    <p className="mt-1 text-xs text-foreground/55">
+                      {t("menuMerge.duplicatesHelp")}
+                    </p>
+                  </div>
+                  {menuItemDuplicateGroups.length === 0 ? (
+                    <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
+                      {t("menuMerge.duplicatesEmpty")}
+                    </p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {menuItemDuplicateGroups.map((group) => (
+                        <li
+                          key={group.key}
+                          className="rounded-2xl border border-foreground/10 bg-background/60 p-4"
+                        >
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                              {group.reason === "pos"
+                                ? t("menuMerge.dupReasonPos")
+                                : group.reason === "sku"
+                                  ? t("menuMerge.dupReasonSku")
+                                  : t("menuMerge.dupReasonName")}
+                            </span>
+                            <span className="text-xs text-foreground/50">
+                              {group.label}
+                            </span>
+                          </div>
+                          <ul className="space-y-2">
+                            {group.items.map((item) => (
+                              <li
+                                key={`${group.key}:${item.id}`}
+                                className="flex gap-3 rounded-xl border border-foreground/10 p-3"
+                              >
+                                <Thumb
+                                  src={item.image}
+                                  emptyLabel={t("menuMerge.noPhoto")}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="truncate font-medium text-foreground">
+                                      {item.name}
+                                    </p>
+                                    {item.videoId ? (
+                                      <span className="inline-flex rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300">
+                                        {t("menuMerge.videoBadge")}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <p className="mt-0.5 text-xs text-foreground/55">
+                                    {item.categoryName}
+                                    {item.sku ? ` · SKU ${item.sku}` : ""}
+                                  </p>
+                                  <p className="mt-1 break-all text-[11px] text-foreground/40">
+                                    {item.id}
+                                    {item.posMenuItemId
+                                      ? ` · POS ${item.posMenuItemId}`
+                                      : ""}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={merging}
+                                  onClick={() =>
+                                    void softDeleteCatalogItem(item.id)
+                                  }
+                                  className="shrink-0 self-center rounded-lg border border-red-500/25 px-2.5 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-400"
+                                >
+                                  {t("menuMerge.deleteItem")}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              ) : (
+                <section className="space-y-4">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">
+                        {t("menuMerge.pricesTitle")}
+                      </h2>
+                      <p className="mt-1 text-xs text-foreground/55">
+                        {t("menuMerge.pricesHelp")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={
+                        merging ||
+                        selectedPriceItemIds.size === 0 ||
+                        differingPriceRows.length === 0
+                      }
+                      onClick={() => {
+                        const rows = differingPriceRows
+                          .filter((r) => selectedPriceItemIds.has(r.menuItemId))
+                          .map((r) => ({
+                            menuItemId: r.menuItemId,
+                            priceAmount: r.posPrice,
+                          }));
+                        void applySelectedLocationPrices(rows);
+                      }}
+                      className="min-h-10 rounded-xl bg-foreground px-4 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
+                    >
+                      {merging
+                        ? t("menuMerge.merging")
+                        : t("menuMerge.applySelectedPrices")}
+                    </button>
+                  </div>
+                  {priceCompareRows.length === 0 ? (
+                    <p className="rounded-xl border border-foreground/10 px-4 py-8 text-center text-sm text-foreground/50">
+                      {t("menuMerge.pricesEmpty")}
+                    </p>
+                  ) : differingPriceRows.length === 0 ? (
+                    <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-8 text-center text-sm text-emerald-700 dark:text-emerald-400">
+                      {t("menuMerge.pricesNoDiffs")}
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {priceCompareRows.map((row) => {
+                        const selected = selectedPriceItemIds.has(
+                          row.menuItemId,
+                        );
+                        return (
+                          <li
+                            key={row.menuItemId}
+                            className={`flex flex-wrap items-center gap-3 rounded-2xl border p-3 ${
+                              row.differs
+                                ? "border-amber-500/30 bg-amber-500/5"
+                                : "border-foreground/10 bg-background/60"
+                            }`}
+                          >
+                            {row.differs ? (
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={(e) => {
+                                  setSelectedPriceItemIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) {
+                                      next.add(row.menuItemId);
+                                    } else {
+                                      next.delete(row.menuItemId);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="rounded border-foreground/30"
+                              />
+                            ) : (
+                              <span className="inline-block w-4" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-foreground">
+                                {row.menuItemName}
+                              </p>
+                              <p className="text-xs text-foreground/50">
+                                POS: {row.posName}
+                              </p>
+                            </div>
+                            <div className="text-right text-sm">
+                              <p className="text-foreground/55">
+                                {t("menuMerge.locationPrice")}:{" "}
+                                <span className="font-medium text-foreground">
+                                  {row.locationPrice ?? "—"}
+                                </span>
+                              </p>
+                              <p className="text-foreground/55">
+                                {t("menuMerge.posPrice")}:{" "}
+                                <span className="font-medium text-foreground">
+                                  {row.posPrice}
+                                </span>
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+              )}
+
+              <div className="flex justify-between gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={itemsStep === 1}
+                  onClick={() =>
+                    setItemsStep((s) => (s === 1 ? 1 : ((s - 1) as 1 | 2 | 3)))
+                  }
+                  className="min-h-10 rounded-xl border border-foreground/15 px-4 text-sm font-medium hover:bg-foreground/5 disabled:opacity-40"
+                >
+                  {t("menuMerge.stepBack")}
+                </button>
+                {itemsStep < 3 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setItemsStep((s) => (s === 3 ? 3 : ((s + 1) as 1 | 2 | 3)))
+                    }
+                    className="min-h-10 rounded-xl bg-foreground px-4 text-sm font-medium text-background hover:opacity-90"
+                  >
+                    {t("menuMerge.stepNext")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setItemsStep(1)}
+                    className="min-h-10 rounded-xl border border-foreground/15 px-4 text-sm font-medium hover:bg-foreground/5"
+                  >
+                    {t("menuMerge.stepDone")}
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </>
       )}

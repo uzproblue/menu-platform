@@ -63,10 +63,12 @@ export type MenuV3PreviewResponse = {
     categoryId: string;
     categoryName: string;
     image: string | null;
+    videoId: string | null;
     gramm: string | null;
     posMenuItemId: string | null;
     sku: string | null;
     deleted: boolean;
+    locationPrice: string | null;
   }>;
 };
 
@@ -107,7 +109,8 @@ export type MenuV3MergeAction =
       catalogCategoryId?: string | null;
     }
   | { type: "softDeleteItem"; menuItemId: string }
-  | { type: "restoreItem"; menuItemId: string };
+  | { type: "restoreItem"; menuItemId: string }
+  | { type: "updateLocationPrice"; menuItemId: string; priceAmount: string };
 
 export type MenuV3ApplyResponse = {
   ok: boolean;
