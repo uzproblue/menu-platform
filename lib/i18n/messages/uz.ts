@@ -562,7 +562,7 @@ export const uzMessages: Messages = {
   "restaurants.mapboxCoordinatesLabel": "Koordinatalar",
   "restaurants.mapboxUpdatingAddress": "Manzil yangilanmoqda...",
   "restaurants.mapboxLoadingMap": "Xarita yuklanmoqda...",
-  "restaurants.mapboxNotConfigured": "Mapbox token sozlanmagan",
+  "restaurants.mapboxNotConfigured": "Google Maps kaliti sozlanmagan",
   "restaurants.mapboxManualFallback": "Manzilni yuqoridagi maydonga qo'lda kiritishingiz mumkin.",
   "restaurants.contactAndSocialTitle": "Aloqa va ijtimoiy tarmoqlar",
   "restaurants.contactAndSocialHint": "Yetkazib berish vitrinasida va buyurtma cheklarida mijozlarga ko'rsatiladi.",

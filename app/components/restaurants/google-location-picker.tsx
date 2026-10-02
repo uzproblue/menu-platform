@@ -2,108 +2,117 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
-import type { GeoCoordinates, MapboxGeocodeFeature } from "@/lib/address-types";
-import { searchMapboxAddress, reverseGeocodeMapbox } from "@/lib/geo-utils";
+import type { GeoCoordinates } from "@/lib/address-types";
+import {
+  type AddressSuggestion,
+  ensureGoogleMaps,
+  resolveGooglePlace,
+  reverseGeocodeGoogle,
+  searchGoogleAddresses,
+} from "@/lib/google-places";
 
-interface MapboxLocationPickerProps {
+interface GoogleLocationPickerProps {
   address: string;
   setAddress: (val: string) => void;
   latitude: number | null;
   longitude: number | null;
   onChangeCoordinates: (coords: GeoCoordinates) => void;
   disabled?: boolean;
-  mapboxToken?: string;
+  googleMapsApiKey?: string;
 }
 
-export function MapboxLocationPicker({
+export function GoogleLocationPicker({
   address,
   setAddress,
   latitude,
   longitude,
   onChangeCoordinates,
   disabled = false,
-  mapboxToken: initialToken,
-}: MapboxLocationPickerProps) {
+  googleMapsApiKey: initialKey,
+}: GoogleLocationPickerProps) {
   const { t } = useI18n();
-  const [activeToken, setActiveToken] = useState<string>(
-    initialToken?.trim() || process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() || "",
+  const [activeKey, setActiveKey] = useState<string>(
+    initialKey?.trim() || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() || "",
   );
-  const [isFetchingToken, setIsFetchingToken] = useState<boolean>(!activeToken);
+  const [isFetchingKey, setIsFetchingKey] = useState<boolean>(!activeKey);
 
   useEffect(() => {
-    if (initialToken?.trim()) {
-      setActiveToken(initialToken.trim());
-      setIsFetchingToken(false);
+    if (initialKey?.trim()) {
+      setActiveKey(initialKey.trim());
+      setIsFetchingKey(false);
       return;
     }
-    if (activeToken) {
-      setIsFetchingToken(false);
+    if (activeKey) {
+      setIsFetchingKey(false);
       return;
     }
 
     let cancelled = false;
-    setIsFetchingToken(true);
-    fetch("/api/settings/mapbox-token")
+    setIsFetchingKey(true);
+    fetch("/api/settings/google-maps-key")
       .then(async (res) => {
         if (!res.ok) return null;
-        return (await res.json()) as { token?: string };
+        return (await res.json()) as { key?: string };
       })
       .then((data) => {
         if (!cancelled) {
-          if (data?.token?.trim()) {
-            setActiveToken(data.token.trim());
+          if (data?.key?.trim()) {
+            setActiveKey(data.key.trim());
           }
-          setIsFetchingToken(false);
+          setIsFetchingKey(false);
         }
       })
       .catch(() => {
-        if (!cancelled) setIsFetchingToken(false);
+        if (!cancelled) setIsFetchingKey(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [initialToken, activeToken]);
+  }, [initialKey, activeKey]);
 
-  const mapboxToken = activeToken;
+  const apiKey = activeKey;
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapInstanceRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const markerInstanceRef = useRef<any>(null);
-  const searchAbortRef = useRef<AbortController | null>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markerInstanceRef = useRef<google.maps.Marker | null>(null);
+  const searchGenRef = useRef(0);
+  const userAdjustedRef = useRef(false);
 
-  // Default start center: provided coords -> Astana center fallback [71.43, 51.13]
   const defaultCenter: GeoCoordinates =
     longitude != null && latitude != null ? [longitude, latitude] : [71.43, 51.13];
 
   const [currentCoords, setCurrentCoords] = useState<GeoCoordinates>(defaultCenter);
   const [searchQuery, setSearchQuery] = useState<string>(address || "");
-  const [searchResults, setSearchResults] = useState<MapboxGeocodeFeature[]>([]);
+  const [searchResults, setSearchResults] = useState<AddressSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState<boolean>(false);
   const [isLocatingUser, setIsLocatingUser] = useState<boolean>(false);
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
 
-  // Keep local query in sync if parent address changes externally
   useEffect(() => {
     if (address && address !== searchQuery && !showDropdown) {
       setSearchQuery(address);
     }
   }, [address, searchQuery, showDropdown]);
 
-  // Reverse geocoding on drag
+  const moveMapTo = useCallback((coords: GeoCoordinates, zoom = 16) => {
+    const position = { lat: coords[1], lng: coords[0] };
+    mapInstanceRef.current?.panTo(position);
+    mapInstanceRef.current?.setZoom(zoom);
+    markerInstanceRef.current?.setPosition(position);
+  }, []);
+
   const triggerReverseGeocode = useCallback(
     async (coords: GeoCoordinates) => {
-      if (!mapboxToken) return;
+      if (!apiKey) return;
       setIsReverseGeocoding(true);
       try {
-        const res = await reverseGeocodeMapbox(coords, mapboxToken);
-        if (res?.placeName) {
-          setAddress(res.placeName);
-          setSearchQuery(res.placeName);
+        const placeName = await reverseGeocodeGoogle(coords, apiKey);
+        if (placeName) {
+          setAddress(placeName);
+          setSearchQuery(placeName);
         }
       } catch (e) {
         console.error("Reverse geocoding error:", e);
@@ -111,92 +120,60 @@ export function MapboxLocationPicker({
         setIsReverseGeocoding(false);
       }
     },
-    [mapboxToken, setAddress],
+    [apiKey, setAddress],
   );
 
-  // Initialize Mapbox map
   useEffect(() => {
-    if (!mapContainerRef.current || !mapboxToken || mapInstanceRef.current) return;
+    if (!mapContainerRef.current || !apiKey || mapInstanceRef.current) return;
 
     let isMounted = true;
 
     async function initMap() {
       try {
-        // Inject Mapbox stylesheet if not present
-        if (!document.getElementById("mapbox-gl-css")) {
-          const link = document.createElement("link");
-          link.id = "mapbox-gl-css";
-          link.rel = "stylesheet";
-          link.href = "https://api.mapbox.com/mapbox-gl-js/v3.11.1/mapbox-gl.css";
-          document.head.appendChild(link);
-        }
-
-        const mapboxgl = (await import("mapbox-gl")).default;
+        await ensureGoogleMaps(apiKey);
         if (!isMounted || !mapContainerRef.current) return;
 
-        mapboxgl.accessToken = mapboxToken;
-
-        const map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: "mapbox://styles/mapbox/streets-v12",
-          center: defaultCenter,
-          zoom: longitude != null && latitude != null ? 15 : 12,
+        const hasSavedPin = longitude != null && latitude != null;
+        const map = new google.maps.Map(mapContainerRef.current, {
+          center: { lat: defaultCenter[1], lng: defaultCenter[0] },
+          zoom: hasSavedPin ? 15 : 12,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "greedy",
+          clickableIcons: false,
         });
-
         mapInstanceRef.current = map;
 
-        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-
-        // Draggable restaurant pin marker
-        const markerEl = document.createElement("div");
-        markerEl.className = "cursor-grab active:cursor-grabbing";
-        markerEl.innerHTML = `
-          <div style="transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center;">
-            <div style="background-color: #ef4444; color: white; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 2px solid white;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-            </div>
-            <div style="background: rgba(0,0,0,0.8); color: white; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-top: 2px; white-space: nowrap;">
-              Restaurant Pin
-            </div>
-          </div>
-        `;
-
-        const marker = new mapboxgl.Marker({
-          element: markerEl,
+        const marker = new google.maps.Marker({
+          map,
+          position: { lat: defaultCenter[1], lng: defaultCenter[0] },
           draggable: !disabled,
-        })
-          .setLngLat(defaultCenter)
-          .addTo(map);
-
+        });
         markerInstanceRef.current = marker;
 
-        marker.on("dragend", () => {
-          const lngLat = marker.getLngLat();
-          const newCoords: GeoCoordinates = [lngLat.lng, lngLat.lat];
+        marker.addListener("dragend", () => {
+          const pos = marker.getPosition();
+          if (!pos) return;
+          userAdjustedRef.current = true;
+          const newCoords: GeoCoordinates = [pos.lng(), pos.lat()];
           setCurrentCoords(newCoords);
           onChangeCoordinates(newCoords);
           void triggerReverseGeocode(newCoords);
         });
 
-        map.on("click", (e) => {
-          if (disabled) return;
-          const newCoords: GeoCoordinates = [e.lngLat.lng, e.lngLat.lat];
-          marker.setLngLat(newCoords);
+        map.addListener("click", (event: google.maps.MapMouseEvent) => {
+          if (disabled || !event.latLng) return;
+          userAdjustedRef.current = true;
+          const newCoords: GeoCoordinates = [event.latLng.lng(), event.latLng.lat()];
+          marker.setPosition(event.latLng);
           setCurrentCoords(newCoords);
           onChangeCoordinates(newCoords);
           void triggerReverseGeocode(newCoords);
         });
 
-        map.on("load", () => {
-          if (!isMounted) return;
-          setMapLoaded(true);
-          map.resize();
-        });
+        if (isMounted) setMapLoaded(true);
       } catch (err) {
-        console.error("Failed to load Mapbox:", err);
+        console.error("Failed to load Google map:", err);
       }
     }
 
@@ -204,69 +181,76 @@ export function MapboxLocationPicker({
 
     return () => {
       isMounted = false;
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
+      markerInstanceRef.current?.setMap(null);
+      markerInstanceRef.current = null;
+      mapInstanceRef.current = null;
     };
+    // Map is created once the key is known. defaultCenter is the initial camera.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapboxToken]);
+  }, [apiKey]);
 
-  // Debounced search
   useEffect(() => {
-    if (!mapboxToken || !searchQuery.trim() || searchQuery.trim().length < 2) {
+    if (userAdjustedRef.current) return;
+    if (longitude == null || latitude == null) return;
+    const coords: GeoCoordinates = [longitude, latitude];
+    setCurrentCoords(coords);
+    moveMapTo(coords, 15);
+  }, [longitude, latitude, mapLoaded, moveMapTo]);
+
+  useEffect(() => {
+    if (!apiKey || !searchQuery.trim() || searchQuery.trim().length < 2) {
       setSearchResults([]);
       setIsSearching(false);
       return;
     }
 
-    if (searchAbortRef.current) {
-      searchAbortRef.current.abort();
-    }
-    const controller = new AbortController();
-    searchAbortRef.current = controller;
-
-    const timer = setTimeout(async () => {
+    const gen = ++searchGenRef.current;
+    const timer = setTimeout(() => {
       setIsSearching(true);
-      try {
-        const results = await searchMapboxAddress(
-          searchQuery,
-          mapboxToken,
-          currentCoords,
-          controller.signal,
-        );
-        setSearchResults(results);
-      } catch (e) {
-        console.error("Search error:", e);
-      } finally {
-        setIsSearching(false);
-      }
+      void searchGoogleAddresses(searchQuery, apiKey, currentCoords)
+        .then((results) => {
+          if (gen !== searchGenRef.current) return;
+          setSearchResults(results);
+        })
+        .catch((e) => {
+          if (gen !== searchGenRef.current) return;
+          console.error("Search error:", e);
+        })
+        .finally(() => {
+          if (gen === searchGenRef.current) setIsSearching(false);
+        });
     }, 300);
 
     return () => {
       clearTimeout(timer);
-      controller.abort();
     };
-  }, [searchQuery, mapboxToken, currentCoords]);
+  }, [searchQuery, apiKey, currentCoords]);
 
-  const handleSelectResult = (feature: MapboxGeocodeFeature) => {
-    const coords = feature.center;
-    setAddress(feature.place_name);
-    setSearchQuery(feature.place_name);
-    setCurrentCoords(coords);
-    onChangeCoordinates(coords);
+  const handleSelectResult = (item: AddressSuggestion) => {
     setShowDropdown(false);
-
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo({
-        center: coords,
-        zoom: 16,
-        essential: true,
+    setIsSearching(true);
+    void resolveGooglePlace(item.prediction, apiKey)
+      .then((resolved) => {
+        const formatted =
+          resolved?.formattedAddress ||
+          [item.primaryText, item.secondaryText].filter(Boolean).join(", ");
+        setAddress(formatted);
+        setSearchQuery(formatted);
+        if (!resolved) return;
+        userAdjustedRef.current = true;
+        setCurrentCoords(resolved.coordinates);
+        onChangeCoordinates(resolved.coordinates);
+        moveMapTo(resolved.coordinates, 16);
+      })
+      .catch((e) => {
+        console.error("Place details failed:", e);
+        const fallback = [item.primaryText, item.secondaryText].filter(Boolean).join(", ");
+        setAddress(fallback);
+        setSearchQuery(fallback);
+      })
+      .finally(() => {
+        setIsSearching(false);
       });
-      if (markerInstanceRef.current) {
-        markerInstanceRef.current.setLngLat(coords);
-      }
-    }
   };
 
   const handleLocateMe = () => {
@@ -275,20 +259,11 @@ export function MapboxLocationPicker({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setIsLocatingUser(false);
+        userAdjustedRef.current = true;
         const coords: GeoCoordinates = [pos.coords.longitude, pos.coords.latitude];
         setCurrentCoords(coords);
         onChangeCoordinates(coords);
-
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo({
-            center: coords,
-            zoom: 16,
-            essential: true,
-          });
-          if (markerInstanceRef.current) {
-            markerInstanceRef.current.setLngLat(coords);
-          }
-        }
+        moveMapTo(coords, 16);
         void triggerReverseGeocode(coords);
       },
       (err) => {
@@ -301,7 +276,6 @@ export function MapboxLocationPicker({
 
   return (
     <div className="space-y-3">
-      {/* Search Bar & Geolocation */}
       <div className="relative">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -367,20 +341,21 @@ export function MapboxLocationPicker({
           </button>
         </div>
 
-        {/* Autocomplete Dropdown */}
         {showDropdown && searchResults.length > 0 && (
           <div className="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-foreground/10 bg-background shadow-xl">
             {searchResults.map((result) => (
               <button
-                key={result.id}
+                key={result.placeId}
                 type="button"
                 onClick={() => handleSelectResult(result)}
                 className="w-full text-left px-3.5 py-2.5 text-xs text-foreground/80 hover:bg-foreground/5 hover:text-foreground border-b border-foreground/5 last:border-0 transition flex items-start gap-2"
               >
                 <span className="text-red-500 mt-0.5">📍</span>
                 <div>
-                  <div className="font-semibold text-foreground">{result.text}</div>
-                  <div className="text-foreground/50 text-[11px] line-clamp-1">{result.place_name}</div>
+                  <div className="font-semibold text-foreground">{result.primaryText}</div>
+                  {result.secondaryText ? (
+                    <div className="text-foreground/50 text-[11px] line-clamp-1">{result.secondaryText}</div>
+                  ) : null}
                 </div>
               </button>
             ))}
@@ -388,11 +363,10 @@ export function MapboxLocationPicker({
         )}
       </div>
 
-      {/* Interactive Map */}
       <div className="relative overflow-hidden rounded-xl border border-foreground/15 bg-foreground/5">
         <div ref={mapContainerRef} className="h-72 w-full" />
 
-        {isFetchingToken || (mapboxToken && !mapLoaded) ? (
+        {isFetchingKey || (apiKey && !mapLoaded) ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <div className="flex items-center gap-2 text-xs text-foreground/60">
               <svg className="size-4 animate-spin text-foreground/50" fill="none" viewBox="0 0 24 24">
@@ -402,10 +376,10 @@ export function MapboxLocationPicker({
               <span>{t("restaurants.mapboxLoadingMap")}</span>
             </div>
           </div>
-        ) : !mapboxToken ? (
+        ) : !apiKey ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 p-4 text-center">
             <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-              {t("restaurants.mapboxNotConfigured")} (<code className="font-mono">NEXT_PUBLIC_MAPBOX_TOKEN</code>)
+              {t("restaurants.mapboxNotConfigured")} (<code className="font-mono">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>)
             </p>
             <p className="text-[11px] text-foreground/50 mt-1">
               {t("restaurants.mapboxManualFallback")}
@@ -413,13 +387,11 @@ export function MapboxLocationPicker({
           </div>
         ) : null}
 
-        {/* Pin Helper Badge */}
         <div className="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground/70 shadow border border-foreground/10">
           {t("restaurants.mapboxDragPinHint")}
         </div>
       </div>
 
-      {/* Lat/Lon Coordinates Display */}
       <div className="flex items-center justify-between text-[11px] text-foreground/50 px-1">
         <span>
           {t("restaurants.mapboxCoordinatesLabel")}:{" "}

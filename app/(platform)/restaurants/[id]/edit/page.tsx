@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { NewLocationWizard } from "@/app/components/restaurants/new-location-wizard";
 import { getServerT } from "@/lib/i18n/server";
-import { resolveMapboxToken } from "@/lib/mapbox-token.server";
+import { resolveGoogleMapsApiKey } from "@/lib/google-maps-key.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getServerT();
@@ -18,12 +18,12 @@ export default async function EditRestaurantPage({
 }) {
   const { id } = await params;
   const decoded = decodeURIComponent(id);
-  const mapboxToken = resolveMapboxToken();
+  const googleMapsApiKey = resolveGoogleMapsApiKey();
 
   return (
     <div className="mx-auto max-w-7xl">
       <div className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-8">
-        <NewLocationWizard initialLocationId={decoded} mapboxToken={mapboxToken} />
+        <NewLocationWizard initialLocationId={decoded} googleMapsApiKey={googleMapsApiKey} />
       </div>
     </div>
   );

@@ -557,7 +557,7 @@ export const enMessages: Messages = {
     "In-restaurant dining with physical tables, per-table QR codes, staff alerts, and POS terminal sync.",
   "restaurants.locationType.deliveryTitle": "Delivery Storefront",
   "restaurants.locationType.deliveryDesc":
-    "Online ordering storefront with Mapbox address & pin, cover banner, phone ordering, and one single delivery QR code.",
+    "Online ordering storefront with a Google Maps address and pin, cover banner, phone ordering, and one single delivery QR code.",
   "restaurants.locationType.selected": "Selected",
   "restaurants.deliveryAddressTitle": "Restaurant address & kitchen pin",
   "restaurants.deliveryAddressHint":
@@ -568,7 +568,7 @@ export const enMessages: Messages = {
   "restaurants.mapboxCoordinatesLabel": "Coordinates",
   "restaurants.mapboxUpdatingAddress": "Updating address...",
   "restaurants.mapboxLoadingMap": "Loading vector map...",
-  "restaurants.mapboxNotConfigured": "Mapbox token not configured",
+  "restaurants.mapboxNotConfigured": "Google Maps key not configured",
   "restaurants.mapboxManualFallback": "You can still type the address manually above.",
   "restaurants.contactAndSocialTitle": "Contact & social links",
   "restaurants.contactAndSocialHint": "Shown to customers on the delivery storefront and order receipts.",

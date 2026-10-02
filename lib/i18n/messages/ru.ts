@@ -567,7 +567,7 @@ export const ruMessages: Messages = {
   "restaurants.mapboxCoordinatesLabel": "Координаты",
   "restaurants.mapboxUpdatingAddress": "Обновление адреса...",
   "restaurants.mapboxLoadingMap": "Загрузка карты...",
-  "restaurants.mapboxNotConfigured": "Mapbox токен не настроен",
+  "restaurants.mapboxNotConfigured": "Ключ Google Maps не настроен",
   "restaurants.mapboxManualFallback": "Вы можете ввести адрес вручную в поле выше.",
   "restaurants.contactAndSocialTitle": "Контакты и соцсети",
   "restaurants.contactAndSocialHint": "Отображаются клиентам на витрине доставки и в чеках заказов.",

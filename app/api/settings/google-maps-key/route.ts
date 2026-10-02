@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
-import { resolveMapboxToken } from "@/lib/mapbox-token.server";
+import { resolveGoogleMapsApiKey } from "@/lib/google-maps-key.server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -9,6 +9,6 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const token = resolveMapboxToken();
-  return NextResponse.json({ token });
+  const key = resolveGoogleMapsApiKey();
+  return NextResponse.json({ key });
 }

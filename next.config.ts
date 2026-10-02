@@ -12,9 +12,9 @@ const resolvedMenuUrl =
   process.env.MENU_URL?.trim() ||
   "";
 
-const resolvedMapboxToken =
-  process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() ||
-  process.env.MAPBOX_TOKEN?.trim() ||
+const resolvedGoogleMapsApiKey =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
+  process.env.GOOGLE_MAPS_API_KEY?.trim() ||
   "";
 
 if (
@@ -30,15 +30,15 @@ if (
 
 const nextConfig: NextConfig = {
   transpilePackages: ["konva", "react-konva"],
-  ...(resolvedR2PublicBaseUrl || resolvedMenuUrl || resolvedMapboxToken
+  ...(resolvedR2PublicBaseUrl || resolvedMenuUrl || resolvedGoogleMapsApiKey
     ? {
         env: {
           ...(resolvedR2PublicBaseUrl
             ? { NEXT_PUBLIC_R2_PUBLIC_BASE_URL: resolvedR2PublicBaseUrl }
             : {}),
           ...(resolvedMenuUrl ? { NEXT_PUBLIC_MENU_URL: resolvedMenuUrl } : {}),
-          ...(resolvedMapboxToken
-            ? { NEXT_PUBLIC_MAPBOX_TOKEN: resolvedMapboxToken }
+          ...(resolvedGoogleMapsApiKey
+            ? { NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: resolvedGoogleMapsApiKey }
             : {}),
         },
       }

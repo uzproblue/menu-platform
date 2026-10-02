@@ -5,7 +5,7 @@ import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { LOCATION_TRANSLATION_OPTIONS } from "@/lib/menu-translation-langs";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { LocationTypeSelector } from "./location-type-selector";
-import { MapboxLocationPicker } from "../mapbox-location-picker";
+import { GoogleLocationPicker } from "../google-location-picker";
 import type { GeoCoordinates } from "@/lib/address-types";
 
 type WizardStepBasicsProps = {
@@ -70,7 +70,7 @@ type WizardStepBasicsProps = {
   isSavingStep1: boolean;
   createdLocationId: string | null;
   onNext: () => void;
-  mapboxToken?: string;
+  googleMapsApiKey?: string;
 };
 
 export function WizardStepBasics({
@@ -135,7 +135,7 @@ export function WizardStepBasics({
   isSavingStep1,
   createdLocationId,
   onNext,
-  mapboxToken,
+  googleMapsApiKey,
 }: WizardStepBasicsProps) {
   const { t } = useI18n();
   const formDisabled = isLoadingLocationEdit || Boolean(editLoadError);
@@ -295,14 +295,14 @@ export function WizardStepBasics({
           <p className="text-xs text-foreground/50">
             {t("restaurants.deliveryAddressHint")}
           </p>
-          <MapboxLocationPicker
+          <GoogleLocationPicker
             address={address}
             setAddress={setAddress}
             latitude={latitude}
             longitude={longitude}
             onChangeCoordinates={setCoordinates}
             disabled={formDisabled}
-            mapboxToken={mapboxToken}
+            googleMapsApiKey={googleMapsApiKey}
           />
         </div>
       ) : (
