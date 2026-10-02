@@ -66,6 +66,7 @@ export type MenuV3PreviewResponse = {
     gramm: string | null;
     posMenuItemId: string | null;
     sku: string | null;
+    deleted: boolean;
   }>;
 };
 
@@ -104,7 +105,9 @@ export type MenuV3MergeAction =
       gramm?: string | null;
       priceAmount?: string | null;
       catalogCategoryId?: string | null;
-    };
+    }
+  | { type: "softDeleteItem"; menuItemId: string }
+  | { type: "restoreItem"; menuItemId: string };
 
 export type MenuV3ApplyResponse = {
   ok: boolean;
@@ -113,6 +116,8 @@ export type MenuV3ApplyResponse = {
   createdCategories: number;
   linkedItems: number;
   createdItems: number;
+  softDeletedItems: number;
+  restoredItems: number;
   pricesUpdated: number;
   errors: Array<{ action: string; message: string }>;
 };
