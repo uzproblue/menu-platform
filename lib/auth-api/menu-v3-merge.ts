@@ -160,5 +160,7 @@ export async function applyMenuV3MergeWithAuthServer(
     accessToken,
     restaurantId,
     body: { actions },
+    // Bulk price updates / multi-action merges can exceed the default 10s.
+    timeoutMs: 60_000,
   });
 }
