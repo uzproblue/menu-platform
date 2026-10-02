@@ -110,7 +110,8 @@ export type MenuV3MergeAction =
     }
   | { type: "softDeleteItem"; menuItemId: string }
   | { type: "restoreItem"; menuItemId: string }
-  | { type: "updateLocationPrice"; menuItemId: string; priceAmount: string };
+  | { type: "updateLocationPrice"; menuItemId: string; priceAmount: string }
+  | { type: "unlinkItem"; menuItemId: string };
 
 export type MenuV3ApplyResponse = {
   ok: boolean;
@@ -121,6 +122,7 @@ export type MenuV3ApplyResponse = {
   createdItems: number;
   softDeletedItems: number;
   restoredItems: number;
+  unlinkedItems: number;
   pricesUpdated: number;
   errors: Array<{ action: string; message: string }>;
 };

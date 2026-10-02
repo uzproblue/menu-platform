@@ -425,6 +425,14 @@ export function MenuMergePageClient() {
     }
   }, [createNewItem, createCategoryId, defaultCreateCategoryId]);
 
+  const existingMatch = selectedCatalogItemId
+    ? matchedItems.get(selectedCatalogItemId)
+    : undefined;
+  const isRelink =
+    !!existingMatch &&
+    !!selectedPosItemId &&
+    existingMatch.posMenuItemId !== selectedPosItemId;
+
   const canMergeItem =
     !!selectedPosItemId &&
     !matchedPosItemIds.has(selectedPosItemId) &&
@@ -432,8 +440,17 @@ export function MenuMergePageClient() {
     (createNewItem
       ? !!createCategoryId
       : !!selectedCatalogItemId &&
-        !matchedItems.has(selectedCatalogItemId) &&
-        !selectedCatalogItem?.deleted);
+        !selectedCatalogItem?.deleted &&
+        (!existingMatch || isRelink));
+
+  const canUnlinkItem =
+    itemsStep === 1 &&
+    !!selectedCatalogItemId &&
+    !!existingMatch &&
+    !selectedPosItemId &&
+    !createNewItem &&
+    !merging &&
+    !selectedCatalogItem?.deleted;
 
   async function saveExternalMenuId() {
     if (!locationId) return;
@@ -742,7 +759,9 @@ export function MenuMergePageClient() {
       setSuccess(
         createNewItem
           ? t("menuMerge.createItemSuccess")
-          : t("menuMerge.mergeItemSuccess"),
+          : isRelink
+            ? t("menuMerge.relinkSuccess")
+            : t("menuMerge.mergeItemSuccess"),
       );
     } catch {
       setError(t("menuMerge.mergeItemError"));
@@ -843,6 +862,55 @@ export function MenuMergePageClient() {
     }
   }
 
+  async function unlinkCatalogItem(itemId: string) {
+    if (!locationId || merging) return;
+    setMerging(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/settings/menu-v3-merge/${encodeURIComponent(locationId)}/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actions: [{ type: "unlinkItem", menuItemId: itemId }],
+          }),
+        },
+      );
+      const data = (await res.json()) as {
+        message?: string;
+        error?: string;
+        errors?: Array<{ message: string }>;
+      };
+      if (!res.ok) {
+        setError(data.message ?? data.error ?? t("menuMerge.unlinkError"));
+        return;
+      }
+      if (data.errors?.length) {
+        setError(data.errors.map((e) => e.message).join("; "));
+        return;
+      }
+      setMatchedItems((prev) => {
+        if (!prev.has(itemId)) return prev;
+        const next = new Map(prev);
+        next.delete(itemId);
+        return next;
+      });
+      setCatalogItems((prev) =>
+        prev.map((c) =>
+          c.id === itemId ? { ...c, posMenuItemId: null } : c,
+        ),
+      );
+      if (selectedCatalogItemId === itemId) setSelectedCatalogItemId(null);
+      setSuccess(t("menuMerge.unlinkSuccess"));
+    } catch {
+      setError(t("menuMerge.unlinkError"));
+    } finally {
+      setMerging(false);
+    }
+  }
+
   async function applySelectedLocationPrices(
     rows: Array<{ menuItemId: string; priceAmount: string }>,
   ) {
@@ -906,9 +974,11 @@ export function MenuMergePageClient() {
   const stickyItem =
     tab === "items" &&
     itemsStep === 1 &&
-    selectedPosItem &&
-    !matchedPosItemIds.has(selectedPosItem.posMenuItemId) &&
-    (createNewItem || (selectedCatalogItem && !selectedCatalogItem.deleted));
+    ((selectedPosItem &&
+      !matchedPosItemIds.has(selectedPosItem.posMenuItemId) &&
+      (createNewItem ||
+        (selectedCatalogItem && !selectedCatalogItem.deleted))) ||
+      canUnlinkItem);
 
   const menuItemDuplicateGroups = useMemo(
     () => buildMenuItemDuplicateGroups(catalogItems),
@@ -1359,16 +1429,16 @@ export function MenuMergePageClient() {
                             className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition-colors ${
                               isDeleted
                                 ? "border-foreground/10 bg-foreground/[0.03] opacity-70"
-                                : match
-                                  ? "border-emerald-500/30 bg-emerald-500/5"
-                                  : selected
-                                    ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
+                                : selected
+                                  ? "border-foreground/40 bg-foreground/5 ring-2 ring-foreground/20"
+                                  : match
+                                    ? "border-emerald-500/30 bg-emerald-500/5"
                                     : "border-foreground/10 bg-background/60 hover:border-foreground/25"
                             }`}
                           >
                             <button
                               type="button"
-                              disabled={!!match || createNewItem || isDeleted}
+                              disabled={createNewItem || isDeleted}
                               onClick={() => {
                                 setCreateNewItem(false);
                                 setSelectedCatalogItemId((prev) =>
@@ -1419,7 +1489,7 @@ export function MenuMergePageClient() {
                                 ) : null}
                               </div>
                             </button>
-                            <div className="flex shrink-0 flex-col justify-center">
+                            <div className="flex shrink-0 flex-col justify-center gap-1.5">
                               {isDeleted ? (
                                 <button
                                   type="button"
@@ -1432,16 +1502,30 @@ export function MenuMergePageClient() {
                                   {t("menuMerge.restoreItem")}
                                 </button>
                               ) : (
-                                <button
-                                  type="button"
-                                  disabled={merging}
-                                  onClick={() =>
-                                    void softDeleteCatalogItem(item.id)
-                                  }
-                                  className="rounded-lg border border-red-500/25 px-2.5 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-400"
-                                >
-                                  {t("menuMerge.deleteItem")}
-                                </button>
+                                <>
+                                  {match ? (
+                                    <button
+                                      type="button"
+                                      disabled={merging}
+                                      onClick={() =>
+                                        void unlinkCatalogItem(item.id)
+                                      }
+                                      className="rounded-lg border border-foreground/15 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-foreground/5 disabled:opacity-50"
+                                    >
+                                      {t("menuMerge.unlinkItem")}
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    disabled={merging}
+                                    onClick={() =>
+                                      void softDeleteCatalogItem(item.id)
+                                    }
+                                    className="rounded-lg border border-red-500/25 px-2.5 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-400"
+                                  >
+                                    {t("menuMerge.deleteItem")}
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -1634,39 +1718,31 @@ export function MenuMergePageClient() {
                     </p>
                   ) : (
                     <ul className="space-y-2">
-                      {priceCompareRows.map((row) => {
+                      {differingPriceRows.map((row) => {
                         const selected = selectedPriceItemIds.has(
                           row.menuItemId,
                         );
                         return (
                           <li
                             key={row.menuItemId}
-                            className={`flex flex-wrap items-center gap-3 rounded-2xl border p-3 ${
-                              row.differs
-                                ? "border-amber-500/30 bg-amber-500/5"
-                                : "border-foreground/10 bg-background/60"
-                            }`}
+                            className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3"
                           >
-                            {row.differs ? (
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={(e) => {
-                                  setSelectedPriceItemIds((prev) => {
-                                    const next = new Set(prev);
-                                    if (e.target.checked) {
-                                      next.add(row.menuItemId);
-                                    } else {
-                                      next.delete(row.menuItemId);
-                                    }
-                                    return next;
-                                  });
-                                }}
-                                className="rounded border-foreground/30"
-                              />
-                            ) : (
-                              <span className="inline-block w-4" />
-                            )}
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(e) => {
+                                setSelectedPriceItemIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (e.target.checked) {
+                                    next.add(row.menuItemId);
+                                  } else {
+                                    next.delete(row.menuItemId);
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className="rounded border-foreground/30"
+                            />
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-foreground">
                                 {row.menuItemName}
@@ -1783,61 +1859,73 @@ export function MenuMergePageClient() {
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 space-y-2 text-sm">
               <p className="font-medium text-foreground">
-                {createNewItem
-                  ? t("menuMerge.createItemTitle")
-                  : t("menuMerge.mergeItemTitle")}
+                {canUnlinkItem
+                  ? t("menuMerge.unlinkItemTitle")
+                  : createNewItem
+                    ? t("menuMerge.createItemTitle")
+                    : isRelink
+                      ? t("menuMerge.relinkItemTitle")
+                      : t("menuMerge.mergeItemTitle")}
               </p>
               <p className="truncate text-foreground/60">
-                {createNewItem
-                  ? selectedPosItem!.posName
-                  : `${selectedCatalogItem!.name} ← ${selectedPosItem!.posName}`}
+                {canUnlinkItem
+                  ? `${selectedCatalogItem!.name} ← ${existingMatch!.posName}`
+                  : createNewItem
+                    ? selectedPosItem!.posName
+                    : `${selectedCatalogItem!.name} ← ${selectedPosItem!.posName}`}
               </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/70">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={createNewItem}
-                    onChange={(e) => {
-                      setCreateNewItem(e.target.checked);
-                      if (e.target.checked) {
-                        setSelectedCatalogItemId(null);
-                        setCreateCategoryId(defaultCreateCategoryId);
-                      }
-                    }}
-                    className="rounded border-foreground/30"
-                  />
-                  {t("menuMerge.createNewItem")}
-                </label>
-                {!createNewItem ? (
+              {!canUnlinkItem ? (
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/70">
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={updateItemName}
-                      onChange={(e) => setUpdateItemName(e.target.checked)}
+                      checked={createNewItem}
+                      onChange={(e) => {
+                        setCreateNewItem(e.target.checked);
+                        if (e.target.checked) {
+                          setSelectedCatalogItemId(null);
+                          setCreateCategoryId(defaultCreateCategoryId);
+                        }
+                      }}
                       className="rounded border-foreground/30"
                     />
-                    {t("menuMerge.updateItemName")}
+                    {t("menuMerge.createNewItem")}
                   </label>
-                ) : null}
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={updateItemSku}
-                    onChange={(e) => setUpdateItemSku(e.target.checked)}
-                    className="rounded border-foreground/30"
-                  />
-                  {t("menuMerge.updateItemSku")}
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={updateItemGramm}
-                    onChange={(e) => setUpdateItemGramm(e.target.checked)}
-                    className="rounded border-foreground/30"
-                  />
-                  {t("menuMerge.updateItemGramm")}
-                </label>
-              </div>
+                  {!createNewItem ? (
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={updateItemName}
+                        onChange={(e) => setUpdateItemName(e.target.checked)}
+                        className="rounded border-foreground/30"
+                      />
+                      {t("menuMerge.updateItemName")}
+                    </label>
+                  ) : null}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={updateItemSku}
+                      onChange={(e) => setUpdateItemSku(e.target.checked)}
+                      className="rounded border-foreground/30"
+                    />
+                    {t("menuMerge.updateItemSku")}
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={updateItemGramm}
+                      onChange={(e) => setUpdateItemGramm(e.target.checked)}
+                      className="rounded border-foreground/30"
+                    />
+                    {t("menuMerge.updateItemGramm")}
+                  </label>
+                </div>
+              ) : (
+                <p className="text-xs text-foreground/55">
+                  {t("menuMerge.unlinkItemHelp")}
+                </p>
+              )}
               {createNewItem ? (
                 <label className="block space-y-1 text-xs text-foreground/70">
                   <span>{t("menuMerge.createIntoCategory")}</span>
@@ -1868,18 +1956,31 @@ export function MenuMergePageClient() {
               >
                 {t("menuMerge.cancelSelection")}
               </button>
-              <button
-                type="button"
-                disabled={!canMergeItem}
-                onClick={() => void mergeItem()}
-                className="min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-              >
-                {merging
-                  ? t("menuMerge.merging")
-                  : createNewItem
-                    ? t("menuMerge.createItem")
-                    : t("menuMerge.merge")}
-              </button>
+              {canUnlinkItem ? (
+                <button
+                  type="button"
+                  disabled={merging}
+                  onClick={() => void unlinkCatalogItem(selectedCatalogItemId!)}
+                  className="min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
+                >
+                  {merging ? t("menuMerge.merging") : t("menuMerge.unlinkItem")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!canMergeItem}
+                  onClick={() => void mergeItem()}
+                  className="min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
+                >
+                  {merging
+                    ? t("menuMerge.merging")
+                    : createNewItem
+                      ? t("menuMerge.createItem")
+                      : isRelink
+                        ? t("menuMerge.relinkItem")
+                        : t("menuMerge.merge")}
+                </button>
+              )}
             </div>
           </div>
         </div>
