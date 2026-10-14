@@ -8,6 +8,8 @@ export type LoyaltyGuest = {
   marketingConsent: boolean;
   consentVersion: string;
   doSyncPending: boolean;
+  lastVisitedAt: string | null;
+  lifetimeSpendMinor: number;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -37,7 +39,27 @@ export type LoyaltyPromotion = {
   updatedAt: string | null;
 };
 
-export type GuestsListResponse = { guests: LoyaltyGuest[] };
+export type GuestsListParams = {
+  q?: string;
+  status?: "active" | "blocked";
+  lastVisitedFrom?: string;
+  lastVisitedTo?: string;
+  minSpend?: number;
+  maxSpend?: number;
+  page?: number;
+  limit?: number;
+  sort?: "createdAt" | "lastVisitedAt" | "lifetimeSpendMinor" | "balance" | "name";
+  order?: "asc" | "desc";
+};
+
+export type GuestsListResponse = {
+  guests: LoyaltyGuest[];
+  total: number;
+  page: number;
+  limit: number;
+  currency: string;
+};
+
 export type GuestDetailResponse = {
   guest: LoyaltyGuest;
   recentTransactions: LoyaltyLedgerEntry[];

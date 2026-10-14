@@ -1,20 +1,22 @@
 import { loyaltyApiJson } from "./client";
+import { buildGuestsListQuery } from "./guests-query";
 import type {
   GuestDetailResponse,
+  GuestsListParams,
   GuestsListResponse,
   PointsMutationResponse,
 } from "./types";
 
+export { buildGuestsListQuery } from "./guests-query";
+
 export async function listGuestsWithAuthServer(
   accessToken: string,
   restaurantId: string | undefined,
-  q?: string,
+  params: GuestsListParams = {},
 ) {
-  const params = new URLSearchParams();
-  if (q?.trim()) params.set("q", q.trim());
-  const qs = params.toString();
+  const qs = buildGuestsListQuery(params);
   return loyaltyApiJson<GuestsListResponse>({
-    path: `/api/admin/guests${qs ? `?${qs}` : ""}`,
+    path: `/api/admin/guests${qs}`,
     method: "GET",
     accessToken,
     restaurantId,
