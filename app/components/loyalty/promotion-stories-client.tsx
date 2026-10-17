@@ -147,7 +147,6 @@ export function PromotionStoriesClient() {
                     fill
                     className="object-cover"
                     sizes="56px"
-                    unoptimized
                   />
                 ) : (
                   <div className="h-full w-full bg-foreground/10" />

@@ -1,9 +1,10 @@
 "use client";
 
+import Hls from "hls.js";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   GlobalMenuResponse,
   Location,
@@ -12,16 +13,23 @@ import type {
   PromotionStoryMutationBody,
   PromotionStoryPricingMode,
 } from "@/lib/auth-api";
+import { uploadAndTranscodeMenuVideo } from "@/lib/menu-video-upload";
 import {
   computeComboPrice,
   parsePriceNumber,
 } from "@/lib/promotion-combo-price";
+import { expandR2AssetToPublicUrl, looksLikeR2ObjectKey } from "@/lib/r2-object-key";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
+import { resolveVideoSource } from "@/lib/video-source";
 import {
   CatalogImageField,
   type CatalogImageFieldValue,
 } from "../global-menu/catalog-image-field";
 import { useI18n } from "../i18n-provider";
+import {
+  PromotionStoryProductPickerModal,
+  type StoryProductDraft,
+} from "./promotion-story-product-picker-modal";
 
 const LANGS = ["en", "ru", "uz"] as const;
 type Lang = (typeof LANGS)[number];
@@ -35,11 +43,6 @@ type TranslationDraft = {
   subtitle: string;
   badge: string;
   actionText: string;
-};
-
-type ProductDraft = {
-  menuItemId: string;
-  quantity: number;
 };
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
@@ -59,15 +62,74 @@ function emptyTranslations(): Record<Lang, TranslationDraft> {
   };
 }
 
+function readR2PublicBase(): string {
+  return (
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL?.trim() ||
+    process.env.R2_PUBLIC_BASE_URL?.trim() ||
+    ""
+  ).replace(/\/+$/, "");
+}
+
+function expandMediaForDisplay(value: string): string {
+  const t = value.trim();
+  if (!t.length || t.startsWith("blob:") || t.startsWith("data:")) return t;
+  if (t.includes("://")) return t;
+  const base = readR2PublicBase();
+  if (!base) return t;
+  if (looksLikeR2ObjectKey(t)) {
+    return expandR2AssetToPublicUrl(t, base) ?? t;
+  }
+  return `${base}/${t.replace(/^\/+/, "")}`;
+}
+
+function StoryHlsPreview({ mediaKey }: { mediaKey: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const source = resolveVideoSource(mediaKey);
+
+  useEffect(() => {
+    if (source?.type !== "hls") return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(source.masterUrl);
+      hls.attachMedia(video);
+      return () => hls.destroy();
+    }
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = source.masterUrl;
+    }
+  }, [source]);
+
+  if (!source || source.type !== "hls") return null;
+
+  return (
+    <video
+      ref={videoRef}
+      poster={source.posterUrl}
+      className="h-full w-full object-cover"
+      muted
+      playsInline
+      autoPlay
+      loop
+    />
+  );
+}
+
 export function PromotionStoryFormClient({ storyId }: Props) {
   const router = useRouter();
   const { t, locale } = useI18n();
   const isEdit = Boolean(storyId);
 
+  const [clientStoryId] = useState(() => storyId ?? crypto.randomUUID());
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copyLang, setCopyLang] = useState<Lang>("en");
+  const [uploadStage, setUploadStage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const [mediaType, setMediaType] = useState<PromotionStoryMediaType>("photo");
   const [preview, setPreview] = useState<CatalogImageFieldValue>({ url: "", file: null });
@@ -79,7 +141,7 @@ export function PromotionStoryFormClient({ storyId }: Props) {
   const [translations, setTranslations] = useState(emptyTranslations);
   const [pricingMode, setPricingMode] = useState<PromotionStoryPricingMode>("percent_off");
   const [pricingValue, setPricingValue] = useState("20");
-  const [products, setProducts] = useState<ProductDraft[]>([]);
+  const [products, setProducts] = useState<StoryProductDraft[]>([]);
   const [locationIds, setLocationIds] = useState<string[]>([]);
   const [active, setActive] = useState(true);
   const [startsAt, setStartsAt] = useState("");
@@ -185,24 +247,6 @@ export function PromotionStoryFormClient({ storyId }: Props) {
     [listTotal, pricingMode, pricingValue],
   );
 
-  function toggleProduct(menuItemId: string) {
-    setProducts((prev) => {
-      const exists = prev.find((p) => p.menuItemId === menuItemId);
-      if (exists) return prev.filter((p) => p.menuItemId !== menuItemId);
-      return [...prev, { menuItemId, quantity: 1 }];
-    });
-  }
-
-  function setProductQty(menuItemId: string, quantity: number) {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.menuItemId === menuItemId
-          ? { ...p, quantity: Math.max(1, Math.round(quantity) || 1) }
-          : p,
-      ),
-    );
-  }
-
   function toggleLocation(id: string) {
     setLocationIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -213,6 +257,8 @@ export function PromotionStoryFormClient({ storyId }: Props) {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setUploadStage("");
+    setUploadProgress(0);
     try {
       let previewImageUrl = preview.url.trim();
       if (preview.file) {
@@ -228,17 +274,24 @@ export function PromotionStoryFormClient({ storyId }: Props) {
         if (photoMedia.file) {
           mediaUrl = await uploadFileToR2(photoMedia.file, "promotion-story-media");
         }
+      } else if (videoFile) {
+        mediaUrl = await uploadAndTranscodeMenuVideo({
+          file: videoFile,
+          itemId: clientStoryId,
+          onProgress: setUploadProgress,
+          onStage: setUploadStage,
+        });
+        setVideoUrl(mediaUrl);
+        setVideoFile(null);
       } else {
         mediaUrl = videoUrl.trim();
-        if (videoFile) {
-          mediaUrl = await uploadFileToR2(videoFile, "promotion-story-media");
-        }
       }
       if (!mediaUrl) {
         throw new Error(t("stories.mediaRequired"));
       }
 
       const body: PromotionStoryMutationBody = {
+        ...(isEdit ? {} : { id: clientStoryId }),
         mediaType,
         mediaUrl,
         previewImageUrl,
@@ -297,6 +350,8 @@ export function PromotionStoryFormClient({ storyId }: Props) {
       setError(err instanceof Error ? err.message : t("stories.errSave"));
     } finally {
       setSaving(false);
+      setUploadStage("");
+      setUploadProgress(0);
     }
   }
 
@@ -311,14 +366,29 @@ export function PromotionStoryFormClient({ storyId }: Props) {
   const previewSubtitle =
     translations[copyLang].subtitle || translations.en.subtitle || "";
   const previewBadge = translations[copyLang].badge || translations.en.badge;
-  const previewMediaSrc =
-    mediaType === "photo"
-      ? photoMedia.file
-        ? URL.createObjectURL(photoMedia.file)
-        : photoMedia.url
-      : videoFile
-        ? URL.createObjectURL(videoFile)
-        : videoUrl;
+
+  const photoSrc = photoMedia.file
+    ? URL.createObjectURL(photoMedia.file)
+    : photoMedia.url
+      ? expandMediaForDisplay(photoMedia.url)
+      : "";
+  const videoBlobSrc = videoFile ? URL.createObjectURL(videoFile) : "";
+  const videoIsHls =
+    !videoFile &&
+    Boolean(
+      videoUrl &&
+        (videoUrl.endsWith(".m3u8") ||
+          videoUrl.startsWith("videos/") ||
+          videoUrl.includes("/videos/")),
+    );
+  const videoProgressiveSrc =
+    !videoFile && videoUrl && !videoIsHls ? expandMediaForDisplay(videoUrl) : "";
+
+  const previewImageSrc = preview.file
+    ? URL.createObjectURL(preview.file)
+    : preview.url
+      ? expandMediaForDisplay(preview.url)
+      : "";
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-8">
@@ -394,6 +464,12 @@ export function PromotionStoryFormClient({ storyId }: Props) {
                   <p className="mt-1 truncate text-xs text-foreground/50">{videoUrl}</p>
                 ) : null}
                 <p className="mt-1 text-xs text-foreground/45">{t("stories.videoHint")}</p>
+                {saving && uploadStage ? (
+                  <p className="mt-2 text-xs text-foreground/60">
+                    {uploadStage}
+                    {uploadProgress > 0 ? ` ${uploadProgress}%` : ""}
+                  </p>
+                ) : null}
               </label>
             )}
           </section>
@@ -402,6 +478,7 @@ export function PromotionStoryFormClient({ storyId }: Props) {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/50">
               {t("stories.sectionCopy")}
             </h2>
+            <p className="text-xs text-foreground/50">{t("stories.copyHint")}</p>
             <div className="flex gap-2">
               {LANGS.map((lang) => (
                 <button
@@ -492,51 +569,39 @@ export function PromotionStoryFormClient({ storyId }: Props) {
                 combo: comboPrice.toFixed(0),
               })}
             </p>
-            <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl border border-foreground/10 p-3">
-              {!menu ? (
-                <p className="text-sm text-foreground/50">{t("loyalty.loading")}</p>
+            <div className="space-y-2 rounded-xl border border-foreground/10 p-3">
+              {products.length === 0 ? (
+                <p className="text-sm text-foreground/50">{t("stories.noProductsSelected")}</p>
               ) : (
-                menu.categories.map((cat) => (
-                  <div key={cat.id}>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/45">
-                      {cat.name}
-                    </p>
-                    <ul className="space-y-1">
-                      {cat.items.map((item) => {
-                        const selected = products.find((p) => p.menuItemId === item.id);
-                        return (
-                          <li
-                            key={item.id}
-                            className="flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-foreground/5"
-                          >
-                            <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={Boolean(selected)}
-                                onChange={() => toggleProduct(item.id)}
-                                disabled={saving}
-                              />
-                              <span className="truncate">{item.name}</span>
-                            </label>
-                            {selected ? (
-                              <input
-                                type="number"
-                                min={1}
-                                value={selected.quantity}
-                                onChange={(e) =>
-                                  setProductQty(item.id, Number(e.target.value))
-                                }
-                                disabled={saving}
-                                className="w-16 rounded border border-foreground/15 bg-transparent px-2 py-1 text-sm"
-                              />
-                            ) : null}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))
+                <ul className="space-y-1">
+                  {products.map((p) => {
+                    const info = itemPriceById.get(p.menuItemId);
+                    return (
+                      <li
+                        key={p.menuItemId}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span className="truncate">
+                          {info?.name ?? p.menuItemId.slice(0, 8)} ×{p.quantity}
+                        </span>
+                        <span className="shrink-0 text-foreground/50">
+                          {((info?.price ?? 0) * p.quantity).toFixed(0)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
+              <button
+                type="button"
+                disabled={saving || !menu}
+                onClick={() => setPickerOpen(true)}
+                className="rounded-lg border border-foreground/15 px-3 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {products.length
+                  ? t("stories.editCombo")
+                  : t("stories.chooseProducts")}
+              </button>
             </div>
           </section>
 
@@ -598,12 +663,35 @@ export function PromotionStoryFormClient({ storyId }: Props) {
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/45">
             {t("stories.phonePreview")}
           </p>
+          {previewImageSrc ? (
+            <div className="relative mx-auto mb-2 h-12 w-12 overflow-hidden rounded-full ring-2 ring-foreground/15">
+              <Image
+                src={previewImageSrc}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="48px"
+                unoptimized={previewImageSrc.startsWith("blob:")}
+              />
+            </div>
+          ) : null}
           <div className="mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-[1.75rem] border border-foreground/20 bg-black shadow-xl">
             <div className="relative h-full w-full">
-              {previewMediaSrc ? (
-                mediaType === "video" ? (
+              {mediaType === "video" ? (
+                videoBlobSrc ? (
                   <video
-                    src={previewMediaSrc}
+                    src={videoBlobSrc}
+                    className="h-full w-full object-cover"
+                    muted
+                    playsInline
+                    autoPlay
+                    loop
+                  />
+                ) : videoIsHls ? (
+                  <StoryHlsPreview mediaKey={videoUrl} />
+                ) : videoProgressiveSrc ? (
+                  <video
+                    src={videoProgressiveSrc}
                     className="h-full w-full object-cover"
                     muted
                     playsInline
@@ -611,15 +699,19 @@ export function PromotionStoryFormClient({ storyId }: Props) {
                     loop
                   />
                 ) : (
-                  <Image
-                    src={previewMediaSrc}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    sizes="260px"
-                  />
+                  <div className="flex h-full items-center justify-center text-xs text-white/40">
+                    {t("stories.previewNoMedia")}
+                  </div>
                 )
+              ) : photoSrc ? (
+                <Image
+                  src={photoSrc}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  unoptimized={photoSrc.startsWith("blob:")}
+                  sizes="260px"
+                />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-white/40">
                   {t("stories.previewNoMedia")}
@@ -667,6 +759,17 @@ export function PromotionStoryFormClient({ storyId }: Props) {
           {t("common.cancel")}
         </Link>
       </div>
+
+      <PromotionStoryProductPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        menu={menu}
+        products={products}
+        onConfirm={setProducts}
+        pricingMode={pricingMode}
+        pricingValue={pricingValue}
+        disabled={saving}
+      />
     </form>
   );
 }

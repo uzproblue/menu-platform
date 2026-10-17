@@ -46,6 +46,8 @@ export type PromotionStoryResponse = {
 };
 
 export type PromotionStoryMutationBody = {
+  /** Optional client-generated UUID for create (stable transcoder itemId). */
+  id?: string;
   mediaType: PromotionStoryMediaType;
   mediaUrl: string;
   previewImageUrl: string;
