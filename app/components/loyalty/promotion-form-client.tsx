@@ -98,7 +98,7 @@ export function PromotionFormClient({ promotionId }: Props) {
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, t("loyalty.errSavePromotion")));
       }
-      router.push("/loyalty/promotions");
+      router.push("/loyalty/promotions/points");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loyalty.errSavePromotion"));
@@ -189,7 +189,7 @@ export function PromotionFormClient({ promotionId }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/loyalty/promotions")}
+          onClick={() => router.push("/loyalty/promotions/points")}
           className="rounded-xl border border-foreground/15 px-4 py-2 text-sm"
         >
           {t("common.cancel")}
