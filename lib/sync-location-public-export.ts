@@ -3,6 +3,7 @@ import {
   getLocationMenuWithAuthServer,
   getLocationsWithAuthServer,
   getLocationWithAuthServer,
+  getPublishedPromotionStoriesForLocationWithAuthServer,
   patchLocationMenuExportWithAuthServer,
   syncCategoryTranslationsWithAuthServer,
   syncMenuItemTranslationsWithAuthServer,
@@ -483,11 +484,16 @@ export async function syncLocationPublicExportToR2(
   }
 
   if (!payload) {
-    const [locRes, menuRes] = await Promise.all([
+    const [locRes, menuRes, storiesRes] = await Promise.all([
       getLocationWithAuthServer(accessToken, locationId, restaurantId),
       getLocationMenuWithAuthServer(accessToken, locationId, restaurantId, {
         fresh: true,
       }),
+      getPublishedPromotionStoriesForLocationWithAuthServer(
+        accessToken,
+        locationId,
+        restaurantId,
+      ),
     ]);
 
     if (!locRes.ok) {
@@ -502,11 +508,19 @@ export async function syncLocationPublicExportToR2(
         message: menuRes.message ?? menuRes.error ?? "menu_fetch_failed",
       };
     }
+    if (!storiesRes.ok) {
+      console.warn(
+        "[syncLocationPublicExportToR2] published promotion stories fetch failed",
+        locationId,
+        storiesRes.message ?? storiesRes.error,
+      );
+    }
 
     payload = buildLocationPublicExport(
       locRes.data.location,
       menuRes.data,
       r2Config.publicBaseUrl,
+      storiesRes.ok ? storiesRes.data.stories : [],
     );
   }
 

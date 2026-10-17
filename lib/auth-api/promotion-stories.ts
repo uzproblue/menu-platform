@@ -3,6 +3,7 @@ import type {
   PromotionStoriesListResponse,
   PromotionStoryMutationBody,
   PromotionStoryResponse,
+  PublishedPromotionStoriesResponse,
 } from "./types/promotion-stories";
 
 export async function listPromotionStoriesWithAuthServer(
@@ -83,5 +84,19 @@ export async function reorderPromotionStoriesWithAuthServer(
     accessToken,
     restaurantId,
     body: { orderedIds },
+  });
+}
+
+export async function getPublishedPromotionStoriesForLocationWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  restaurantId?: string,
+) {
+  return authApiJson<PublishedPromotionStoriesResponse>({
+    path: `/api/locations/${encodeURIComponent(locationId)}/published-promotion-stories`,
+    method: "GET",
+    accessToken,
+    restaurantId,
+    timeoutMs: 30_000,
   });
 }

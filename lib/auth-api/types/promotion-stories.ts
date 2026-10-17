@@ -45,6 +45,39 @@ export type PromotionStoryResponse = {
   story: PromotionStory;
 };
 
+/** Guest-ready story row written into location-public R2 snapshots. */
+export type PublishedPromotionStoryExport = {
+  id: string;
+  mediaType: PromotionStoryMediaType;
+  mediaUrl: string;
+  previewImageUrl: string;
+  durationMs?: number | null;
+  badgeColor?: string | null;
+  sortOrder: number;
+  pricing: {
+    mode: PromotionStoryPricingMode;
+    value: string;
+    currency: string;
+  };
+  products: Array<{
+    menuItemId: string;
+    categoryId: string;
+    quantity: number;
+  }>;
+  translations: Array<{
+    lang: string;
+    title: string;
+    subtitle: string;
+    badge: string | null;
+    actionText: string | null;
+  }>;
+};
+
+export type PublishedPromotionStoriesResponse = {
+  locationId: string;
+  stories: PublishedPromotionStoryExport[];
+};
+
 export type PromotionStoryMutationBody = {
   /** Optional client-generated UUID for create (stable transcoder itemId). */
   id?: string;
