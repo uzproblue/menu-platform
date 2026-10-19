@@ -95,6 +95,7 @@ export async function POST(req: Request) {
   const type = o.type === "delivery" ? ("delivery" as const) : ("dine_in" as const);
   const coverImageUrl = typeof o.coverImageUrl === "string" ? o.coverImageUrl.trim() : "";
   const phoneNumber = typeof o.phoneNumber === "string" ? o.phoneNumber.trim() : "";
+  const timezone = typeof o.timezone === "string" ? o.timezone.trim() : undefined;
   const customDomain = typeof o.customDomain === "string" ? o.customDomain.trim() : undefined;
   const copyMenuFromLocationId =
     typeof o.copyMenuFromLocationId === "string" ? o.copyMenuFromLocationId.trim() : undefined;
@@ -110,6 +111,7 @@ export async function POST(req: Request) {
       name,
       type,
       currency,
+      timezone: timezone || undefined,
       translationLangs,
       logoUrl: logoUrl || undefined,
       coverImageUrl: coverImageUrl || undefined,

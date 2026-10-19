@@ -3,6 +3,10 @@ import { ItemThumbnail } from "@/app/components/global-menu/global-menu-item-row
 import { useI18n } from "@/app/components/i18n-provider";
 import { imageSrcIsNonOptimizable } from "@/lib/image-src-non-optimizable";
 import { LOCATION_TRANSLATION_OPTIONS } from "@/lib/menu-translation-langs";
+import {
+  LOCATION_TIMEZONE_OPTIONS,
+  resolveWizardTimezone,
+} from "@/lib/location-timezones";
 import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { LocationTypeSelector } from "./location-type-selector";
 import { GoogleLocationPicker } from "../google-location-picker";
@@ -17,6 +21,8 @@ type WizardStepBasicsProps = {
   setAddress: (v: string) => void;
   currency: string;
   setCurrency: (v: string) => void;
+  timezone: string;
+  setTimezone: (v: string) => void;
   translationLangs: string[];
   setTranslationLangs: (v: string[]) => void;
   logoUrlInputId: string;
@@ -82,6 +88,8 @@ export function WizardStepBasics({
   setAddress,
   currency,
   setCurrency,
+  timezone,
+  setTimezone,
   customDomain = "",
   setCustomDomain,
   existingLocations,
@@ -223,7 +231,7 @@ export function WizardStepBasics({
         </div>
       )}
 
-      {/* 2. Basic Info: Name & Currency */}
+      {/* 2. Basic Info: Name, Currency & Timezone */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="text-xs font-medium text-foreground/70" htmlFor="nw-name">
@@ -256,6 +264,32 @@ export function WizardStepBasics({
               </option>
             ))}
           </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-medium text-foreground/70" htmlFor="nw-timezone">
+            {t("restaurants.timezone")}
+          </label>
+          <select
+            id="nw-timezone"
+            value={resolveWizardTimezone(timezone)}
+            onChange={(e) => setTimezone(e.target.value)}
+            disabled={formDisabled}
+            className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {!LOCATION_TIMEZONE_OPTIONS.includes(
+              resolveWizardTimezone(timezone) as (typeof LOCATION_TIMEZONE_OPTIONS)[number],
+            ) ? (
+              <option value={resolveWizardTimezone(timezone)}>
+                {resolveWizardTimezone(timezone)}
+              </option>
+            ) : null}
+            {LOCATION_TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-foreground/50">{t("restaurants.timezoneHint")}</p>
         </div>
       </div>
 

@@ -2,11 +2,11 @@ import type { GlobalMenuResponse, Location } from "@/lib/auth-api";
 import type { PublishedPromotionStoryExport } from "@/lib/auth-api/types/promotion-stories";
 import { expandR2AssetToPublicUrl } from "@/lib/r2-object-key";
 
-export const LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION = 3 as const;
+export const LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION = 4 as const;
 
 /**
  * Public snapshot written to R2 after menu publish. Safe for anonymous guest menu apps.
- * Shape is stable for `schemaVersion` 3; includes category/item translations and promotion stories.
+ * Shape is stable for `schemaVersion` 4; includes location timezone and story schedule fields.
  */
 export type LocationPublicExport = {
   schemaVersion: typeof LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION;

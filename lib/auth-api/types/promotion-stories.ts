@@ -28,6 +28,9 @@ export type PromotionStory = {
   active: boolean;
   startsAt: string | null;
   endsAt: string | null;
+  activeTimeStart: string | null;
+  activeTimeEnd: string | null;
+  activeDaysOfWeek: number[] | null;
   sortOrder: number;
   translations: PromotionStoryTranslation[];
   products: PromotionStoryProduct[];
@@ -54,6 +57,13 @@ export type PublishedPromotionStoryExport = {
   durationMs?: number | null;
   badgeColor?: string | null;
   sortOrder: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  activeTimeStart?: string | null;
+  activeTimeEnd?: string | null;
+  activeDaysOfWeek?: number[] | null;
+  /** Resolved from Location.timezone at export time. */
+  scheduleTimezone?: string | null;
   pricing: {
     mode: PromotionStoryPricingMode;
     value: string;
@@ -91,6 +101,9 @@ export type PromotionStoryMutationBody = {
   active: boolean;
   startsAt?: string | null;
   endsAt?: string | null;
+  activeTimeStart?: string | null;
+  activeTimeEnd?: string | null;
+  activeDaysOfWeek?: number[] | null;
   sortOrder?: number;
   translations: Array<{
     lang: string;

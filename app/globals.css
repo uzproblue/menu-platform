@@ -20,6 +20,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --background: #0a0a0a;
     --foreground: #ededed;
     --chart-1: oklch(0.72 0.17 264);

@@ -3,6 +3,8 @@ export type Location = {
   name: string;
   type?: "dine_in" | "delivery";
   currency: string;
+  /** IANA timezone for local schedules (stories, hours). */
+  timezone?: string;
   address: string;
   logoUrl: string;
   /** Storefront header / background banner image (delivery & public). */
@@ -47,6 +49,7 @@ export type CreateLocationInput = {
   name: string;
   type?: "dine_in" | "delivery";
   currency: string;
+  timezone?: string;
   translationLangs: string[];
   logoUrl?: string;
   coverImageUrl?: string;
@@ -64,6 +67,7 @@ export type CreateLocationResponse = {
     name: string;
     type?: "dine_in" | "delivery";
     currency: string;
+    timezone?: string;
     logoUrl: string;
     coverImageUrl?: string;
     phoneNumber?: string;
@@ -137,6 +141,7 @@ export type UpdateLocationDetailsInput = {
   name?: string;
   type?: "dine_in" | "delivery";
   currency?: string;
+  timezone?: string;
   logoUrl?: string;
   coverImageUrl?: string | null;
   qrCenterImageUrl?: string;
@@ -162,6 +167,7 @@ export type UpdateLocationDetailsResponse = {
     name: string;
     type?: "dine_in" | "delivery";
     currency: string;
+    timezone?: string;
     address: string;
     logoUrl: string;
     coverImageUrl?: string;

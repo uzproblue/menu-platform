@@ -18,9 +18,15 @@ import {
   computeComboPrice,
   parsePriceNumber,
 } from "@/lib/promotion-combo-price";
+import { DEFAULT_LOCATION_TIMEZONE } from "@/lib/location-timezones";
 import { expandR2AssetToPublicUrl, looksLikeR2ObjectKey } from "@/lib/r2-object-key";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { resolveVideoSource } from "@/lib/video-source";
+import {
+  endOfDayUtcIso,
+  isoToYmdInZone,
+  startOfDayUtcIso,
+} from "@/lib/zoned-datetime";
 import {
   CatalogImageField,
   type CatalogImageFieldValue,
@@ -33,6 +39,16 @@ import {
 
 const LANGS = ["en", "ru", "uz"] as const;
 type Lang = (typeof LANGS)[number];
+
+const WEEKDAY_KEYS = [
+  "stories.daySun",
+  "stories.dayMon",
+  "stories.dayTue",
+  "stories.dayWed",
+  "stories.dayThu",
+  "stories.dayFri",
+  "stories.daySat",
+] as const;
 
 type Props = {
   storyId?: string;
@@ -146,9 +162,18 @@ export function PromotionStoryFormClient({ storyId }: Props) {
   const [active, setActive] = useState(true);
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [scheduleLimited, setScheduleLimited] = useState(false);
+  const [activeTimeStart, setActiveTimeStart] = useState("08:00");
+  const [activeTimeEnd, setActiveTimeEnd] = useState("13:00");
+  const [activeDaysOfWeek, setActiveDaysOfWeek] = useState<number[]>([]);
 
   const [menu, setMenu] = useState<GlobalMenuResponse | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+
+  const scheduleTimezone = useMemo(() => {
+    const first = locations.find((l) => locationIds.includes(l.id));
+    return first?.timezone?.trim() || DEFAULT_LOCATION_TIMEZONE;
+  }, [locations, locationIds]);
 
   useEffect(() => {
     void (async () => {
@@ -196,9 +221,20 @@ export function PromotionStoryFormClient({ storyId }: Props) {
         setPricingMode(s.pricingMode);
         setPricingValue(s.pricingValue);
         setActive(s.active);
-        setStartsAt(s.startsAt ? s.startsAt.slice(0, 16) : "");
-        setEndsAt(s.endsAt ? s.endsAt.slice(0, 16) : "");
         setLocationIds(s.locationIds);
+        setStartsAt(
+          s.startsAt ? isoToYmdInZone(s.startsAt, DEFAULT_LOCATION_TIMEZONE) : "",
+        );
+        setEndsAt(s.endsAt ? isoToYmdInZone(s.endsAt, DEFAULT_LOCATION_TIMEZONE) : "");
+        const hasRecurring =
+          Boolean(s.activeTimeStart && s.activeTimeEnd) ||
+          (Array.isArray(s.activeDaysOfWeek) && s.activeDaysOfWeek.length > 0);
+        setScheduleLimited(hasRecurring);
+        setActiveTimeStart(s.activeTimeStart ?? "08:00");
+        setActiveTimeEnd(s.activeTimeEnd ?? "13:00");
+        setActiveDaysOfWeek(
+          Array.isArray(s.activeDaysOfWeek) ? [...s.activeDaysOfWeek] : [],
+        );
         setProducts(
           s.products.map((p) => ({ menuItemId: p.menuItemId, quantity: p.quantity })),
         );
@@ -306,8 +342,18 @@ export function PromotionStoryFormClient({ storyId }: Props) {
             ? Number(pricingValue)
             : pricingValue,
         active,
-        startsAt: startsAt ? new Date(startsAt).toISOString() : null,
-        endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+        startsAt: startsAt ? startOfDayUtcIso(startsAt, scheduleTimezone) : null,
+        endsAt: endsAt ? endOfDayUtcIso(endsAt, scheduleTimezone) : null,
+        activeTimeStart: scheduleLimited
+          ? (activeTimeStart.match(/^(\d{2}):(\d{2})/)?.[0] ?? null)
+          : null,
+        activeTimeEnd: scheduleLimited
+          ? (activeTimeEnd.match(/^(\d{2}):(\d{2})/)?.[0] ?? null)
+          : null,
+        activeDaysOfWeek:
+          scheduleLimited && activeDaysOfWeek.length > 0
+            ? [...activeDaysOfWeek].sort((a, b) => a - b)
+            : null,
         translations: LANGS.map((lang) => ({
           lang,
           title: translations[lang].title.trim(),
@@ -398,7 +444,7 @@ export function PromotionStoryFormClient({ storyId }: Props) {
         </p>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
         <div className="space-y-8">
           <section className="space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/50">
@@ -610,20 +656,38 @@ export function PromotionStoryFormClient({ storyId }: Props) {
               {t("stories.sectionAudience")}
             </h2>
             <div className="flex flex-wrap gap-3">
-              {locations.map((loc) => (
-                <label
-                  key={loc.id}
-                  className="flex items-center gap-2 rounded-lg border border-foreground/10 px-3 py-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={locationIds.includes(loc.id)}
-                    onChange={() => toggleLocation(loc.id)}
-                    disabled={saving}
-                  />
-                  {loc.name}
-                </label>
-              ))}
+              {locations.map((loc) => {
+                const isDelivery = loc.type === "delivery";
+                return (
+                  <label
+                    key={loc.id}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                      isDelivery
+                        ? "border-sky-500/25 bg-sky-500/5"
+                        : "border-foreground/10 bg-background/40"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={locationIds.includes(loc.id)}
+                      onChange={() => toggleLocation(loc.id)}
+                      disabled={saving}
+                    />
+                    <span className="min-w-0 font-medium">{loc.name}</span>
+                    <span
+                      className={
+                        isDelivery
+                          ? "inline-flex shrink-0 items-center rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300"
+                          : "inline-flex shrink-0 items-center rounded-full border border-foreground/15 bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground/65"
+                      }
+                    >
+                      {isDelivery
+                        ? t("restaurants.deliveryBadge")
+                        : t("restaurants.dineInBadge")}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -634,28 +698,108 @@ export function PromotionStoryFormClient({ storyId }: Props) {
               />
               {t("loyalty.active")}
             </label>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/45">
+                {t("stories.sectionSchedule")}
+              </h3>
+              <p className="mt-1 text-xs text-foreground/50">
+                {t("stories.scheduleTimezoneHint", { timezone: scheduleTimezone })}
+              </p>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <span className="text-foreground/70">{t("stories.startsAt")}</span>
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={startsAt}
                   onChange={(e) => setStartsAt(e.target.value)}
                   disabled={saving}
-                  className="mt-1 w-full rounded-lg border border-foreground/15 bg-transparent px-3 py-2"
+                  className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-foreground"
                 />
               </label>
               <label className="block text-sm">
                 <span className="text-foreground/70">{t("stories.endsAt")}</span>
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={endsAt}
                   onChange={(e) => setEndsAt(e.target.value)}
                   disabled={saving}
-                  className="mt-1 w-full rounded-lg border border-foreground/15 bg-transparent px-3 py-2"
+                  className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-foreground"
                 />
               </label>
             </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={scheduleLimited}
+                onChange={(e) => setScheduleLimited(e.target.checked)}
+                disabled={saving}
+              />
+              {t("stories.limitByTimeOrDays")}
+            </label>
+            {scheduleLimited ? (
+              <div className="space-y-3 rounded-xl border border-foreground/10 bg-foreground/[0.02] p-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm">
+                    <span className="text-foreground/70">{t("stories.activeTimeStart")}</span>
+                    <input
+                      type="time"
+                      value={activeTimeStart}
+                      onChange={(e) => setActiveTimeStart(e.target.value)}
+                      disabled={saving}
+                      className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-foreground"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="text-foreground/70">{t("stories.activeTimeEnd")}</span>
+                    <input
+                      type="time"
+                      value={activeTimeEnd}
+                      onChange={(e) => setActiveTimeEnd(e.target.value)}
+                      disabled={saving}
+                      className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-foreground"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-foreground/45">{t("stories.overnightHint")}</p>
+                <div>
+                  <p className="text-xs font-medium text-foreground/70">
+                    {t("stories.activeDays")}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {WEEKDAY_KEYS.map((key, day) => {
+                      const selected = activeDaysOfWeek.includes(day);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={saving}
+                          onClick={() =>
+                            setActiveDaysOfWeek((prev) =>
+                              prev.includes(day)
+                                ? prev.filter((d) => d !== day)
+                                : [...prev, day],
+                            )
+                          }
+                          className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
+                            selected
+                              ? "bg-foreground text-background"
+                              : "border border-foreground/15 text-foreground/70"
+                          }`}
+                        >
+                          {t(key)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1 text-xs text-foreground/45">
+                    {t("stories.activeDaysHint")}
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </section>
         </div>
 
@@ -675,7 +819,7 @@ export function PromotionStoryFormClient({ storyId }: Props) {
               />
             </div>
           ) : null}
-          <div className="mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-[1.75rem] border border-foreground/20 bg-black shadow-xl">
+          <div className="mx-auto aspect-video w-full overflow-hidden rounded-2xl border border-foreground/20 bg-black shadow-xl">
             <div className="relative h-full w-full">
               {mediaType === "video" ? (
                 videoBlobSrc ? (
@@ -710,7 +854,7 @@ export function PromotionStoryFormClient({ storyId }: Props) {
                   fill
                   className="object-cover"
                   unoptimized={photoSrc.startsWith("blob:")}
-                  sizes="260px"
+                  sizes="380px"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-white/40">

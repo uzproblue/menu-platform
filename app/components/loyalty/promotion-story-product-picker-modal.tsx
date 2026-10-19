@@ -193,7 +193,7 @@ export function PromotionStoryProductPickerModal({
                 setSectionId(e.target.value);
                 setCategoryId("all");
               }}
-              className="rounded-lg border border-foreground/15 bg-transparent px-2 py-1.5 text-xs"
+              className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-xs text-foreground"
             >
               <option value="all">{t("stories.filterAllSections")}</option>
               {menu?.sections.map((s) => (
@@ -205,7 +205,7 @@ export function PromotionStoryProductPickerModal({
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="rounded-lg border border-foreground/15 bg-transparent px-2 py-1.5 text-xs"
+              className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-xs text-foreground"
             >
               <option value="all">{t("stories.filterAllCategories")}</option>
               {categoriesForFilter.map((c) => (
@@ -217,7 +217,7 @@ export function PromotionStoryProductPickerModal({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortMode)}
-              className="rounded-lg border border-foreground/15 bg-transparent px-2 py-1.5 text-xs"
+              className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-xs text-foreground"
             >
               <option value="name_asc">{t("stories.sortNameAsc")}</option>
               <option value="name_desc">{t("stories.sortNameDesc")}</option>

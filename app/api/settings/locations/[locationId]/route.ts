@@ -92,6 +92,7 @@ export async function PATCH(
     name?: string;
     type?: "dine_in" | "delivery";
     currency?: string;
+    timezone?: string;
     logoUrl?: string;
     coverImageUrl?: string | null;
     qrCenterImageUrl?: string;
@@ -128,6 +129,15 @@ export async function PATCH(
       );
     }
     payload.currency = o.currency.trim().toUpperCase();
+  }
+  if ("timezone" in o) {
+    if (typeof o.timezone !== "string" || !o.timezone.trim()) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "timezone must be a non-empty string" },
+        { status: 400 },
+      );
+    }
+    payload.timezone = o.timezone.trim();
   }
   if ("logoUrl" in o) {
     if (typeof o.logoUrl !== "string") {
@@ -360,6 +370,7 @@ export async function PATCH(
   if (
     payload.name === undefined &&
     payload.currency === undefined &&
+    payload.timezone === undefined &&
     payload.logoUrl === undefined &&
     payload.qrCenterImageUrl === undefined &&
     payload.address === undefined &&
@@ -378,7 +389,7 @@ export async function PATCH(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, customDomain is required",
+          "at least one of name, currency, timezone, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, customDomain is required",
       },
       { status: 400 },
     );
