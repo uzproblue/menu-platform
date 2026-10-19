@@ -1206,7 +1206,8 @@ export const enMessages: Messages = {
   "stories.pageTitle": "Stories & offers",
   "stories.pageSubtitle":
     "Create Instagram-style stories guests open from the menu. Each story can add a combo to the cart.",
-  "stories.formHint": "Guests see these in the home stories ring after you save and publish.",
+  "stories.formHint":
+    "Guests see the 16:9 preview on the home card and the vertical media in the full story viewer after you save and publish.",
   "stories.newStory": "New story",
   "stories.editStory": "Edit story",
   "stories.pointsRulesLink": "Points rules",
@@ -1224,9 +1225,11 @@ export const enMessages: Messages = {
   "stories.sectionCopy": "Copy",
   "stories.sectionCombo": "Combo",
   "stories.sectionAudience": "Audience",
-  "stories.previewImage": "Preview image (stories ring)",
-  "stories.storyMedia": "Story photo",
-  "stories.storyVideo": "Story video",
+  "stories.previewImage": "Preview image (home card, 16:9)",
+  "stories.storyMedia": "Story photo (vertical)",
+  "stories.storyVideo": "Story video (vertical)",
+  "stories.homeCardPreview": "Home card preview",
+  "stories.homeCardEyebrow": "Offers",
   "stories.mediaPhoto": "Photo",
   "stories.mediaVideo": "Video",
   "stories.videoHint":
@@ -1276,7 +1279,7 @@ export const enMessages: Messages = {
   "stories.dayThu": "Thu",
   "stories.dayFri": "Fri",
   "stories.daySat": "Sat",
-  "stories.phonePreview": "Guest preview",
+  "stories.phonePreview": "Story viewer (phone)",
   "stories.previewPlaceholderTitle": "Your offer title",
   "stories.previewNoMedia": "Add media to preview",
   "stories.tryIt": "Try it",

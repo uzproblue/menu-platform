@@ -1205,7 +1205,8 @@ export const uzMessages: Messages = {
   "stories.pageTitle": "Stories va takliflar",
   "stories.pageSubtitle":
     "Mehmonlar menyudan ochadigan Instagram uslubidagi stories yarating. Har bir story savatga kombo qo'shishi mumkin.",
-  "stories.formHint": "Saqlagandan keyin mehmonlar ularni bosh sahifadagi stories halqasida ko'radi.",
+  "stories.formHint":
+    "Saqlagandan keyin mehmonlar 16:9 previewni bosh sahifa kartasida va vertikal mediani story ko'rishda ko'radi.",
   "stories.newStory": "Yangi story",
   "stories.editStory": "Storyni tahrirlash",
   "stories.pointsRulesLink": "Ball qoidalari",
@@ -1223,9 +1224,11 @@ export const uzMessages: Messages = {
   "stories.sectionCopy": "Matn",
   "stories.sectionCombo": "Kombo",
   "stories.sectionAudience": "Auditoriya",
-  "stories.previewImage": "Preview rasm (stories halqasi)",
-  "stories.storyMedia": "Story rasmi",
-  "stories.storyVideo": "Story videosi",
+  "stories.previewImage": "Preview rasm (bosh sahifa kartasi, 16:9)",
+  "stories.storyMedia": "Story rasmi (vertikal)",
+  "stories.storyVideo": "Story videosi (vertikal)",
+  "stories.homeCardPreview": "Bosh sahifa kartasi preview",
+  "stories.homeCardEyebrow": "Aksiyalar",
   "stories.mediaPhoto": "Rasm",
   "stories.mediaVideo": "Video",
   "stories.videoHint":
@@ -1275,7 +1278,7 @@ export const uzMessages: Messages = {
   "stories.dayThu": "Pa",
   "stories.dayFri": "Ju",
   "stories.daySat": "Sh",
-  "stories.phonePreview": "Mehmon preview",
+  "stories.phonePreview": "Story ko‘rish (telefon)",
   "stories.previewPlaceholderTitle": "Taklif sarlavhasi",
   "stories.previewNoMedia": "Preview uchun media qo'shing",
   "stories.tryIt": "Sinab ko'rish",

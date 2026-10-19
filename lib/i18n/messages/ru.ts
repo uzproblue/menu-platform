@@ -1229,7 +1229,8 @@ export const ruMessages: Messages = {
   "stories.pageTitle": "Stories и предложения",
   "stories.pageSubtitle":
     "Создавайте stories в стиле Instagram — гости открывают их из меню. Каждая story может добавить комбо в корзину.",
-  "stories.formHint": "После сохранения гости увидят их в кольце stories на главной.",
+  "stories.formHint":
+    "После сохранения гости увидят 16:9 превью на карточке главной и вертикальное медиа в просмотре story.",
   "stories.newStory": "Новая story",
   "stories.editStory": "Редактировать story",
   "stories.pointsRulesLink": "Правила баллов",
@@ -1247,9 +1248,11 @@ export const ruMessages: Messages = {
   "stories.sectionCopy": "Текст",
   "stories.sectionCombo": "Комбо",
   "stories.sectionAudience": "Аудитория",
-  "stories.previewImage": "Превью (кольцо stories)",
-  "stories.storyMedia": "Фото story",
-  "stories.storyVideo": "Видео story",
+  "stories.previewImage": "Превью (карточка на главной, 16:9)",
+  "stories.storyMedia": "Фото story (вертикальное)",
+  "stories.homeCardPreview": "Превью карточки на главной",
+  "stories.homeCardEyebrow": "Акции",
+  "stories.storyVideo": "Видео story (вертикальное)",
   "stories.mediaPhoto": "Фото",
   "stories.mediaVideo": "Видео",
   "stories.videoHint":
@@ -1299,7 +1302,7 @@ export const ruMessages: Messages = {
   "stories.dayThu": "Чт",
   "stories.dayFri": "Пт",
   "stories.daySat": "Сб",
-  "stories.phonePreview": "Превью для гостя",
+  "stories.phonePreview": "Просмотр story (телефон)",
   "stories.previewPlaceholderTitle": "Название предложения",
   "stories.previewNoMedia": "Добавьте медиа для превью",
   "stories.tryIt": "Попробовать",

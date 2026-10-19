@@ -803,88 +803,108 @@ export function PromotionStoryFormClient({ storyId }: Props) {
           </section>
         </div>
 
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/45">
-            {t("stories.phonePreview")}
-          </p>
-          {previewImageSrc ? (
-            <div className="relative mx-auto mb-2 h-12 w-12 overflow-hidden rounded-full ring-2 ring-foreground/15">
-              <Image
-                src={previewImageSrc}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="48px"
-                unoptimized={previewImageSrc.startsWith("blob:")}
-              />
-            </div>
-          ) : null}
-          <div className="mx-auto aspect-video w-full overflow-hidden rounded-2xl border border-foreground/20 bg-black shadow-xl">
-            <div className="relative h-full w-full">
-              {mediaType === "video" ? (
-                videoBlobSrc ? (
-                  <video
-                    src={videoBlobSrc}
-                    className="h-full w-full object-cover"
-                    muted
-                    playsInline
-                    autoPlay
-                    loop
-                  />
-                ) : videoIsHls ? (
-                  <StoryHlsPreview mediaKey={videoUrl} />
-                ) : videoProgressiveSrc ? (
-                  <video
-                    src={videoProgressiveSrc}
-                    className="h-full w-full object-cover"
-                    muted
-                    playsInline
-                    autoPlay
-                    loop
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-white/40">
-                    {t("stories.previewNoMedia")}
-                  </div>
-                )
-              ) : photoSrc ? (
+        <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/45">
+              {t("stories.homeCardPreview")}
+            </p>
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-foreground/15 bg-black shadow-lg">
+              {previewImageSrc ? (
                 <Image
-                  src={photoSrc}
+                  src={previewImageSrc}
                   alt=""
                   fill
                   className="object-cover"
-                  unoptimized={photoSrc.startsWith("blob:")}
                   sizes="380px"
+                  unoptimized={previewImageSrc.startsWith("blob:")}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-white/40">
                   {t("stories.previewNoMedia")}
                 </div>
               )}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-16 text-white">
-                {previewBadge ? (
-                  <span
-                    className="mb-2 inline-block rounded px-2 py-0.5 text-[10px] font-semibold"
-                    style={{ backgroundColor: badgeColor }}
-                  >
-                    {previewBadge}
-                  </span>
-                ) : null}
-                <p className="text-sm font-semibold leading-snug">{previewTitle}</p>
-                {previewSubtitle ? (
-                  <p className="mt-1 text-xs text-white/80">{previewSubtitle}</p>
-                ) : null}
-                <div className="mt-3 rounded-full bg-white px-3 py-2 text-center text-xs font-semibold text-black">
-                  {translations[copyLang].actionText ||
-                    translations.en.actionText ||
-                    t("stories.tryIt")}
-                </div>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 pt-10 text-white">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/70">
+                  {t("stories.homeCardEyebrow")}
+                </p>
+                <p className="mt-0.5 text-sm font-semibold leading-snug">
+                  {previewTitle}
+                </p>
               </div>
             </div>
           </div>
-          <p className="mt-2 text-center text-[11px] text-foreground/45">
-            {locale}
-          </p>
+
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/45">
+              {t("stories.phonePreview")}
+            </p>
+            <div className="mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-[1.75rem] border border-foreground/20 bg-black shadow-xl">
+              <div className="relative h-full w-full">
+                {mediaType === "video" ? (
+                  videoBlobSrc ? (
+                    <video
+                      src={videoBlobSrc}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                      autoPlay
+                      loop
+                    />
+                  ) : videoIsHls ? (
+                    <StoryHlsPreview mediaKey={videoUrl} />
+                  ) : videoProgressiveSrc ? (
+                    <video
+                      src={videoProgressiveSrc}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                      autoPlay
+                      loop
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-white/40">
+                      {t("stories.previewNoMedia")}
+                    </div>
+                  )
+                ) : photoSrc ? (
+                  <Image
+                    src={photoSrc}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    unoptimized={photoSrc.startsWith("blob:")}
+                    sizes="260px"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-white/40">
+                    {t("stories.previewNoMedia")}
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-16 text-white">
+                  {previewBadge ? (
+                    <span
+                      className="mb-2 inline-block rounded px-2 py-0.5 text-[10px] font-semibold"
+                      style={{ backgroundColor: badgeColor }}
+                    >
+                      {previewBadge}
+                    </span>
+                  ) : null}
+                  <p className="text-sm font-semibold leading-snug">{previewTitle}</p>
+                  {previewSubtitle ? (
+                    <p className="mt-1 text-xs text-white/80">{previewSubtitle}</p>
+                  ) : null}
+                  <div className="mt-3 rounded-full bg-white px-3 py-2 text-center text-xs font-semibold text-black">
+                    {translations[copyLang].actionText ||
+                      translations.en.actionText ||
+                      t("stories.tryIt")}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 text-center text-[11px] text-foreground/45">
+              {locale}
+            </p>
+          </div>
         </aside>
       </div>
 
