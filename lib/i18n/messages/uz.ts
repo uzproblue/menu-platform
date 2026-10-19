@@ -1224,6 +1224,11 @@ export const uzMessages: Messages = {
   "loyalty.segmentsClose": "Yopish",
   "loyalty.segmentsEmptyMembers": "Bu segmentda a'zolar yo'q.",
   "loyalty.segmentsOpenMembers": "Sodiqlik a'zolarini ochish",
+  "loyalty.segmentsEmptyTitle": "Hali auditoriya surati yo'q",
+  "loyalty.segmentsEmptyHint":
+    "Segmentatsiyani bir marta ishga tushiring — a'zolar tashrif, xarajat va yaqinlik bo'yicha guruhlanadi, shu yerda kundalik tavsiyalar chiqadi.",
+  "loyalty.segmentsPickHint": "A'zolarni ko'rish uchun segmentni tanlang.",
+  "loyalty.segmentsActionCount": "{count} ochiq",
   "loyalty.errLoadSegments": "Segmentlarni yuklab bo'lmadi.",
   "loyalty.errLoadSegmentActions": "Harakatlarni yuklab bo'lmadi.",
   "loyalty.errLoadSegmentMembers": "Segment a'zolarini yuklab bo'lmadi.",

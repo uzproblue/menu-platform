@@ -1248,6 +1248,11 @@ export const ruMessages: Messages = {
   "loyalty.segmentsClose": "Закрыть",
   "loyalty.segmentsEmptyMembers": "В этом сегменте нет участников.",
   "loyalty.segmentsOpenMembers": "Открыть участников лояльности",
+  "loyalty.segmentsEmptyTitle": "Снимка аудитории ещё нет",
+  "loyalty.segmentsEmptyHint":
+    "Запустите сегментацию один раз — участники сгруппируются по визитам, тратам и давности, а здесь появятся ежедневные идеи действий.",
+  "loyalty.segmentsPickHint": "Выберите сегмент, чтобы посмотреть участников.",
+  "loyalty.segmentsActionCount": "{count} открыто",
   "loyalty.errLoadSegments": "Не удалось загрузить сегменты.",
   "loyalty.errLoadSegmentActions": "Не удалось загрузить действия.",
   "loyalty.errLoadSegmentMembers": "Не удалось загрузить участников сегмента.",

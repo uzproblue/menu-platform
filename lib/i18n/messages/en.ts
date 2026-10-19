@@ -1225,6 +1225,11 @@ export const enMessages: Messages = {
   "loyalty.segmentsClose": "Close",
   "loyalty.segmentsEmptyMembers": "No members in this segment.",
   "loyalty.segmentsOpenMembers": "Open loyalty members",
+  "loyalty.segmentsEmptyTitle": "No audience snapshot yet",
+  "loyalty.segmentsEmptyHint":
+    "Run segmentation once to group members by visits, spend, and recency, then review daily action ideas here.",
+  "loyalty.segmentsPickHint": "Select a segment to browse its members.",
+  "loyalty.segmentsActionCount": "{count} open",
   "loyalty.errLoadSegments": "Could not load segments.",
   "loyalty.errLoadSegmentActions": "Could not load segment actions.",
   "loyalty.errLoadSegmentMembers": "Could not load segment members.",

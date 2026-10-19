@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import type {
   LoyaltyGuest,
   LoyaltySegmentAction,
@@ -31,6 +37,25 @@ function formatMoney(amount: number, currency: string, locale: string): string {
   } catch {
     return `${amount} ${currency || "KZT"}`;
   }
+}
+
+function formatRelativeUpdated(
+  iso: string | null,
+  locale: string,
+  neverLabel: string,
+): string {
+  if (!iso) return neverLabel;
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return neverLabel;
+  const diffSec = Math.round((Date.now() - ms) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (Math.abs(diffSec) < 60) return rtf.format(-diffSec, "second");
+  const diffMin = Math.round(diffSec / 60);
+  if (Math.abs(diffMin) < 60) return rtf.format(-diffMin, "minute");
+  const diffHr = Math.round(diffMin / 60);
+  if (Math.abs(diffHr) < 48) return rtf.format(-diffHr, "hour");
+  const diffDay = Math.round(diffHr / 24);
+  return rtf.format(-diffDay, "day");
 }
 
 function promotionHref(action: LoyaltySegmentAction): string {
@@ -69,11 +94,32 @@ function segmentDescription(
   return translated === `loyalty.segment.${key}Desc` ? fallback : translated;
 }
 
+function toneForSegment(key: string): string {
+  switch (key) {
+    case "champions":
+    case "loyal":
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300";
+    case "potential_loyalists":
+    case "new_members":
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-300";
+    case "at_risk":
+      return "bg-amber-500/15 text-amber-900 dark:text-amber-300";
+    case "lapsed":
+    case "hibernating":
+      return "bg-rose-500/15 text-rose-800 dark:text-rose-300";
+    case "birthday_this_week":
+      return "bg-violet-500/15 text-violet-800 dark:text-violet-300";
+    case "high_balance":
+      return "bg-foreground/10 text-foreground/80";
+    default:
+      return "bg-foreground/10 text-foreground/70";
+  }
+}
+
 export function LoyaltySegmentsClient() {
   const { t, locale } = useI18n();
   const [segments, setSegments] = useState<LoyaltySegmentSummary[]>([]);
   const [actions, setActions] = useState<LoyaltySegmentAction[]>([]);
-  const [runDate, setRunDate] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -82,9 +128,10 @@ export function LoyaltySegmentsClient() {
   const [members, setMembers] = useState<LoyaltyGuest[]>([]);
   const [membersTotal, setMembersTotal] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [dismissingId, setDismissingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) setLoading(true);
     setError(null);
     try {
       const [segRes, actRes] = await Promise.all([
@@ -103,10 +150,19 @@ export function LoyaltySegmentsClient() {
       }
       const segData = (await segRes.json()) as SegmentsListResponse;
       const actData = (await actRes.json()) as SegmentActionsResponse;
-      setSegments(segData.segments ?? []);
-      setRunDate(segData.runDate ?? actData.runDate ?? null);
-      setLastUpdated(segData.lastRun?.finishedAt ?? segData.lastRun?.startedAt ?? null);
+      const nextSegments = segData.segments ?? [];
+      setSegments(nextSegments);
+      setLastUpdated(
+        segData.lastRun?.finishedAt ?? segData.lastRun?.startedAt ?? null,
+      );
       setActions(actData.actions ?? []);
+      setSelectedKey((prev) => {
+        if (prev && nextSegments.some((s) => s.key === prev)) return prev;
+        const firstWithMembers = nextSegments.find(
+          (s) => !s.isOverlay && s.memberCount > 0,
+        );
+        return firstWithMembers?.key ?? nextSegments.find((s) => !s.isOverlay)?.key ?? null;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loyalty.errLoadSegments"));
     } finally {
@@ -118,31 +174,68 @@ export function LoyaltySegmentsClient() {
     void load();
   }, [load]);
 
-  const openSegment = async (key: string) => {
-    setSelectedKey(key);
-    setMembersLoading(true);
-    setMembers([]);
-    setMembersTotal(0);
-    try {
-      const res = await fetch(
-        `/api/settings/loyalty/segments/${encodeURIComponent(key)}/members?limit=50`,
-      );
-      if (!res.ok) {
-        throw new Error(
-          await readErrorMessage(res, t("loyalty.errLoadSegmentMembers")),
-        );
-      }
-      const data = (await res.json()) as SegmentMembersResponse;
-      setMembers(data.guests ?? []);
-      setMembersTotal(data.total ?? 0);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("loyalty.errLoadSegmentMembers"),
-      );
-    } finally {
-      setMembersLoading(false);
+  useEffect(() => {
+    const onContext = () => {
+      void load({ quiet: true });
+    };
+    window.addEventListener("restaurant-context-changed", onContext);
+    return () => window.removeEventListener("restaurant-context-changed", onContext);
+  }, [load]);
+
+  const selected = useMemo(
+    () => segments.find((s) => s.key === selectedKey) ?? null,
+    [segments, selectedKey],
+  );
+
+  const primary = useMemo(
+    () => segments.filter((s) => !s.isOverlay),
+    [segments],
+  );
+  const overlays = useMemo(
+    () => segments.filter((s) => s.isOverlay),
+    [segments],
+  );
+  const totalMembers = useMemo(
+    () => primary.reduce((sum, s) => sum + s.memberCount, 0),
+    [primary],
+  );
+
+  useEffect(() => {
+    if (!selectedKey) {
+      setMembers([]);
+      setMembersTotal(0);
+      return;
     }
-  };
+    let cancelled = false;
+    setMembersLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/settings/loyalty/segments/${encodeURIComponent(selectedKey)}/members?limit=40`,
+        );
+        if (!res.ok) {
+          throw new Error(
+            await readErrorMessage(res, t("loyalty.errLoadSegmentMembers")),
+          );
+        }
+        const data = (await res.json()) as SegmentMembersResponse;
+        if (cancelled) return;
+        setMembers(data.guests ?? []);
+        setMembersTotal(data.total ?? 0);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : t("loyalty.errLoadSegmentMembers"),
+          );
+        }
+      } finally {
+        if (!cancelled) setMembersLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedKey, t]);
 
   const runNow = async () => {
     setRunning(true);
@@ -154,9 +247,8 @@ export function LoyaltySegmentsClient() {
       if (!res.ok && res.status !== 202) {
         throw new Error(await readErrorMessage(res, t("loyalty.errRunSegments")));
       }
-      // Give the queue a moment, then refresh.
-      await new Promise((r) => setTimeout(r, res.status === 202 ? 2500 : 400));
-      await load();
+      await new Promise((r) => setTimeout(r, res.status === 202 ? 2800 : 500));
+      await load({ quiet: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loyalty.errRunSegments"));
     } finally {
@@ -165,53 +257,72 @@ export function LoyaltySegmentsClient() {
   };
 
   const patchAction = async (id: string, status: "dismissed" | "acted") => {
+    setDismissingId(id);
+    const previous = actions;
+    setActions((prev) => prev.filter((a) => a.id !== id));
     try {
-      const res = await fetch(`/api/settings/loyalty/segments/actions/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const res = await fetch(
+        `/api/settings/loyalty/segments/actions/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
       if (!res.ok) {
         throw new Error(
           await readErrorMessage(res, t("loyalty.errUpdateSegmentAction")),
         );
       }
-      setActions((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
+      setActions(previous);
       setError(
         err instanceof Error ? err.message : t("loyalty.errUpdateSegmentAction"),
       );
+    } finally {
+      setDismissingId(null);
     }
   };
 
-  const primary = segments.filter((s) => !s.isOverlay);
-  const overlays = segments.filter((s) => s.isOverlay);
+  const selectSegment = (key: string) => {
+    setSelectedKey(key);
+  };
+
+  const onListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!primary.length) return;
+    const keys = [...primary, ...overlays].map((s) => s.key);
+    const idx = selectedKey ? keys.indexOf(selectedKey) : -1;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = keys[Math.min(keys.length - 1, Math.max(0, idx + 1))];
+      if (next) selectSegment(next);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const next = keys[Math.max(0, idx - 1)];
+      if (next) selectSegment(next);
+    }
+  };
+
+  const neverRun = !loading && !lastUpdated && primary.every((s) => s.memberCount === 0);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-foreground/60">
-          {lastUpdated ? (
-            <span>
-              {t("loyalty.segmentsLastUpdated")}:{" "}
-              {new Intl.DateTimeFormat(locale, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }).format(new Date(lastUpdated))}
-            </span>
-          ) : (
-            <span>{t("loyalty.segmentsNeverRun")}</span>
-          )}
-          {runDate ? (
-            <span className="ml-2 text-foreground/40">({runDate})</span>
-          ) : null}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm text-foreground/55">
+            {formatRelativeUpdated(
+              lastUpdated,
+              locale,
+              t("loyalty.segmentsNeverRun"),
+            )}
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => void load()}
+            onClick={() => void load({ quiet: true })}
             disabled={loading || running}
-            className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm hover:bg-foreground/5 disabled:opacity-50"
+            className="rounded-xl border border-foreground/12 px-3 py-2 text-sm text-foreground/75 transition hover:bg-foreground/5 disabled:opacity-50"
           >
             {t("loyalty.segmentsRefresh")}
           </button>
@@ -219,7 +330,7 @@ export function LoyaltySegmentsClient() {
             type="button"
             onClick={() => void runNow()}
             disabled={loading || running}
-            className="rounded-lg bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50"
+            className="rounded-xl bg-foreground px-3.5 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:opacity-50"
           >
             {running ? t("loyalty.segmentsRunning") : t("loyalty.segmentsRunNow")}
           </button>
@@ -227,223 +338,352 @@ export function LoyaltySegmentsClient() {
       </div>
 
       {error ? (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+        >
           {error}
         </p>
       ) : null}
 
       {loading ? (
-        <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-14 animate-pulse rounded-xl bg-foreground/[0.04]"
+              />
+            ))}
+          </div>
+          <div className="h-72 animate-pulse rounded-2xl bg-foreground/[0.04]" />
+        </div>
+      ) : neverRun ? (
+        <div className="rounded-2xl border border-dashed border-foreground/15 bg-foreground/[0.02] px-6 py-12 text-center">
+          <p className="text-base font-medium">{t("loyalty.segmentsEmptyTitle")}</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-foreground/60">
+            {t("loyalty.segmentsEmptyHint")}
+          </p>
+          <button
+            type="button"
+            onClick={() => void runNow()}
+            disabled={running}
+            className="mt-6 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background disabled:opacity-50"
+          >
+            {running ? t("loyalty.segmentsRunning") : t("loyalty.segmentsRunNow")}
+          </button>
+        </div>
       ) : (
         <>
-          <section>
-            <h2 className="text-sm font-medium uppercase tracking-wide text-foreground/50">
-              {t("loyalty.segmentsTodayActions")}
-            </h2>
-            {actions.length === 0 ? (
-              <p className="mt-3 text-sm text-foreground/60">
-                {t("loyalty.segmentsNoActions")}
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-3">
-                {actions.map((action) => (
-                  <li
-                    key={action.id}
-                    className="rounded-xl border border-foreground/10 bg-background/80 p-4"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium">{action.title}</p>
-                        <p className="mt-1 text-sm text-foreground/65">{action.body}</p>
-                        {action.segmentKey ? (
-                          <p className="mt-2 text-xs uppercase tracking-wide text-foreground/40">
-                            {segmentLabel(t, action.segmentKey, action.segmentKey)}
+          {actions.length > 0 ? (
+            <section aria-labelledby="segments-focus-heading" className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2
+                  id="segments-focus-heading"
+                  className="text-sm font-medium text-foreground/70"
+                >
+                  {t("loyalty.segmentsTodayActions")}
+                </h2>
+                <span className="text-xs text-foreground/40">
+                  {t("loyalty.segmentsActionCount", {
+                    count: String(actions.length),
+                  })}
+                </span>
+              </div>
+              <ul className="space-y-2">
+                {actions.map((action) => {
+                  const primaryCta =
+                    action.ctaType === "create_promotion" ||
+                    action.ctaType === "birthday_campaign"
+                      ? "promo"
+                      : "members";
+                  return (
+                    <li
+                      key={action.id}
+                      className={`rounded-2xl border border-foreground/10 bg-background/70 p-4 transition ${
+                        dismissingId === action.id ? "opacity-40" : ""
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium leading-snug">{action.title}</p>
+                            {action.segmentKey ? (
+                              <button
+                                type="button"
+                                onClick={() => selectSegment(action.segmentKey!)}
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${toneForSegment(action.segmentKey)}`}
+                              >
+                                {segmentLabel(t, action.segmentKey, action.segmentKey)}
+                              </button>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm leading-relaxed text-foreground/65">
+                            {action.body}
                           </p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {action.ctaType === "create_promotion" ||
-                        action.ctaType === "birthday_campaign" ? (
-                          <Link
-                            href={promotionHref(action)}
-                            onClick={() => void patchAction(action.id, "acted")}
-                            className="rounded-lg bg-foreground px-3 py-1.5 text-sm text-background"
-                          >
-                            {t("loyalty.segmentsCtaCreatePromo")}
-                          </Link>
-                        ) : null}
-                        {(action.ctaType === "view_members" ||
-                          action.segmentKey) && (
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          {primaryCta === "promo" ? (
+                            <Link
+                              href={promotionHref(action)}
+                              onClick={() => void patchAction(action.id, "acted")}
+                              className="rounded-xl bg-foreground px-3 py-2 text-sm font-medium text-background"
+                            >
+                              {t("loyalty.segmentsCtaCreatePromo")}
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (action.segmentKey) {
+                                  selectSegment(action.segmentKey);
+                                }
+                                void patchAction(action.id, "acted");
+                              }}
+                              className="rounded-xl bg-foreground px-3 py-2 text-sm font-medium text-background"
+                            >
+                              {t("loyalty.segmentsCtaViewMembers")}
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() => {
-                              if (action.segmentKey) void openSegment(action.segmentKey);
-                              void patchAction(action.id, "acted");
-                            }}
-                            className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm hover:bg-foreground/5"
+                            onClick={() => void patchAction(action.id, "dismissed")}
+                            className="rounded-xl px-3 py-2 text-sm text-foreground/50 transition hover:bg-foreground/5 hover:text-foreground/80"
                           >
-                            {t("loyalty.segmentsCtaViewMembers")}
+                            {t("loyalty.segmentsDismiss")}
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => void patchAction(action.id, "dismissed")}
-                          className="rounded-lg px-3 py-1.5 text-sm text-foreground/50 hover:bg-foreground/5"
-                        >
-                          {t("loyalty.segmentsDismiss")}
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
-            )}
-          </section>
+            </section>
+          ) : null}
 
-          <section>
-            <h2 className="text-sm font-medium uppercase tracking-wide text-foreground/50">
-              {t("loyalty.segmentsPrimary")}
-            </h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {primary.map((seg) => (
-                <button
-                  key={seg.key}
-                  type="button"
-                  onClick={() => void openSegment(seg.key)}
-                  className="rounded-xl border border-foreground/10 bg-background/80 p-4 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.03]"
+          <div
+            className="grid gap-4 lg:grid-cols-[minmax(16rem,0.9fr)_minmax(0,1.2fr)] lg:items-start"
+            onKeyDown={onListKeyDown}
+          >
+            <section
+              aria-labelledby="segments-audience-heading"
+              className="rounded-2xl border border-foreground/10 bg-background/50 p-2 ring-1 ring-foreground/5"
+            >
+              <div className="flex items-center justify-between px-3 pb-2 pt-2">
+                <h2
+                  id="segments-audience-heading"
+                  className="text-sm font-medium text-foreground/70"
                 >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <h3 className="font-medium">
-                      {segmentLabel(t, seg.key, seg.labelEn)}
-                    </h3>
-                    <span className="text-lg font-semibold tabular-nums">
-                      {seg.memberCount}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-foreground/55">
-                    {segmentDescription(t, seg.key, seg.descriptionEn)}
+                  {t("loyalty.segmentsPrimary")}
+                </h2>
+                <span className="text-xs tabular-nums text-foreground/40">
+                  {t("loyalty.membersCount", { total: String(totalMembers) })}
+                </span>
+              </div>
+
+              <div className="space-y-0.5" role="listbox" aria-label={t("loyalty.segmentsPrimary")}>
+                {primary.map((seg) => {
+                  const active = seg.key === selectedKey;
+                  const share =
+                    totalMembers > 0 ? (seg.memberCount / totalMembers) * 100 : 0;
+                  return (
+                    <button
+                      key={seg.key}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => selectSegment(seg.key)}
+                      className={`group w-full rounded-xl px-3 py-2.5 text-left transition ${
+                        active
+                          ? "bg-foreground text-background"
+                          : "hover:bg-foreground/[0.04]"
+                      }`}
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="truncate text-sm font-medium">
+                          {segmentLabel(t, seg.key, seg.labelEn)}
+                        </span>
+                        <span
+                          className={`tabular-nums text-sm ${
+                            active ? "text-background/80" : "text-foreground/55"
+                          }`}
+                        >
+                          {seg.memberCount}
+                        </span>
+                      </div>
+                      <div
+                        className={`mt-2 h-1 overflow-hidden rounded-full ${
+                          active ? "bg-background/20" : "bg-foreground/10"
+                        }`}
+                      >
+                        <div
+                          className={`h-full rounded-full transition-[width] duration-500 ${
+                            active ? "bg-background/80" : "bg-foreground/35"
+                          }`}
+                          style={{ width: `${Math.max(share, seg.memberCount ? 4 : 0)}%` }}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {overlays.length > 0 ? (
+                <div className="mt-3 border-t border-foreground/8 px-2 pb-2 pt-3">
+                  <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wide text-foreground/40">
+                    {t("loyalty.segmentsOverlays")}
                   </p>
-                  <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-foreground/60">
+                  <div className="flex flex-wrap gap-1.5">
+                    {overlays.map((seg) => {
+                      const active = seg.key === selectedKey;
+                      return (
+                        <button
+                          key={seg.key}
+                          type="button"
+                          onClick={() => selectSegment(seg.key)}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                            active
+                              ? "bg-foreground text-background"
+                              : `${toneForSegment(seg.key)} hover:opacity-90`
+                          }`}
+                        >
+                          <span>{segmentLabel(t, seg.key, seg.labelEn)}</span>
+                          <span className="tabular-nums opacity-70">{seg.memberCount}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            <section
+              aria-live="polite"
+              className="min-h-[22rem] rounded-2xl border border-foreground/10 bg-background/60 p-4 ring-1 ring-foreground/5 sm:p-5"
+            >
+              {selected ? (
+                <div className="flex h-full flex-col">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${toneForSegment(selected.key)}`}
+                      >
+                        {selected.isOverlay
+                          ? t("loyalty.segmentsOverlays")
+                          : t("loyalty.segmentsPrimary")}
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold tracking-tight">
+                        {segmentLabel(t, selected.key, selected.labelEn)}
+                      </h3>
+                      <p className="mt-1 max-w-xl text-sm leading-relaxed text-foreground/60">
+                        {segmentDescription(
+                          t,
+                          selected.key,
+                          selected.descriptionEn,
+                        )}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/loyalty/promotions/points/new?segment=${encodeURIComponent(selected.key)}`}
+                      className="rounded-xl border border-foreground/12 px-3 py-2 text-sm transition hover:bg-foreground/5"
+                    >
+                      {t("loyalty.segmentsCtaCreatePromo")}
+                    </Link>
+                  </div>
+
+                  <dl className="mt-5 grid grid-cols-3 gap-3 border-y border-foreground/8 py-4">
                     <div>
-                      <dt>{t("loyalty.segmentsAvgSpend")}</dt>
-                      <dd className="font-medium text-foreground/80">
-                        {formatMoney(seg.avgSpendMinor, "KZT", locale)}
+                      <dt className="text-[11px] uppercase tracking-wide text-foreground/45">
+                        {t("loyalty.segmentsAvgSpend")}
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium tabular-nums">
+                        {formatMoney(selected.avgSpendMinor, "KZT", locale)}
                       </dd>
                     </div>
                     <div>
-                      <dt>{t("loyalty.segmentsAvgVisits")}</dt>
-                      <dd className="font-medium text-foreground/80">
-                        {seg.avgVisits}
+                      <dt className="text-[11px] uppercase tracking-wide text-foreground/45">
+                        {t("loyalty.segmentsAvgVisits")}
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium tabular-nums">
+                        {selected.avgVisits}
                       </dd>
                     </div>
-                    <div className="col-span-2">
-                      <dt>{t("loyalty.segmentsAvgDays")}</dt>
-                      <dd className="font-medium text-foreground/80">
-                        {seg.avgDaysSinceVisit == null
+                    <div>
+                      <dt className="text-[11px] uppercase tracking-wide text-foreground/45">
+                        {t("loyalty.segmentsAvgDays")}
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium tabular-nums">
+                        {selected.avgDaysSinceVisit == null
                           ? t("loyalty.neverVisited")
-                          : seg.avgDaysSinceVisit}
+                          : selected.avgDaysSinceVisit}
                       </dd>
                     </div>
                   </dl>
-                </button>
-              ))}
-            </div>
-          </section>
 
-          {overlays.length > 0 ? (
-            <section>
-              <h2 className="text-sm font-medium uppercase tracking-wide text-foreground/50">
-                {t("loyalty.segmentsOverlays")}
-              </h2>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {overlays.map((seg) => (
-                  <button
-                    key={seg.key}
-                    type="button"
-                    onClick={() => void openSegment(seg.key)}
-                    className="rounded-xl border border-dashed border-foreground/15 bg-background/50 p-4 text-left hover:border-foreground/30"
-                  >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-medium">
-                        {segmentLabel(t, seg.key, seg.labelEn)}
-                      </h3>
-                      <span className="text-lg font-semibold tabular-nums">
-                        {seg.memberCount}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-foreground/55">
-                      {segmentDescription(t, seg.key, seg.descriptionEn)}
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    <p className="text-sm text-foreground/60">
+                      {t("loyalty.membersCount", {
+                        total: String(membersTotal),
+                      })}
                     </p>
-                  </button>
-                ))}
-              </div>
+                    <Link
+                      href="/loyalty/members"
+                      className="text-sm text-foreground/55 underline-offset-2 hover:text-foreground hover:underline"
+                    >
+                      {t("loyalty.segmentsOpenMembers")}
+                    </Link>
+                  </div>
+
+                  <div className="mt-3 min-h-0 flex-1">
+                    {membersLoading ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="h-12 animate-pulse rounded-xl bg-foreground/[0.04]"
+                          />
+                        ))}
+                      </div>
+                    ) : members.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-foreground/50">
+                        {t("loyalty.segmentsEmptyMembers")}
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/8">
+                        {members.map((g) => (
+                          <li
+                            key={g.id}
+                            className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{g.name}</p>
+                              <p className="truncate text-foreground/50">
+                                {g.phoneE164}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right text-xs text-foreground/50">
+                              <p className="tabular-nums font-medium text-foreground/70">
+                                {g.balance}
+                              </p>
+                              <p className="tabular-nums">
+                                {formatMoney(g.lifetimeSpendMinor, "KZT", locale)}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="py-16 text-center text-sm text-foreground/50">
+                  {t("loyalty.segmentsPickHint")}
+                </p>
+              )}
             </section>
-          ) : null}
+          </div>
         </>
       )}
-
-      {selectedKey ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 p-0 sm:p-4">
-          <div className="flex h-full w-full max-w-md flex-col border border-foreground/10 bg-background shadow-xl sm:rounded-2xl">
-            <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-3">
-              <div>
-                <h3 className="font-semibold">
-                  {segmentLabel(
-                    t,
-                    selectedKey,
-                    segments.find((s) => s.key === selectedKey)?.labelEn ??
-                      selectedKey,
-                  )}
-                </h3>
-                <p className="text-xs text-foreground/50">
-                  {t("loyalty.membersCount", { total: String(membersTotal) })}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedKey(null)}
-                className="rounded-lg px-2 py-1 text-sm hover:bg-foreground/5"
-              >
-                {t("loyalty.segmentsClose")}
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {membersLoading ? (
-                <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
-              ) : members.length === 0 ? (
-                <p className="text-sm text-foreground/60">
-                  {t("loyalty.segmentsEmptyMembers")}
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {members.map((g) => (
-                    <li
-                      key={g.id}
-                      className="rounded-lg border border-foreground/10 px-3 py-2 text-sm"
-                    >
-                      <p className="font-medium">{g.name}</p>
-                      <p className="text-foreground/55">{g.phoneE164}</p>
-                      <p className="mt-1 text-xs text-foreground/45">
-                        {t("loyalty.balance")}: {g.balance} ·{" "}
-                        {t("loyalty.ordersValue")}:{" "}
-                        {formatMoney(g.lifetimeSpendMinor, "KZT", locale)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="border-t border-foreground/10 p-3">
-              <Link
-                href="/loyalty/members"
-                className="block text-center text-sm text-foreground/70 underline-offset-2 hover:underline"
-              >
-                {t("loyalty.segmentsOpenMembers")}
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
