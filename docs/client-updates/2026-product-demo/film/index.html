@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Menu — полный демо-ролик</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #12100e;
+        color: #f7f0e8;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse 65% 50% at 12% 8%, rgba(232, 163, 92, 0.18), transparent 55%),
+          radial-gradient(ellipse 55% 45% at 88% 92%, rgba(80, 45, 28, 0.4), transparent 50%),
+          linear-gradient(155deg, #221b16 0%, #100e0c 50%, #1a1512 100%);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        padding: 72px 96px;
+        gap: 64px;
+      }
+      .copy {
+        flex: 1;
+        min-width: 0;
+        max-width: 760px;
+      }
+      .eyebrow {
+        margin: 0 0 20px;
+        font-family: system-ui, sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #e8a35c;
+      }
+      h1,
+      h2 {
+        margin: 0 0 20px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+      }
+      h1 {
+        font-size: 84px;
+        max-width: 12ch;
+      }
+      h2 {
+        font-size: 64px;
+        max-width: 14ch;
+      }
+      .sub {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        font-size: 30px;
+        font-weight: 550;
+        line-height: 1.4;
+        color: rgba(247, 240, 232, 0.72);
+        max-width: 22ch;
+      }
+      .device-wrap {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Phone bezel */
+      .phone {
+        width: 340px;
+        height: 700px;
+        border-radius: 44px;
+        background: #0a0908;
+        border: 3px solid #3a322c;
+        box-shadow:
+          0 40px 80px rgba(0, 0, 0, 0.45),
+          inset 0 0 0 2px #1c1714;
+        padding: 12px;
+        position: relative;
+      }
+      .phone-notch {
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        margin-left: -48px;
+        width: 96px;
+        height: 22px;
+        border-radius: 14px;
+        background: #0a0908;
+        z-index: 2;
+      }
+      .phone-screen {
+        width: 100%;
+        height: 100%;
+        border-radius: 34px;
+        overflow: hidden;
+        background: #14110f;
+        position: relative;
+      }
+      .phone-screen img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      /* Tablet bezel */
+      .tablet {
+        width: 820px;
+        height: 560px;
+        border-radius: 28px;
+        background: #0a0908;
+        border: 3px solid #3a322c;
+        box-shadow: 0 36px 70px rgba(0, 0, 0, 0.42);
+        padding: 16px;
+      }
+      .tablet-screen {
+        width: 100%;
+        height: 100%;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #161310;
+        position: relative;
+      }
+
+      /* Emulated UIs */
+      .emu {
+        position: absolute;
+        inset: 0;
+        padding: 28px 32px;
+        font-family: system-ui, sans-serif;
+        color: #f7f0e8;
+      }
+      .emu-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+        font-size: 18px;
+        font-weight: 650;
+        color: rgba(247, 240, 232, 0.7);
+      }
+      .emu-title {
+        margin: 0 0 18px;
+        font-size: 32px;
+        font-weight: 750;
+      }
+      .emu-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        height: calc(100% - 90px);
+      }
+      .emu-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(247, 240, 232, 0.12);
+        border-radius: 16px;
+        padding: 18px;
+      }
+      .emu-card h4 {
+        margin: 0 0 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #e8a35c;
+      }
+      .emu-card p {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.4;
+        color: rgba(247, 240, 232, 0.78);
+      }
+      .emu-preview {
+        border-radius: 14px;
+        background:
+          linear-gradient(160deg, rgba(232, 163, 92, 0.25), transparent 55%),
+          #2a211c;
+        border: 1px solid rgba(232, 163, 92, 0.3);
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        font-weight: 650;
+        color: rgba(247, 240, 232, 0.85);
+        min-height: 120px;
+      }
+      .emu-preview.tall {
+        min-height: 220px;
+        aspect-ratio: 9 / 16;
+        width: 120px;
+        margin: 0 auto;
+      }
+      .emu-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .chip {
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(232, 163, 92, 0.16);
+        border: 1px solid rgba(232, 163, 92, 0.35);
+        font-size: 14px;
+        font-weight: 650;
+      }
+      .chip.muted {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(247, 240, 232, 0.14);
+      }
+      .status-ok {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 12px;
+        background: rgba(80, 180, 110, 0.15);
+        border: 1px solid rgba(80, 180, 110, 0.4);
+        color: #9ee0b0;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #5dca7a;
+      }
+      .delivery-hero {
+        height: 160px;
+        border-radius: 18px;
+        margin-bottom: 16px;
+        background:
+          linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.55)),
+          linear-gradient(135deg, #3a2a20, #1a1410);
+        display: flex;
+        align-items: flex-end;
+        padding: 16px;
+        font-size: 22px;
+        font-weight: 750;
+      }
+      .delivery-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(247, 240, 232, 0.12);
+        font-size: 15px;
+        margin-bottom: 12px;
+      }
+      .cta-btn {
+        margin-top: 14px;
+        padding: 14px;
+        text-align: center;
+        border-radius: 14px;
+        background: #e8a35c;
+        color: #1a120c;
+        font-weight: 800;
+        font-size: 17px;
+      }
+      .cart-fly {
+        position: absolute;
+        left: 72px;
+        top: 420px;
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #e8a35c, #b56a2a);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        z-index: 5;
+        opacity: 0;
+      }
+      .center-only {
+        justify-content: center;
+        text-align: left;
+      }
+      .center-only .copy {
+        max-width: 1100px;
+      }
+      .center-only h1 {
+        font-size: 92px;
+        max-width: 16ch;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="105"
+    >
+      <!-- 1 Hook -->
+      <section id="beat-hook" class="clip" data-start="0" data-duration="8.2" data-track-index="1">
+        <div class="stage center-only">
+          <div class="copy">
+            <p class="eyebrow" id="b1-eye">Продукт</p>
+            <h1 id="b1-title">Цифровое меню для зала, доставки и акций</h1>
+            <p class="sub" id="b1-sub">Гости · панель · лояльность · iiko</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 Guest home / Stories -->
+      <section id="beat-home" class="clip" data-start="7.8" data-duration="12.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b2-eye">Гость</p>
+            <h2 id="b2-title">Акции Stories на главной</h2>
+            <p class="sub" id="b2-sub">Заметны сразу — до каталога</p>
+          </div>
+          <div class="device-wrap" id="b2-device">
+            <div class="phone">
+              <div class="phone-notch"></div>
+              <div class="phone-screen">
+                <img src="assets/screens/guest-home.png" alt="" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 Videos -->
+      <section id="beat-videos" class="clip" data-start="19.8" data-duration="10.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b3-eye">Видео</p>
+            <h2 id="b3-title">Видео блюд как в ленте</h2>
+            <p class="sub" id="b3-sub">Вертикальный просмотр и заказ</p>
+          </div>
+          <div class="device-wrap" id="b3-device">
+            <div class="phone">
+              <div class="phone-notch"></div>
+              <div class="phone-screen">
+                <img src="assets/screens/guest-videos.png" alt="" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 Cart -->
+      <section id="beat-cart" class="clip" data-start="29.8" data-duration="10.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b4-eye">Корзина</p>
+            <h2 id="b4-title">В корзину — одним жестом</h2>
+            <p class="sub" id="b4-sub">Плавная анимация добавления</p>
+          </div>
+          <div class="device-wrap" id="b4-device">
+            <div class="phone">
+              <div class="phone-notch"></div>
+              <div class="phone-screen">
+                <img src="assets/screens/guest-home-cart.png" alt="" />
+                <div class="cart-fly" id="b4-fly"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 Platform editor -->
+      <section id="beat-platform" class="clip" data-start="39.8" data-duration="12.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b5-eye">Платформа</p>
+            <h2 id="b5-title">Конструктор акций и превью</h2>
+            <p class="sub" id="b5-sub">16:9 для главной и телефон</p>
+          </div>
+          <div class="device-wrap" id="b5-device">
+            <div class="tablet">
+              <div class="tablet-screen">
+                <div class="emu">
+                  <div class="emu-top"><span>Loyalty · Stories</span><span>Черновик</span></div>
+                  <p class="emu-title">Новая акция</p>
+                  <div class="emu-grid">
+                    <div class="emu-card">
+                      <h4>Контент</h4>
+                      <p>Медиа: фото / видео</p>
+                      <p>Тексты: RU · EN · UZ</p>
+                      <p>Товары комбо · цена</p>
+                      <div class="emu-row">
+                        <span class="chip">5760 ₸</span>
+                        <span class="chip muted">Комбо Плов</span>
+                      </div>
+                    </div>
+                    <div class="emu-card">
+                      <h4>Превью</h4>
+                      <div class="emu-preview">Home 16:9</div>
+                      <div style="height: 12px"></div>
+                      <div class="emu-preview tall">Phone</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 Schedule -->
+      <section id="beat-schedule" class="clip" data-start="51.8" data-duration="10.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b6-eye">Расписание</p>
+            <h2 id="b6-title">Часы, дни и тип точки</h2>
+            <p class="sub" id="b6-sub">Зал или доставка · свой часовой пояс</p>
+          </div>
+          <div class="device-wrap" id="b6-device">
+            <div class="tablet">
+              <div class="tablet-screen">
+                <div class="emu">
+                  <div class="emu-top"><span>Расписание акции</span><span>Asia/Tashkent</span></div>
+                  <p class="emu-title">Когда показывать</p>
+                  <div class="emu-grid">
+                    <div class="emu-card">
+                      <h4>Даты и часы</h4>
+                      <p>01.06 — 30.06</p>
+                      <p>09:00 — 11:00</p>
+                      <div class="emu-row">
+                        <span class="chip">Пн</span>
+                        <span class="chip">Вт</span>
+                        <span class="chip">Ср</span>
+                        <span class="chip">Чт</span>
+                        <span class="chip">Пт</span>
+                        <span class="chip muted">Сб</span>
+                        <span class="chip muted">Вс</span>
+                      </div>
+                    </div>
+                    <div class="emu-card">
+                      <h4>Точки</h4>
+                      <p>✓ Woodly · зал</p>
+                      <p>✓ Woodly · доставка</p>
+                      <div class="emu-row" style="margin-top: 20px">
+                        <span class="chip">Зал</span>
+                        <span class="chip muted">Доставка</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 Loyalty -->
+      <section id="beat-loyalty" class="clip" data-start="61.8" data-duration="10.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b7-eye">Лояльность</p>
+            <h2 id="b7-title">Гости и бонусные акции</h2>
+            <p class="sub" id="b7-sub">Участники · баллы · промо</p>
+          </div>
+          <div class="device-wrap" id="b7-device">
+            <div class="tablet">
+              <div class="tablet-screen">
+                <div class="emu">
+                  <div class="emu-top"><span>Loyalty</span><span>1 284 гостя</span></div>
+                  <p class="emu-title">Участники</p>
+                  <div class="emu-grid">
+                    <div class="emu-card">
+                      <h4>Сводка</h4>
+                      <p>Активных за 7 дней: 312</p>
+                      <p>Средний чек с баллами: +18%</p>
+                      <div class="emu-row">
+                        <span class="chip">Баллы ×2</span>
+                        <span class="chip muted">Welcome</span>
+                      </div>
+                    </div>
+                    <div class="emu-card">
+                      <h4>Промо</h4>
+                      <p>Завтрак · баллы в окне 9–11</p>
+                      <p>Комбо · Stories на главной</p>
+                      <div class="status-ok" style="margin-top: 18px">
+                        <span class="status-dot"></span> Опубликовано
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 Delivery -->
+      <section id="beat-delivery" class="clip" data-start="71.8" data-duration="12.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b8-eye">Доставка</p>
+            <h2 id="b8-title">Меню, адрес и заказ</h2>
+            <p class="sub" id="b8-sub">Отдельный витринный опыт</p>
+          </div>
+          <div class="device-wrap" id="b8-device">
+            <div class="phone">
+              <div class="phone-notch"></div>
+              <div class="phone-screen">
+                <div class="emu" style="padding: 56px 18px 18px">
+                  <div class="delivery-hero">Woodly Delivery</div>
+                  <div class="delivery-bar">📍 Улица Абая, 12</div>
+                  <div class="delivery-bar">⏱ 35–45 мин · от 5000 ₸</div>
+                  <div class="emu-card" style="padding: 14px">
+                    <p style="margin: 0; font-weight: 700">Комбо Плов</p>
+                    <p style="margin: 6px 0 0; opacity: 0.75">5760 ₸</p>
+                  </div>
+                  <div class="cta-btn">Оформить заказ</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 iiko -->
+      <section id="beat-iiko" class="clip" data-start="83.8" data-duration="10.4" data-track-index="1">
+        <div class="stage">
+          <div class="copy">
+            <p class="eyebrow" id="b9-eye">iiko</p>
+            <h2 id="b9-title">Меню и стоп-лист из iiko</h2>
+            <p class="sub" id="b9-sub">Синхронизация без ручной рутины</p>
+          </div>
+          <div class="device-wrap" id="b9-device">
+            <div class="tablet">
+              <div class="tablet-screen">
+                <div class="emu">
+                  <div class="emu-top"><span>Настройки · POS</span><span>iiko</span></div>
+                  <p class="emu-title">Синхронизация</p>
+                  <div class="emu-grid">
+                    <div class="emu-card">
+                      <h4>Статус</h4>
+                      <div class="status-ok"><span class="status-dot"></span> Подключено</div>
+                      <p style="margin-top: 16px">Последний импорт: сегодня, 10:14</p>
+                      <p>Каталог · цены · стоп-лист</p>
+                    </div>
+                    <div class="emu-card">
+                      <h4>Merge меню</h4>
+                      <p>✓ Новые позиции из iiko</p>
+                      <p>✓ Цены обновлены</p>
+                      <p>✓ Стоп-лист на точке</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 CTA -->
+      <section id="beat-cta" class="clip" data-start="93.8" data-duration="11.2" data-track-index="1">
+        <div class="stage center-only">
+          <div class="copy">
+            <p class="eyebrow" id="b10-eye">Итог</p>
+            <h1 id="b10-title">Один продукт — зал, доставка, акции</h1>
+            <p class="sub" id="b10-sub">Готовы показать на ваших точках</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      function enter(ids, t) {
+        ids.forEach((id, i) => {
+          tl.fromTo(
+            id,
+            { y: 28, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" },
+            t + i * 0.08,
+          );
+        });
+      }
+      function exit(ids, t) {
+        tl.to(ids, { y: -16, opacity: 0, duration: 0.35, ease: "power2.in" }, t);
+      }
+
+      // Beat 1
+      enter(["#b1-eye", "#b1-title", "#b1-sub"], 0.2);
+      exit(["#b1-eye", "#b1-title", "#b1-sub"], 7.3);
+
+      // Beat 2
+      enter(["#b2-eye", "#b2-title", "#b2-sub", "#b2-device"], 8.0);
+      exit(["#b2-eye", "#b2-title", "#b2-sub", "#b2-device"], 19.3);
+
+      // Beat 3
+      enter(["#b3-eye", "#b3-title", "#b3-sub", "#b3-device"], 20.0);
+      exit(["#b3-eye", "#b3-title", "#b3-sub", "#b3-device"], 29.3);
+
+      // Beat 4 + cart fly
+      enter(["#b4-eye", "#b4-title", "#b4-sub", "#b4-device"], 30.0);
+      tl.fromTo(
+        "#b4-fly",
+        { x: 0, y: 0, opacity: 0, scale: 1 },
+        { opacity: 1, duration: 0.15, ease: "power1.out" },
+        32.2,
+      );
+      tl.to(
+        "#b4-fly",
+        { x: 178, y: 200, scale: 0.35, opacity: 0.2, duration: 0.85, ease: "power2.inOut" },
+        32.35,
+      );
+      exit(["#b4-eye", "#b4-title", "#b4-sub", "#b4-device"], 39.3);
+
+      // Beat 5
+      enter(["#b5-eye", "#b5-title", "#b5-sub", "#b5-device"], 40.0);
+      exit(["#b5-eye", "#b5-title", "#b5-sub", "#b5-device"], 51.3);
+
+      // Beat 6
+      enter(["#b6-eye", "#b6-title", "#b6-sub", "#b6-device"], 52.0);
+      exit(["#b6-eye", "#b6-title", "#b6-sub", "#b6-device"], 61.3);
+
+      // Beat 7
+      enter(["#b7-eye", "#b7-title", "#b7-sub", "#b7-device"], 62.0);
+      exit(["#b7-eye", "#b7-title", "#b7-sub", "#b7-device"], 71.3);
+
+      // Beat 8
+      enter(["#b8-eye", "#b8-title", "#b8-sub", "#b8-device"], 72.0);
+      exit(["#b8-eye", "#b8-title", "#b8-sub", "#b8-device"], 83.3);
+
+      // Beat 9
+      enter(["#b9-eye", "#b9-title", "#b9-sub", "#b9-device"], 84.0);
+      exit(["#b9-eye", "#b9-title", "#b9-sub", "#b9-device"], 93.3);
+
+      // Beat 10
+      enter(["#b10-eye", "#b10-title", "#b10-sub"], 94.0);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
