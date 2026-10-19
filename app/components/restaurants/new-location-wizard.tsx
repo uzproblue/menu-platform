@@ -11,6 +11,7 @@ import type {
 } from "@/lib/auth-api";
 import { useI18n } from "../i18n-provider";
 import { LocationWizardMenuPreview } from "./location-wizard-menu-preview";
+import { DEFAULT_LOCATION_TIMEZONE } from "@/lib/location-timezones";
 import { DEFAULT_LOCATION_TRANSLATION_SELECTION } from "@/lib/menu-translation-langs";
 import type { NewLocationWizardProps } from "./location-wizard/types";
 import { WizardStepBasics } from "./location-wizard/wizard-step-basics";
@@ -28,6 +29,7 @@ export function NewLocationWizard({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState("UZS");
+  const [timezone, setTimezone] = useState(DEFAULT_LOCATION_TIMEZONE);
   const [translationLangs, setTranslationLangs] = useState<string[]>([
     ...DEFAULT_LOCATION_TRANSLATION_SELECTION,
   ]);
@@ -141,6 +143,7 @@ export function NewLocationWizard({
         if (loc.customDomain) setCustomDomain(loc.customDomain);
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
+        setTimezone(loc.timezone?.trim() || DEFAULT_LOCATION_TIMEZONE);
         setTranslationLangs(
           Array.isArray(loc.translationLangs) && loc.translationLangs.length > 0
             ? loc.translationLangs
@@ -224,6 +227,7 @@ export function NewLocationWizard({
               name: name.trim(),
               type: locationType,
               currency: currency.trim().toUpperCase(),
+              timezone: timezone.trim() || DEFAULT_LOCATION_TIMEZONE,
               address: trimmedAddress.length ? trimmedAddress : null,
               logoUrl: logoForPatch || null,
               coverImageUrl: coverForPatch || null,
@@ -253,6 +257,7 @@ export function NewLocationWizard({
         if (loc.customDomain !== undefined) setCustomDomain(loc.customDomain ?? "");
         setAddress(loc.address ?? "");
         setCurrency(loc.currency);
+        setTimezone(loc.timezone?.trim() || DEFAULT_LOCATION_TIMEZONE);
         setTranslationLangs(
           Array.isArray(loc.translationLangs) && loc.translationLangs.length > 0
             ? loc.translationLangs
@@ -312,6 +317,7 @@ export function NewLocationWizard({
         name: name.trim(),
         type: locationType,
         currency: currency.trim().toUpperCase(),
+        timezone: timezone.trim() || DEFAULT_LOCATION_TIMEZONE,
         translationLangs,
       };
       if (logoUrl) bodyWithLangs.logoUrl = logoUrl;
@@ -390,6 +396,8 @@ export function NewLocationWizard({
             setAddress={setAddress}
             currency={currency}
             setCurrency={setCurrency}
+            timezone={timezone}
+            setTimezone={setTimezone}
             customDomain={customDomain}
             setCustomDomain={setCustomDomain}
             existingLocations={existingLocations}

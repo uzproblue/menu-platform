@@ -25,6 +25,8 @@ const targetFolderMap: Record<UploadTarget, string> = {
   "category-cover": "category-covers",
   "section-background": "section-backgrounds",
   "temp-video": "temp-videos",
+  "promotion-preview": "promotion-stories/previews",
+  "promotion-story-media": "promotion-stories/media",
 };
 
 const allowedMimeTypes = new Set([

@@ -18,6 +18,8 @@ export type RestaurantDisplayInfo = {
   address: string;
   /** ISO 4217 operating currency from the location record. */
   currency?: string;
+  /** IANA timezone from the location record. */
+  timezone?: string;
   /** Whether the location is active in admin / list views. */
   isActive?: boolean;
   type?: "dine_in" | "delivery";

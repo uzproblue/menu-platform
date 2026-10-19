@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Обновления меню для гостей и акции</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #1a1410;
+      --bg1: #2a211c;
+      --ink: #f7f0e8;
+      --muted: rgba(247, 240, 232, 0.72);
+      --accent: #e8a35c;
+      --accent-soft: rgba(232, 163, 92, 0.18);
+      --line: rgba(247, 240, 232, 0.12);
+      --card: rgba(255, 255, 255, 0.04);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg0);
+      color: var(--ink);
+      font-family: Manrope, system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(232, 163, 92, 0.16), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 90% 100%, rgba(120, 70, 40, 0.35), transparent 50%),
+        linear-gradient(165deg, #241c17 0%, #14100e 55%, #1c1612 100%);
+    }
+
+    .deck {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: clamp(2rem, 6vw, 4.5rem);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide.active { display: flex; }
+
+    .slide-inner {
+      width: min(960px, 100%);
+      animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin: 0 0 1rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 0.75rem;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      margin: 0 0 1.25rem;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(1.85rem, 4.2vw, 2.75rem);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 36rem;
+      color: var(--muted);
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    li {
+      position: relative;
+      padding: 0.95rem 1.1rem 0.95rem 2.6rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--ink);
+      font-size: clamp(1rem, 1.8vw, 1.2rem);
+      line-height: 1.45;
+      font-weight: 550;
+    }
+
+    li::before {
+      content: "";
+      position: absolute;
+      left: 1.05rem;
+      top: 1.35rem;
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .title-slide .slide-inner {
+      text-align: left;
+    }
+
+    .title-slide h1 {
+      max-width: 14ch;
+    }
+
+    .cta-box {
+      margin-top: 1.75rem;
+      padding: 1.25rem 1.4rem;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--accent-soft), transparent 70%);
+    }
+
+    .cta-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    .cta-box strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .chrome {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem clamp(1.25rem, 4vw, 2.5rem) 1.25rem;
+      background: linear-gradient(to top, rgba(20, 16, 14, 0.92), transparent);
+      pointer-events: none;
+    }
+
+    .chrome > * { pointer-events: auto; }
+
+    .progress {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      max-width: 50%;
+    }
+
+    .dot {
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 999px;
+      background: rgba(247, 240, 232, 0.25);
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .dot[aria-current="true"] {
+      width: 1.35rem;
+      background: var(--accent);
+    }
+
+    .nav {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .nav button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.55rem 1rem;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .nav button:hover {
+      border-color: rgba(232, 163, 92, 0.45);
+      background: var(--accent-soft);
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      min-width: 3.5rem;
+      text-align: right;
+    }
+
+    .hint {
+      position: fixed;
+      top: 1rem;
+      right: clamp(1rem, 3vw, 2rem);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 640px) {
+      .hint { display: none; }
+      .slide { padding-bottom: 5.5rem; }
+      li { padding-left: 2.3rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide-inner { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <p class="hint">← → · пробел · клик</p>
+  <div class="deck" id="deck">
+    <section class="slide title-slide active" data-slide="0">
+      <div class="slide-inner">
+        <p class="eyebrow">Обновление продукта</p>
+        <h1>Обновления цифрового меню</h1>
+        <p class="lead">Акции · удобство · контроль — что нового для гостей и для вашей команды</p>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="1">
+      <div class="slide-inner">
+        <p class="eyebrow">Контекст</p>
+        <h2>Зачем эти обновления</h2>
+        <ul>
+          <li>Спецпредложения часто теряются в длинном меню</li>
+          <li>Гостю нужен быстрый путь от «интересно» до «в корзину»</li>
+          <li>Акции должны жить по расписанию — без ручного включения каждый раз</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="2">
+      <div class="slide-inner">
+        <p class="eyebrow">Гость</p>
+        <h2>Акции в формате Stories</h2>
+        <ul>
+          <li>Полноэкранные фото и видео — как в привычных соцсетях</li>
+          <li>Бейдж, заголовок и короткое описание</li>
+          <li>Одна кнопка — добавить комбо или блюда в корзину</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="3">
+      <div class="slide-inner">
+        <p class="eyebrow">Главная</p>
+        <h2>Акция заметна сразу</h2>
+        <ul>
+          <li>На главной — яркая карточка и превью акций</li>
+          <li>Гость видит предложение до углубления в каталог</li>
+          <li>Один тап — открыть просмотр и оформить</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="4">
+      <div class="slide-inner">
+        <p class="eyebrow">Платформа</p>
+        <h2>Конструктор акций</h2>
+        <ul>
+          <li>Медиа, тексты на языках меню, товары и цена</li>
+          <li>Превью широкого формата для главной</li>
+          <li>Превью вертикального «телефона» — как у гостя</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="5">
+      <div class="slide-inner">
+        <p class="eyebrow">Расписание</p>
+        <h2>В нужные часы и дни</h2>
+        <ul>
+          <li>Даты кампании: с какого по какой день</li>
+          <li>Часы и дни недели — например, завтрак 9:00–11:00</li>
+          <li>Часовой пояс заведения; вне окна акция скрывается сама</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="6">
+      <div class="slide-inner">
+        <p class="eyebrow">Точки</p>
+        <h2>Зал и доставка без путаницы</h2>
+        <ul>
+          <li>В выборе локаций видно: зал или доставка</li>
+          <li>Разные предложения — на разные форматы точек</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="7">
+      <div class="slide-inner">
+        <p class="eyebrow">UX меню</p>
+        <h2>Удобнее в телефоне</h2>
+        <ul>
+          <li>Нижняя навигация: главная, меню, видео, корзина, профиль</li>
+          <li>Лента видео-блюд в вертикальном формате</li>
+          <li>Анимация: блюдо «улетает» в корзину при добавлении</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="8">
+      <div class="slide-inner">
+        <p class="eyebrow">Результат</p>
+        <h2>Что вы получаете</h2>
+        <ul>
+          <li>Больше внимания к акциям в нужное время</li>
+          <li>Меньше ручного включения и выключения</li>
+          <li>Современный опыт и контроль из одной панели</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide="9">
+      <div class="slide-inner">
+        <p class="eyebrow">Следующий шаг</p>
+        <h2>Готовы показать на ваших точках</h2>
+        <ul>
+          <li>Короткое демо на вашем меню</li>
+          <li>Настройка акций и расписания под ваш график</li>
+        </ul>
+        <div class="cta-box">
+          <p><strong>Вопросы — ответим сейчас.</strong><br />Следующий шаг: демо или пилот на 1–2 точках.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="chrome">
+    <div class="progress" id="dots" aria-label="Слайды"></div>
+    <div class="nav">
+      <button type="button" id="prev" aria-label="Назад">Назад</button>
+      <button type="button" id="next" aria-label="Вперёд">Вперёд</button>
+      <span class="counter" id="counter">1 / 10</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const dotsRoot = document.getElementById("dots");
+      const counter = document.getElementById("counter");
+      const prevBtn = document.getElementById("prev");
+      const nextBtn = document.getElementById("next");
+      let index = 0;
+
+      slides.forEach((_, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "dot";
+        b.setAttribute("aria-label", "Слайд " + (i + 1));
+        b.addEventListener("click", () => go(i));
+        dotsRoot.appendChild(b);
+      });
+
+      const dots = Array.from(dotsRoot.children);
+
+      function go(i) {
+        index = Math.max(0, Math.min(slides.length - 1, i));
+        slides.forEach((s, n) => s.classList.toggle("active", n === index));
+        dots.forEach((d, n) => d.setAttribute("aria-current", n === index ? "true" : "false"));
+        counter.textContent = index + 1 + " / " + slides.length;
+      }
+
+      prevBtn.addEventListener("click", () => go(index - 1));
+      nextBtn.addEventListener("click", () => go(index + 1));
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault();
+          go(index + 1);
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          go(index - 1);
+        } else if (e.key === "Home") {
+          go(0);
+        } else if (e.key === "End") {
+          go(slides.length - 1);
+        }
+      });
+
+      document.getElementById("deck").addEventListener("click", (e) => {
+        if (e.target.closest("button")) return;
+        const x = e.clientX / window.innerWidth;
+        if (x > 0.55) go(index + 1);
+        else if (x < 0.45) go(index - 1);
+      });
+
+      go(0);
+    })();
+  </script>
+</body>
+</html>

@@ -26,6 +26,7 @@ function locationToDisplayInfo(loc: {
   id: string;
   name: string;
   currency: string;
+  timezone?: string;
   address: string;
   logoUrl: string;
   isActive: boolean;
@@ -39,6 +40,7 @@ function locationToDisplayInfo(loc: {
     logoUrl: loc.logoUrl?.trim() ?? "",
     address: loc.address?.trim() ?? "",
     currency: loc.currency,
+    timezone: loc.timezone?.trim() || undefined,
     isActive: loc.isActive,
     type: loc.type,
     customDomain: loc.customDomain ?? null,

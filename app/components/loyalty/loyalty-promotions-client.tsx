@@ -67,7 +67,7 @@ export function LoyaltyPromotionsClient() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Link
-          href="/loyalty/promotions/new"
+          href="/loyalty/promotions/points/new"
           className="inline-flex rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background"
         >
           {t("loyalty.newPromotion")}
@@ -104,7 +104,7 @@ export function LoyaltyPromotionsClient() {
                   <td className="px-3 py-2">
                     <div className="flex gap-2">
                       <Link
-                        href={`/loyalty/promotions/${encodeURIComponent(p.id)}`}
+                        href={`/loyalty/promotions/points/${encodeURIComponent(p.id)}`}
                         className="text-sm underline"
                       >
                         {t("common.edit")}
