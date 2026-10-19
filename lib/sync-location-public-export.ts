@@ -493,6 +493,7 @@ export async function syncLocationPublicExportToR2(
         accessToken,
         locationId,
         restaurantId,
+        { forExport: true },
       ),
     ]);
 

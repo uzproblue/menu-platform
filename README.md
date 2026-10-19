@@ -14,21 +14,31 @@ Set **`NEXT_PUBLIC_R2_PUBLIC_BASE_URL`** (and **`R2_PUBLIC_BASE_URL`** on the se
 
 `data:` / `blob:` previews use per-component **`unoptimized`** (loader not used for those).
 
-## Menu item videos (Bunny Stream)
+## Menu item videos (R2 + VPS HLS)
 
-Admins upload showcase videos from **`/menu-item-videos`**. Upload flow:
+Admins upload showcase videos from **`/menu-item-videos`**. New uploads go to R2 and are transcoded on the VPS:
 
-1. Platform **`POST /api/settings/menu-videos/upload-session`** creates a Bunny Stream video and returns TUS presigned headers (API key stays server-side).
-2. Browser uploads the file with **`tus-js-client`** directly to `https://video.bunnycdn.com/tusupload`.
-3. Platform **`PATCH /api/settings/menu-items/{id}/video`** saves the Bunny **video GUID** on `MenuItem.videoId` in menu-server.
+1. Platform **`POST /api/settings/menu-videos/upload-session`** returns a presigned R2 PUT URL under `temp-videos/`.
+2. Browser uploads the MP4 directly to R2.
+3. Platform **`POST /api/settings/menu-videos/transcode`** submits a job to **`VPS_TRANSCODER_URL`**; the VPS writes HLS (`480p` / `720p` / `1080p`) + `poster.jpg` under `videos/{restaurantId}/{itemId}/{videoId}/`.
+4. Platform **`PATCH /api/settings/menu-items/{id}/video`** (or the `video-transcoded` webhook) saves the **HLS master object key** (e.g. `videos/…/master.m3u8`) on `MenuItem.videoId`.
+
+Guest playback resolves R2 keys to HLS and still supports legacy **Bunny Stream GUIDs** (iframe embed) until those rows are migrated.
 
 **menu-platform Worker / `.env`:**
 
 | Variable | Purpose |
 |----------|---------|
-| `BUNNY_STREAM_LIBRARY_ID` | Stream library id (server + embed preview on upload page) |
-| `BUNNY_STREAM_API_KEY` | Stream library API key (secret, server only) |
-| `NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID` | Optional; only needed if you preview without `BUNNY_STREAM_LIBRARY_ID` on the server. On Cloudflare Workers, **`BUNNY_STREAM_LIBRARY_ID` alone is enough** — preview reads it at request time, not from the build bundle. |
+| `VPS_TRANSCODER_URL` | VPS transcoder base URL |
+| `VPS_TRANSCODER_SECRET` | Bearer token for `/api/jobs` |
+| `VPS_WEBHOOK_SECRET` | HMAC secret for `/api/webhooks/video-transcoded` |
+| `BUNNY_STREAM_LIBRARY_ID` | Still needed to preview / play **legacy** Bunny GUIDs |
+| `BUNNY_STREAM_API_KEY` | Only for Bunny create/upload (legacy) and migration downloads |
+| `NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID` | Optional; preview can use server `BUNNY_STREAM_LIBRARY_ID` on Workers |
+
+### Migrating Bunny → R2
+
+Use menu-server script [`scripts/migrate-bunny-to-r2.ts`](../menu-server/scripts/migrate-bunny-to-r2.ts). It downloads the Bunny original, re-encodes through the same VPS pipeline, updates `videoId`, republishes location JSON, and **never deletes Bunny**. See the script header for env vars and the dry-run → pilot → batch runbook.
 
 Run menu-server migration **`0007_menu_item_video`** before saving videos locally.
 

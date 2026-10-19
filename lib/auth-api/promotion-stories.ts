@@ -91,9 +91,11 @@ export async function getPublishedPromotionStoriesForLocationWithAuthServer(
   accessToken: string,
   locationId: string,
   restaurantId?: string,
+  opts?: { forExport?: boolean },
 ) {
+  const qs = opts?.forExport ? "?forExport=1" : "";
   return authApiJson<PublishedPromotionStoriesResponse>({
-    path: `/api/locations/${encodeURIComponent(locationId)}/published-promotion-stories`,
+    path: `/api/locations/${encodeURIComponent(locationId)}/published-promotion-stories${qs}`,
     method: "GET",
     accessToken,
     restaurantId,
