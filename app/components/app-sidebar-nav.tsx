@@ -39,6 +39,11 @@ const topLinks: Array<{
     match: (p) => p.startsWith("/loyalty/members"),
   },
   {
+    href: "/loyalty/segments",
+    labelKey: "nav.loyaltySegments",
+    match: (p) => p.startsWith("/loyalty/segments"),
+  },
+  {
     href: "/loyalty/promotions",
     labelKey: "nav.loyaltyPromotions",
     match: (p) => p.startsWith("/loyalty/promotions"),

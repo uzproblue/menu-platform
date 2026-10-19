@@ -3,6 +3,7 @@ export type LoyaltyGuest = {
   restaurantId: string;
   phoneE164: string;
   name: string;
+  dateOfBirth?: string;
   balance: number;
   status: string;
   marketingConsent: boolean;
@@ -10,8 +11,89 @@ export type LoyaltyGuest = {
   doSyncPending: boolean;
   lastVisitedAt: string | null;
   lifetimeSpendMinor: number;
+  visitCount?: number;
+  visits90d?: number;
+  spend90d?: number;
   createdAt: string | null;
   updatedAt: string | null;
+};
+
+export type LoyaltySegmentKey =
+  | "champions"
+  | "loyal"
+  | "potential_loyalists"
+  | "new_members"
+  | "at_risk"
+  | "lapsed"
+  | "hibernating"
+  | "birthday_this_week"
+  | "high_balance";
+
+export type LoyaltySegmentSummary = {
+  key: LoyaltySegmentKey | string;
+  labelEn: string;
+  descriptionEn: string;
+  isOverlay: boolean;
+  sortOrder: number;
+  ruleVersion: string;
+  memberCount: number;
+  avgSpendMinor: number;
+  avgVisits: number;
+  avgDaysSinceVisit: number | null;
+};
+
+export type LoyaltySegmentJobRun = {
+  id: string;
+  status: string;
+  guestCount: number;
+  runDate: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+};
+
+export type SegmentsListResponse = {
+  segments: LoyaltySegmentSummary[];
+  runDate: string | null;
+  lastRun: LoyaltySegmentJobRun | null;
+};
+
+export type SegmentMembersResponse = {
+  segmentKey: string;
+  guests: LoyaltyGuest[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type LoyaltySegmentAction = {
+  id: string;
+  restaurantId: string;
+  runDate: string;
+  segmentKey: string | null;
+  type: string;
+  title: string;
+  body: string;
+  priority: number;
+  ctaType: "create_promotion" | "view_members" | "birthday_campaign" | string;
+  ctaPayload: Record<string, unknown>;
+  status: "open" | "dismissed" | "acted" | string;
+  source: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type SegmentActionsResponse = {
+  runDate: string;
+  actions: LoyaltySegmentAction[];
+};
+
+export type SegmentRunResponse = {
+  queued: boolean;
+  runDate?: string;
+  jobRunId?: string;
+  guestCount?: number;
+  actionCount?: number;
 };
 
 export type LoyaltyLedgerEntry = {
