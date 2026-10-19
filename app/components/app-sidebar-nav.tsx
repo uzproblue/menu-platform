@@ -33,6 +33,13 @@ const topLinks: Array<{
     labelKey: "nav.menuItemVideos",
     match: (p) => p.startsWith("/menu-item-videos"),
   },
+];
+
+const loyaltyChildren: Array<{
+  href: string;
+  labelKey: string;
+  match: (pathname: string, searchParams: URLSearchParams) => boolean;
+}> = [
   {
     href: "/loyalty/members",
     labelKey: "nav.loyaltyMembers",
@@ -49,6 +56,10 @@ const topLinks: Array<{
     match: (p) => p.startsWith("/loyalty/promotions"),
   },
 ];
+
+function isLoyaltyGroupPath(pathname: string): boolean {
+  return pathname.startsWith("/loyalty");
+}
 
 function isGlobalMenuGroupPath(pathname: string): boolean {
   if (pathname === "/global-menu/sections" || pathname.startsWith("/global-menu/unassigned")) return false;
@@ -166,6 +177,9 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const [menuCategoriesExpanded, setMenuCategoriesExpanded] = useState(() =>
     isMenuCategoriesGroupPath(pathname),
   );
+  const [loyaltyExpanded, setLoyaltyExpanded] = useState(() =>
+    isLoyaltyGroupPath(pathname),
+  );
 
   useEffect(() => {
     if (isGlobalMenuGroupPath(pathname)) {
@@ -176,6 +190,12 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   useEffect(() => {
     if (isMenuCategoriesGroupPath(pathname)) {
       setMenuCategoriesExpanded(true);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isLoyaltyGroupPath(pathname)) {
+      setLoyaltyExpanded(true);
     }
   }, [pathname]);
 
@@ -235,6 +255,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const settingsActive = settingsItem.match(pathname);
   const globalMenuGroupActive = isGlobalMenuGroupPath(pathname);
   const menuCategoriesGroupActive = isMenuCategoriesGroupPath(pathname);
+  const loyaltyGroupActive = isLoyaltyGroupPath(pathname);
   const sectionsManageActive = isSectionsManagePath(pathname);
   const unassignedActive = isUnassignedPath(pathname);
   const navItemBaseClass =
@@ -243,6 +264,14 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
     "block w-full min-h-10 touch-manipulation rounded-lg py-2 pl-6 pr-3 text-sm font-medium leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-0";
 
   const labelForKey = (key: string) => t(key as Parameters<typeof t>[0]);
+
+  const loyaltyNavChildren: NavLinkItem[] = loyaltyChildren.map(
+    ({ href, labelKey, match }) => ({
+      href,
+      label: labelForKey(labelKey),
+      match,
+    }),
+  );
 
   return (
     <nav className="flex h-full min-h-0 flex-col p-2" aria-label="Main">
@@ -331,6 +360,19 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
             </Link>
           );
         })}
+
+        <NavExpandableGroup
+          label={labelForKey("nav.loyalty")}
+          expanded={loyaltyExpanded}
+          onToggle={() => setLoyaltyExpanded((v) => !v)}
+          groupActive={loyaltyGroupActive}
+          children={loyaltyNavChildren}
+          pathname={pathname}
+          searchParams={searchParams}
+          onNavigate={onNavigate}
+          navItemBaseClass={navItemBaseClass}
+          childNavItemClass={childNavItemClass}
+        />
       </div>
       <div className="mt-2 border-t border-foreground/10 pt-2">
         <Link

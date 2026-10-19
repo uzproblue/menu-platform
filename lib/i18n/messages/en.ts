@@ -36,7 +36,8 @@ export const enMessages: Messages = {
   "nav.restaurants": "Restaurants",
   "nav.seasonalMenus": "Seasonal menus",
   "nav.menuItemVideos": "Item videos",
-  "nav.loyaltyMembers": "Loyalty members",
+  "nav.loyalty": "Loyalty",
+  "nav.loyaltyMembers": "Members",
   "nav.loyaltySegments": "Smart segments",
   "nav.loyaltyPromotions": "Stories & offers",
   "nav.settings": "Settings",
@@ -1229,6 +1230,27 @@ export const enMessages: Messages = {
   "loyalty.errLoadSegmentMembers": "Could not load segment members.",
   "loyalty.errRunSegments": "Could not start segmentation.",
   "loyalty.errUpdateSegmentAction": "Could not update action.",
+  "loyalty.segment.champions": "Champions",
+  "loyalty.segment.championsDesc": "Highest recency, frequency, and spend.",
+  "loyalty.segment.loyal": "Loyal",
+  "loyalty.segment.loyalDesc": "Visit often with solid spend.",
+  "loyalty.segment.potential_loyalists": "Potential loyalists",
+  "loyalty.segment.potential_loyalistsDesc":
+    "Recent guests who could become regulars.",
+  "loyalty.segment.new_members": "New members",
+  "loyalty.segment.new_membersDesc": "Recently enrolled with few visits.",
+  "loyalty.segment.at_risk": "At risk",
+  "loyalty.segment.at_riskDesc": "Were active but have not visited lately.",
+  "loyalty.segment.lapsed": "Lapsed",
+  "loyalty.segment.lapsedDesc": "Have not visited in a while.",
+  "loyalty.segment.hibernating": "Hibernating",
+  "loyalty.segment.hibernatingDesc":
+    "Long inactive or never returned after joining.",
+  "loyalty.segment.birthday_this_week": "Birthday this week",
+  "loyalty.segment.birthday_this_weekDesc":
+    "Members with a birthday in the next 7 days.",
+  "loyalty.segment.high_balance": "High balance",
+  "loyalty.segment.high_balanceDesc": "Members sitting on unused points.",
 
   "stories.pageTitle": "Stories & offers",
   "stories.pageSubtitle":

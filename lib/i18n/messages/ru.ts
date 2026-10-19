@@ -34,7 +34,8 @@ export const ruMessages: Messages = {
   "nav.restaurants": "Рестораны",
   "nav.seasonalMenus": "Сезонные меню",
   "nav.menuItemVideos": "Видео блюд",
-  "nav.loyaltyMembers": "Участники лояльности",
+  "nav.loyalty": "Лояльность",
+  "nav.loyaltyMembers": "Участники",
   "nav.loyaltySegments": "Умные сегменты",
   "nav.loyaltyPromotions": "Stories и предложения",
   "nav.settings": "Настройки",
@@ -1252,6 +1253,27 @@ export const ruMessages: Messages = {
   "loyalty.errLoadSegmentMembers": "Не удалось загрузить участников сегмента.",
   "loyalty.errRunSegments": "Не удалось запустить сегментацию.",
   "loyalty.errUpdateSegmentAction": "Не удалось обновить действие.",
+  "loyalty.segment.champions": "Чемпионы",
+  "loyalty.segment.championsDesc": "Максимальная свежесть, частота и траты.",
+  "loyalty.segment.loyal": "Постоянные",
+  "loyalty.segment.loyalDesc": "Часто приходят и хорошо тратят.",
+  "loyalty.segment.potential_loyalists": "Потенциальные постоянные",
+  "loyalty.segment.potential_loyalistsDesc":
+    "Недавние гости, которые могут стать постоянными.",
+  "loyalty.segment.new_members": "Новые участники",
+  "loyalty.segment.new_membersDesc": "Недавно зарегистрировались, мало визитов.",
+  "loyalty.segment.at_risk": "Под угрозой ухода",
+  "loyalty.segment.at_riskDesc": "Раньше были активны, но давно не приходили.",
+  "loyalty.segment.lapsed": "Ушедшие",
+  "loyalty.segment.lapsedDesc": "Давно не посещали заведение.",
+  "loyalty.segment.hibernating": "Спящие",
+  "loyalty.segment.hibernatingDesc":
+    "Долго неактивны или не вернулись после регистрации.",
+  "loyalty.segment.birthday_this_week": "День рождения на этой неделе",
+  "loyalty.segment.birthday_this_weekDesc":
+    "Участники с днём рождения в ближайшие 7 дней.",
+  "loyalty.segment.high_balance": "Высокий баланс",
+  "loyalty.segment.high_balanceDesc": "Участники с неиспользованными баллами.",
 
   "stories.pageTitle": "Stories и предложения",
   "stories.pageSubtitle":

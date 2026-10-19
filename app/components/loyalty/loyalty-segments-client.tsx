@@ -51,6 +51,24 @@ function promotionHref(action: LoyaltySegmentAction): string {
   return `/loyalty/promotions/points/new${qs ? `?${qs}` : ""}`;
 }
 
+function segmentLabel(
+  t: (key: string) => string,
+  key: string,
+  fallback: string,
+): string {
+  const translated = t(`loyalty.segment.${key}`);
+  return translated === `loyalty.segment.${key}` ? fallback : translated;
+}
+
+function segmentDescription(
+  t: (key: string) => string,
+  key: string,
+  fallback: string,
+): string {
+  const translated = t(`loyalty.segment.${key}Desc`);
+  return translated === `loyalty.segment.${key}Desc` ? fallback : translated;
+}
+
 export function LoyaltySegmentsClient() {
   const { t, locale } = useI18n();
   const [segments, setSegments] = useState<LoyaltySegmentSummary[]>([]);
@@ -239,7 +257,7 @@ export function LoyaltySegmentsClient() {
                         <p className="mt-1 text-sm text-foreground/65">{action.body}</p>
                         {action.segmentKey ? (
                           <p className="mt-2 text-xs uppercase tracking-wide text-foreground/40">
-                            {action.segmentKey}
+                            {segmentLabel(t, action.segmentKey, action.segmentKey)}
                           </p>
                         ) : null}
                       </div>
@@ -295,13 +313,15 @@ export function LoyaltySegmentsClient() {
                   className="rounded-xl border border-foreground/10 bg-background/80 p-4 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.03]"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <h3 className="font-medium">{seg.labelEn}</h3>
+                    <h3 className="font-medium">
+                      {segmentLabel(t, seg.key, seg.labelEn)}
+                    </h3>
                     <span className="text-lg font-semibold tabular-nums">
                       {seg.memberCount}
                     </span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-foreground/55">
-                    {seg.descriptionEn}
+                    {segmentDescription(t, seg.key, seg.descriptionEn)}
                   </p>
                   <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-foreground/60">
                     <div>
@@ -344,13 +364,15 @@ export function LoyaltySegmentsClient() {
                     className="rounded-xl border border-dashed border-foreground/15 bg-background/50 p-4 text-left hover:border-foreground/30"
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-medium">{seg.labelEn}</h3>
+                      <h3 className="font-medium">
+                        {segmentLabel(t, seg.key, seg.labelEn)}
+                      </h3>
                       <span className="text-lg font-semibold tabular-nums">
                         {seg.memberCount}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-foreground/55">
-                      {seg.descriptionEn}
+                      {segmentDescription(t, seg.key, seg.descriptionEn)}
                     </p>
                   </button>
                 ))}
@@ -365,7 +387,14 @@ export function LoyaltySegmentsClient() {
           <div className="flex h-full w-full max-w-md flex-col border border-foreground/10 bg-background shadow-xl sm:rounded-2xl">
             <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-3">
               <div>
-                <h3 className="font-semibold">{selectedKey}</h3>
+                <h3 className="font-semibold">
+                  {segmentLabel(
+                    t,
+                    selectedKey,
+                    segments.find((s) => s.key === selectedKey)?.labelEn ??
+                      selectedKey,
+                  )}
+                </h3>
                 <p className="text-xs text-foreground/50">
                   {t("loyalty.membersCount", { total: String(membersTotal) })}
                 </p>

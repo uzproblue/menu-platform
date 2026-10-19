@@ -34,7 +34,8 @@ export const uzMessages: Messages = {
   "nav.restaurants": "Restoranlar",
   "nav.seasonalMenus": "Mavsumiy menyular",
   "nav.menuItemVideos": "Taom videolari",
-  "nav.loyaltyMembers": "Sodiqlik a'zolari",
+  "nav.loyalty": "Sodiqlik",
+  "nav.loyaltyMembers": "A'zolar",
   "nav.loyaltySegments": "Aqlli segmentlar",
   "nav.loyaltyPromotions": "Stories va takliflar",
   "nav.settings": "Sozlamalar",
@@ -1228,6 +1229,27 @@ export const uzMessages: Messages = {
   "loyalty.errLoadSegmentMembers": "Segment a'zolarini yuklab bo'lmadi.",
   "loyalty.errRunSegments": "Segmentatsiyani ishga tushirib bo'lmadi.",
   "loyalty.errUpdateSegmentAction": "Harakatni yangilab bo'lmadi.",
+  "loyalty.segment.champions": "Chempionlar",
+  "loyalty.segment.championsDesc": "Eng yuqori yangilik, chastota va xarajat.",
+  "loyalty.segment.loyal": "Doimiy",
+  "loyalty.segment.loyalDesc": "Tez-tez keladi va yaxshi sarflaydi.",
+  "loyalty.segment.potential_loyalists": "Potensial doimiy",
+  "loyalty.segment.potential_loyalistsDesc":
+    "Yaqinda kelgan, doimiy bo'lishi mumkin mehmonlar.",
+  "loyalty.segment.new_members": "Yangi a'zolar",
+  "loyalty.segment.new_membersDesc": "Yaqinda ro'yxatdan o'tgan, kam tashrif.",
+  "loyalty.segment.at_risk": "Xavf ostida",
+  "loyalty.segment.at_riskDesc": "Avval faol edi, lekin yaqinda kelmagan.",
+  "loyalty.segment.lapsed": "Ketganlar",
+  "loyalty.segment.lapsedDesc": "Uzoq vaqtdan beri tashrif buyurmagan.",
+  "loyalty.segment.hibernating": "Uxlayotganlar",
+  "loyalty.segment.hibernatingDesc":
+    "Uzoq nofaol yoki ro'yxatdan keyin qaytmagan.",
+  "loyalty.segment.birthday_this_week": "Bu hafta tug'ilgan kun",
+  "loyalty.segment.birthday_this_weekDesc":
+    "Keyingi 7 kunda tug'ilgan kuni bo'lgan a'zolar.",
+  "loyalty.segment.high_balance": "Yuqori balans",
+  "loyalty.segment.high_balanceDesc": "Ishlatilmagan ballari bor a'zolar.",
 
   "stories.pageTitle": "Stories va takliflar",
   "stories.pageSubtitle":
