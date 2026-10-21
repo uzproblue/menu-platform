@@ -227,6 +227,31 @@ export async function triggerLocationTablesSyncWithAuthServer(
   });
 }
 
+export type PosTestResponse = {
+  ok: boolean;
+  locationId: string;
+  locationName: string;
+  message?: string;
+};
+
+export async function testLocationPosWithAuthServer(
+  accessToken: string,
+  locationId: string,
+  restaurantId?: string,
+): Promise<
+  | { ok: true; data: PosTestResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<PosTestResponse>({
+    path: `/api/locations/${encodeURIComponent(locationId)}/pos-test`,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: {},
+    timeoutMs: 30_000,
+  });
+}
+
 export async function cloneLocationMenuWithAuthServer(
   accessToken: string,
   locationId: string,

@@ -76,6 +76,16 @@ export function RestaurantSwitcher() {
   }, [load]);
 
   useEffect(() => {
+    const onContextChanged = () => {
+      void load();
+    };
+    window.addEventListener("restaurant-context-changed", onContextChanged);
+    return () => {
+      window.removeEventListener("restaurant-context-changed", onContextChanged);
+    };
+  }, [load]);
+
+  useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {

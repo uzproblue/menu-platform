@@ -8,6 +8,7 @@ import {
 } from "./client";
 import type {
   LoginResponse,
+  OwnerCreateRestaurantResponse,
   ProvisionRestaurantInput,
   ProvisionRestaurantResponse,
   UpdateProfileNameResponse,
@@ -115,6 +116,22 @@ export async function provisionRestaurantWithAuthServer(
       message: "Could not reach menu server",
     };
   }
+}
+
+export async function createRestaurantAsOwnerWithAuthServer(
+  accessToken: string,
+  name: string,
+): Promise<
+  | { ok: true; data: OwnerCreateRestaurantResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<OwnerCreateRestaurantResponse>({
+    path: "/api/restaurants/owner-create",
+    method: "POST",
+    accessToken,
+    body: { name },
+    timeoutMs: 30_000,
+  });
 }
 
 export async function requestPasswordResetWithAuthServer(

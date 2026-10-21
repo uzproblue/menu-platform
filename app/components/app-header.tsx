@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useId, useState } from "react";
+import { AddRestaurantWizardModal } from "./restaurants/add-restaurant-wizard-modal";
 import { AppLogo } from "./app-logo";
 import { AppSidebarNav } from "./app-sidebar-nav";
 import { LanguageSwitcher } from "./language-switcher";
@@ -15,8 +16,30 @@ type AppHeaderProps = {
 export function AppHeader({ email }: AppHeaderProps) {
   const { t } = useI18n();
   const [navOpen, setNavOpen] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [addRestaurantOpen, setAddRestaurantOpen] = useState(false);
   const panelId = useId();
   const close = useCallback(() => setNavOpen(false), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings/restaurant-context", {
+          cache: "no-store",
+        });
+        const payload = (await res.json().catch(() => null)) as {
+          isOwner?: boolean;
+        } | null;
+        if (!cancelled) setIsOwner(Boolean(payload?.isOwner));
+      } catch {
+        if (!cancelled) setIsOwner(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!navOpen) return;
@@ -68,6 +91,16 @@ export function AppHeader({ email }: AppHeaderProps) {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <RestaurantSwitcher />
+          {isOwner ? (
+            <button
+              type="button"
+              onClick={() => setAddRestaurantOpen(true)}
+              className="inline-flex min-h-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-foreground/15 bg-background/80 px-2.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-foreground/5 transition-colors hover:bg-foreground/5 sm:min-h-11 sm:px-3 sm:text-sm"
+            >
+              <span className="hidden sm:inline">{t("addRestaurant.button")}</span>
+              <span className="sm:hidden">{t("addRestaurant.buttonShort")}</span>
+            </button>
+          ) : null}
           {email ? (
             <span
               className="hidden max-w-56 truncate text-sm text-foreground/70 md:inline md:max-w-72"
@@ -81,6 +114,13 @@ export function AppHeader({ email }: AppHeaderProps) {
           <SignOutButton />
         </div>
       </header>
+
+      {isOwner ? (
+        <AddRestaurantWizardModal
+          open={addRestaurantOpen}
+          onClose={() => setAddRestaurantOpen(false)}
+        />
+      ) : null}
 
       {navOpen ? (
         <div className="fixed inset-0 z-50 md:hidden">

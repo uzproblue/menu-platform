@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "historyId": "6316c74a-753d-48e1-afd6-72e735d96260",
+  "currentRevision": "90f12e5a-ab4a-418f-9ef0-3b4b6caccf74",
+  "pendingChanges": false,
+  "files": {
+    "AGENTS.md": {
+      "hash": "1d4f0c8ca2507b94fd7c9df709fff01416adbd51a0f922b9d6ed2f40129147d5",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\1d\\1d4f0c8ca2507b94fd7c9df709fff01416adbd51a0f922b9d6ed2f40129147d5"
+    },
+    "BRIEF.md": {
+      "hash": "666f9cdfa635e85e5d84d9cfcabc0d84201c6b909955a3f0242b08cd12bf8836",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\66\\666f9cdfa635e85e5d84d9cfcabc0d84201c6b909955a3f0242b08cd12bf8836"
+    },
+    "CLAUDE.md": {
+      "hash": "1d4f0c8ca2507b94fd7c9df709fff01416adbd51a0f922b9d6ed2f40129147d5",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\1d\\1d4f0c8ca2507b94fd7c9df709fff01416adbd51a0f922b9d6ed2f40129147d5"
+    },
+    "hyperframes.json": {
+      "hash": "ad5dadeef78a520800a9e5cdd27a92ff5ac37f11b6a07f611b6b52b9f8c79a17",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\ad\\ad5dadeef78a520800a9e5cdd27a92ff5ac37f11b6a07f611b6b52b9f8c79a17"
+    },
+    "index.html": {
+      "hash": "b4e7e0608ca72203f9cda95ce3edfca62525b7272932e9ca11bf8e3e5b4c0526",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\b4\\b4e7e0608ca72203f9cda95ce3edfca62525b7272932e9ca11bf8e3e5b4c0526"
+    },
+    "meta.json": {
+      "hash": "9722441500329b5f1e0619a44eb3884fba2a78845e947376c2810a77da589a65",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\97\\9722441500329b5f1e0619a44eb3884fba2a78845e947376c2810a77da589a65"
+    },
+    "package.json": {
+      "hash": "c89cb2d023520924bf669d7b334dc44afe1f2f96b5d54ec46bc4090b9ddfbd7b",
+      "content": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\c8\\c89cb2d023520924bf669d7b334dc44afe1f2f96b5d54ec46bc4090b9ddfbd7b"
+    }
+  },
+  "revisions": {
+    "90f12e5a-ab4a-418f-9ef0-3b4b6caccf74": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1792420622105,
+      "endedAt": 1792420622107,
+      "files": {
+        "index.html": {
+          "before": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\84\\842a6a80ec539a7b62f353972516766a51df66cf17ff7c27926ff875d28cdf52",
+          "after": "C:\\Users\\User\\.cache\\hyperframes\\history\\6316c74a-753d-48e1-afd6-72e735d96260\\blobs\\b4\\b4e7e0608ca72203f9cda95ce3edfca62525b7272932e9ca11bf8e3e5b4c0526"
+        }
+      }
+    }
+  },
+  "checks": {
+    "latest": {
+      "revision": null,
+      "id": "50b5f51a-1c23-4b1b-a66a-7a7a6f520583"
+    },
+    "revisions": {},
+    "unversioned": [
+      {
+        "id": "50b5f51a-1c23-4b1b-a66a-7a7a6f520583",
+        "scope": "project",
+        "report": "D:\\dev\\menu-project\\docs\\client-updates\\2026-q2-guest-promotions\\film\\.hyperframes\\artifacts\\checks\\50b5f51a-1c23-4b1b-a66a-7a7a6f520583.json",
+        "metadata": {
+          "ok": true,
+          "browserSkipped": false,
+          "options": {
+            "samples": 9,
+            "atTransitions": false,
+            "maxIssues": 80,
+            "collapseStatic": true,
+            "tolerance": 2,
+            "timeout": 3000,
+            "contrast": true,
+            "strict": false,
+            "snapshots": false,
+            "browserGpuMode": "auto"
+          }
+        },
+        "createdAt": 1792420593526,
+        "contentHash": "a24e779cc5ba10aedcbace4d317d88e896193524315c673e7c175033c55663e4",
+        "revision": null,
+        "inputFingerprint": "ac88f6418591ab6f181e8abe7d3d398010e91a3b11b62a337645a9c55e3e7157",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      }
+    ]
+  },
+  "snapshots": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "renders": {
+    "latest": {
+      "id": "a7d51ac3-d5cc-439e-9ad5-69a27ea6725d",
+      "completedAt": 1792420805331,
+      "output": "D:\\dev\\menu-project\\docs\\client-updates\\2026-q2-guest-promotions\\film\\out\\guest-menu-updates-ru.mp4",
+      "status": "completed",
+      "revision": "90f12e5a-ab4a-418f-9ef0-3b4b6caccf74"
+    },
+    "retainedRevisions": [
+      "90f12e5a-ab4a-418f-9ef0-3b4b6caccf74"
+    ]
+  },
+  "pendingArtifactCleanup": []
+}

@@ -46,3 +46,26 @@ export type ProvisionRestaurantInput = {
   adminEmail: string;
   adminName?: string | null;
 };
+
+export type OwnerCreateRestaurantResponse = {
+  restaurant: {
+    id: string;
+    name: string;
+    slug: string;
+    createdAt: string;
+    subscriptionStartsAt: string | null;
+    subscriptionEndsAt: string | null;
+  };
+  defaultLocation: {
+    id: string;
+    restaurantId: string;
+    name: string;
+    currency: string;
+    isDefault: boolean;
+  };
+  defaultCategories: Array<{
+    id: string;
+    name: string;
+    sortOrder: number;
+  }>;
+};
