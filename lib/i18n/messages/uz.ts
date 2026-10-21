@@ -24,6 +24,14 @@ export const uzMessages: Messages = {
   "locale.switcherLabel": "Til",
   "restaurant.switcherLabel": "Restoran",
   "restaurant.selectPrompt": "Restoranni almashtirish",
+  "restaurant.deleteAria": "{name} ni o'chirish",
+  "restaurant.deleteQuestion": "Ushbu restoranni o'chirasizmi?",
+  "restaurant.deleteHelp":
+    "«{name}» butunlay o'chiriladi.",
+  "restaurant.deleteWarning":
+    "Barcha lokatsiyalar, menyu, aksiyalar va a'zolar kirishi o'chiriladi. Bu amalni qaytarib bo'lmaydi.",
+  "restaurant.deleting": "O'chirilmoqda…",
+  "restaurant.deleteError": "Restoranni o'chirib bo'lmadi.",
 
   "addRestaurant.button": "Restoran qo'shish",
   "addRestaurant.buttonShort": "Qo'shish",
@@ -387,6 +395,15 @@ export const uzMessages: Messages = {
   "settings.refreshingTables": "POS'dan stollar yuklanmoqda...",
   "settings.tablesSyncSuccess": "Stollar POS'dan muvaffaqiyatli yangilandi.",
   "settings.tablesSyncError": "POS'dan stollarni yangilab bo'lmadi.",
+  "settings.populateMenuBtn": "Menyuni to'ldirish",
+  "settings.populateMenuLoading": "POS'dan import qilinmoqda…",
+  "settings.populateMenuSuccess":
+    "{categories} kategoriya va {items} taom Taqsimlanmaganga import qilindi (xatolar: {errors}).",
+  "settings.populateMenuNothing":
+    "Import qilish uchun yangi POS kategoriya yoki taom yo'q.",
+  "settings.populateMenuError": "POS'dan menyuni to'ldirib bo'lmadi.",
+  "settings.populateMenuNoLocation": "POS sozlangan lokatsiyani tanlang.",
+  "settings.populateMenuOpenUnassigned": "Taqsimlanmaganni ochish",
   "settings.tablesSyncSectionsCount": "ta zal/seksiya",
   "settings.tablesSyncTablesCount": "ta stol sinxronlandi",
   "settings.tablesSyncTablesCreated": "ta stol qo'shildi",

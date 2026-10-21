@@ -25,6 +25,14 @@ export const enMessages: Messages = {
 
   "restaurant.switcherLabel": "Restaurant",
   "restaurant.selectPrompt": "Switch restaurant",
+  "restaurant.deleteAria": "Delete {name}",
+  "restaurant.deleteQuestion": "Delete this restaurant?",
+  "restaurant.deleteHelp":
+    "You are about to permanently delete “{name}”.",
+  "restaurant.deleteWarning":
+    "This removes all locations, menu data, promotions, and member access for this restaurant. This cannot be undone.",
+  "restaurant.deleting": "Deleting…",
+  "restaurant.deleteError": "Could not delete the restaurant.",
 
   "addRestaurant.button": "Add restaurant",
   "addRestaurant.buttonShort": "Add",
@@ -391,6 +399,15 @@ export const enMessages: Messages = {
   "settings.refreshingTables": "Fetching tables from POS...",
   "settings.tablesSyncSuccess": "Tables refreshed successfully from POS.",
   "settings.tablesSyncError": "Failed to refresh tables from POS.",
+  "settings.populateMenuBtn": "Populate menu",
+  "settings.populateMenuLoading": "Importing from POS…",
+  "settings.populateMenuSuccess":
+    "Imported {categories} categories and {items} items into Unassigned ({errors} errors).",
+  "settings.populateMenuNothing":
+    "No unmatched POS categories or items to import.",
+  "settings.populateMenuError": "Failed to populate menu from POS.",
+  "settings.populateMenuNoLocation": "Select a location with POS configured.",
+  "settings.populateMenuOpenUnassigned": "Open Unassigned",
   "settings.tablesSyncSectionsCount": "sections/halls",
   "settings.tablesSyncTablesCount": "tables synchronized",
   "settings.tablesSyncTablesCreated": "tables added",

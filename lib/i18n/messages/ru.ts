@@ -24,6 +24,14 @@ export const ruMessages: Messages = {
   "locale.switcherLabel": "Язык",
   "restaurant.switcherLabel": "Ресторан",
   "restaurant.selectPrompt": "Переключить ресторан",
+  "restaurant.deleteAria": "Удалить {name}",
+  "restaurant.deleteQuestion": "Удалить этот ресторан?",
+  "restaurant.deleteHelp":
+    "Вы собираетесь безвозвратно удалить «{name}».",
+  "restaurant.deleteWarning":
+    "Будут удалены все локации, меню, акции и доступы участников. Это действие нельзя отменить.",
+  "restaurant.deleting": "Удаление…",
+  "restaurant.deleteError": "Не удалось удалить ресторан.",
 
   "addRestaurant.button": "Добавить ресторан",
   "addRestaurant.buttonShort": "Добавить",
@@ -387,6 +395,15 @@ export const ruMessages: Messages = {
   "settings.refreshingTables": "Загрузка столов из POS...",
   "settings.tablesSyncSuccess": "Столы успешно обновлены из POS.",
   "settings.tablesSyncError": "Не удалось обновить столы из POS.",
+  "settings.populateMenuBtn": "Заполнить меню",
+  "settings.populateMenuLoading": "Импорт из POS…",
+  "settings.populateMenuSuccess":
+    "Импортировано {categories} категорий и {items} блюд в «Нераспределённое» (ошибок: {errors}).",
+  "settings.populateMenuNothing":
+    "Нет новых категорий или блюд из POS для импорта.",
+  "settings.populateMenuError": "Не удалось заполнить меню из POS.",
+  "settings.populateMenuNoLocation": "Выберите локацию с настроенным POS.",
+  "settings.populateMenuOpenUnassigned": "Открыть «Нераспределённое»",
   "settings.tablesSyncSectionsCount": "залов/секций",
   "settings.tablesSyncTablesCount": "столов синхронизировано",
   "settings.tablesSyncTablesCreated": "столов добавлено",

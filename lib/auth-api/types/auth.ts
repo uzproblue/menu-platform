@@ -69,3 +69,8 @@ export type OwnerCreateRestaurantResponse = {
     sortOrder: number;
   }>;
 };
+
+export type DeleteRestaurantResponse = {
+  ok: true;
+  deletedRestaurantId: string;
+};

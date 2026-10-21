@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
+import type { MenuV3PreviewResponse } from "@/lib/auth-api";
+import { buildImportActions } from "@/lib/menu-v3-populate-unassigned";
 import { useI18n } from "../i18n-provider";
 
 type SettingsPageClientProps = {
@@ -162,6 +164,15 @@ export function SettingsPageClient({
   } | null>(null);
   const [tablesSyncError, setTablesSyncError] = useState<string | null>(null);
 
+  const [populateMenuLoading, setPopulateMenuLoading] = useState(false);
+  const [populateMenuResult, setPopulateMenuResult] = useState<{
+    message: string;
+    createdCategories: number;
+    createdItems: number;
+    errors: number;
+  } | null>(null);
+  const [populateMenuError, setPopulateMenuError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!syncLoading) {
       setSyncSeconds(0);
@@ -309,6 +320,92 @@ export function SettingsPageClient({
       setTablesSyncError(t("settings.tablesSyncError"));
     } finally {
       setTablesSyncLoading(false);
+    }
+  }
+
+  async function handlePopulateMenu() {
+    const locationId = selectedSyncLocationId.trim();
+    if (!locationId) {
+      setPopulateMenuError(t("settings.populateMenuNoLocation"));
+      return;
+    }
+    setPopulateMenuLoading(true);
+    setPopulateMenuError(null);
+    setPopulateMenuResult(null);
+
+    try {
+      const previewRes = await fetch(
+        `/api/settings/menu-v3-merge/${encodeURIComponent(locationId)}/preview`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        },
+      );
+      const previewPayload = (await previewRes.json().catch(() => null)) as
+        | (MenuV3PreviewResponse & { message?: string; error?: string })
+        | null;
+      if (!previewRes.ok || !previewPayload?.ok) {
+        setPopulateMenuError(
+          previewPayload?.message ??
+            previewPayload?.error ??
+            t("settings.populateMenuError"),
+        );
+        return;
+      }
+
+      const actions = buildImportActions(previewPayload);
+      if (actions.length === 0) {
+        setPopulateMenuResult({
+          message: t("settings.populateMenuNothing"),
+          createdCategories: 0,
+          createdItems: 0,
+          errors: 0,
+        });
+        return;
+      }
+
+      const applyRes = await fetch(
+        `/api/settings/menu-v3-merge/${encodeURIComponent(locationId)}/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ actions }),
+        },
+      );
+      const applyPayload = (await applyRes.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+        createdCategories?: number;
+        createdItems?: number;
+        errors?: Array<{ message?: string }>;
+      } | null;
+
+      if (!applyRes.ok || !applyPayload?.ok) {
+        setPopulateMenuError(
+          applyPayload?.message ??
+            applyPayload?.error ??
+            t("settings.populateMenuError"),
+        );
+        return;
+      }
+
+      const errCount = applyPayload.errors?.length ?? 0;
+      setPopulateMenuResult({
+        message: t("settings.populateMenuSuccess", {
+          categories: String(applyPayload.createdCategories ?? 0),
+          items: String(applyPayload.createdItems ?? 0),
+          errors: String(errCount),
+        }),
+        createdCategories: applyPayload.createdCategories ?? 0,
+        createdItems: applyPayload.createdItems ?? 0,
+        errors: errCount,
+      });
+    } catch {
+      setPopulateMenuError(t("settings.populateMenuError"));
+    } finally {
+      setPopulateMenuLoading(false);
     }
   }
 
@@ -949,7 +1046,9 @@ export function SettingsPageClient({
                 type="button"
                 onClick={handleRefreshTables}
                 disabled={
-                  tablesSyncLoading || (syncLocations.length === 0 && !syncStatusPending)
+                  tablesSyncLoading ||
+                  populateMenuLoading ||
+                  (syncLocations.length === 0 && !syncStatusPending)
                 }
                 className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/90 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -970,6 +1069,22 @@ export function SettingsPageClient({
                 {tablesSyncLoading
                   ? t("settings.refreshingTables")
                   : t("settings.refreshTablesBtn")}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handlePopulateMenu()}
+                disabled={
+                  populateMenuLoading ||
+                  tablesSyncLoading ||
+                  !selectedSyncLocationId ||
+                  (syncLocations.length === 0 && !syncStatusPending)
+                }
+                className="inline-flex min-h-11 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl border border-foreground/20 bg-background/90 px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {populateMenuLoading
+                  ? t("settings.populateMenuLoading")
+                  : t("settings.populateMenuBtn")}
               </button>
             </div>
           </div>
@@ -1068,6 +1183,24 @@ export function SettingsPageClient({
               <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600 dark:text-red-400">
                 {tablesSyncError}
               </p>
+            ) : null}
+
+            {populateMenuError ? (
+              <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600 dark:text-red-400">
+                {populateMenuError}
+              </p>
+            ) : null}
+
+            {populateMenuResult ? (
+              <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-700 dark:text-emerald-400">
+                <p className="font-medium">{populateMenuResult.message}</p>
+                <Link
+                  href="/global-menu/unassigned"
+                  className="mt-2 inline-flex text-xs font-medium underline underline-offset-2 opacity-90 hover:opacity-100"
+                >
+                  {t("settings.populateMenuOpenUnassigned")}
+                </Link>
+              </div>
             ) : null}
 
             {syncResult ? (

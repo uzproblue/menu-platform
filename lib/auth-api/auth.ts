@@ -7,6 +7,7 @@ import {
   type ApiErrorResponse,
 } from "./client";
 import type {
+  DeleteRestaurantResponse,
   LoginResponse,
   OwnerCreateRestaurantResponse,
   ProvisionRestaurantInput,
@@ -131,6 +132,21 @@ export async function createRestaurantAsOwnerWithAuthServer(
     accessToken,
     body: { name },
     timeoutMs: 30_000,
+  });
+}
+
+export async function deleteRestaurantWithAuthServer(
+  accessToken: string,
+  restaurantId: string,
+): Promise<
+  | { ok: true; data: DeleteRestaurantResponse }
+  | { ok: false; status: number; error: string; message?: string }
+> {
+  return authApiJson<DeleteRestaurantResponse>({
+    path: `/api/restaurants/${encodeURIComponent(restaurantId)}`,
+    method: "DELETE",
+    accessToken,
+    timeoutMs: 60_000,
   });
 }
 
