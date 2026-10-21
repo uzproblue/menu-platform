@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Обновления меню — клиентский ролик</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #14100e;
+        color: #f7f0e8;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse 70% 55% at 15% 10%, rgba(232, 163, 92, 0.2), transparent 55%),
+          radial-gradient(ellipse 60% 45% at 85% 90%, rgba(90, 50, 30, 0.45), transparent 50%),
+          linear-gradient(160deg, #241c17 0%, #12100e 55%, #1a1512 100%);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 96px 120px;
+      }
+      .card {
+        width: min(1480px, 100%);
+      }
+      .eyebrow {
+        margin: 0 0 28px;
+        font-family: system-ui, sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #e8a35c;
+      }
+      h1,
+      h2 {
+        margin: 0 0 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.12;
+      }
+      h1 {
+        font-size: 96px;
+        max-width: 14ch;
+      }
+      h2 {
+        font-size: 78px;
+        max-width: 16ch;
+      }
+      .line {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        font-size: 36px;
+        font-weight: 550;
+        line-height: 1.4;
+        color: rgba(247, 240, 232, 0.78);
+        max-width: 22ch;
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 12px;
+      }
+      .pill {
+        display: inline-block;
+        align-self: flex-start;
+        padding: 14px 22px;
+        border-radius: 999px;
+        background: rgba(232, 163, 92, 0.16);
+        border: 1px solid rgba(232, 163, 92, 0.35);
+        font-family: system-ui, sans-serif;
+        font-size: 28px;
+        font-weight: 650;
+        color: #f7f0e8;
+      }
+      .glow {
+        position: absolute;
+        width: 520px;
+        height: 520px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(232, 163, 92, 0.22), transparent 68%);
+        pointer-events: none;
+      }
+      .glow-a {
+        top: -80px;
+        right: -40px;
+      }
+      .glow-b {
+        bottom: -120px;
+        left: -60px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="52"
+    >
+      <div class="glow glow-a" id="glow-a" aria-hidden="true"></div>
+      <div class="glow glow-b" id="glow-b" aria-hidden="true"></div>
+
+      <section id="scene-title" class="clip" data-start="0" data-duration="6.5" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s0-eye">Обновление продукта</p>
+          <h1 id="s0-title">Обновления цифрового меню</h1>
+          <p class="line" id="s0-sub">Акции · удобство · контроль</p>
+        </div>
+      </section>
+
+      <section id="scene-stories" class="clip" data-start="6.2" data-duration="7" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s1-eye">Гость</p>
+          <h2 id="s1-title">Акции в формате Stories</h2>
+          <div class="stack">
+            <p class="line" id="s1-a">Полноэкранные фото и видео</p>
+            <p class="line" id="s1-b">Одна кнопка — в корзину</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-home" class="clip" data-start="12.8" data-duration="7" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s2-eye">Главная</p>
+          <h2 id="s2-title">Акция заметна сразу</h2>
+          <p class="line" id="s2-a">Карточка и превью на главной странице меню</p>
+        </div>
+      </section>
+
+      <section id="scene-builder" class="clip" data-start="19.4" data-duration="7.5" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s3-eye">Платформа</p>
+          <h2 id="s3-title">Конструктор акций</h2>
+          <div class="stack">
+            <p class="line" id="s3-a">Медиа, тексты, товары и цена</p>
+            <p class="line" id="s3-b">Превью 16:9 и вертикальный телефон</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-schedule" class="clip" data-start="26.5" data-duration="8" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s4-eye">Расписание</p>
+          <h2 id="s4-title">В нужные часы и дни</h2>
+          <div class="stack">
+            <p class="pill" id="s4-pill">Завтрак 9:00–11:00 · часовой пояс заведения</p>
+            <p class="line" id="s4-a">Вне окна акция скрывается сама</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-ux" class="clip" data-start="34.1" data-duration="7.5" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s5-eye">UX меню</p>
+          <h2 id="s5-title">Удобнее в телефоне</h2>
+          <div class="stack">
+            <p class="line" id="s5-a">Нижние вкладки · лента видео</p>
+            <p class="line" id="s5-b">Блюдо «улетает» в корзину</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-cta" class="clip" data-start="41.2" data-duration="10.8" data-track-index="1">
+        <div class="card">
+          <p class="eyebrow" id="s6-eye">Далее</p>
+          <h2 id="s6-title">Готовы показать на ваших точках</h2>
+          <div class="stack">
+            <p class="line" id="s6-a">Демо · пилот на 1–2 точках</p>
+            <p class="pill" id="s6-pill">Вопросы — ответим сейчас</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#glow-a", { opacity: 0.35, scale: 0.92 }, { opacity: 0.85, scale: 1.08, duration: 52, ease: "none" }, 0);
+      tl.fromTo("#glow-b", { opacity: 0.25, scale: 1.05 }, { opacity: 0.7, scale: 0.95, duration: 52, ease: "none" }, 0);
+
+      function beat(ids, start) {
+        ids.forEach((id, i) => {
+          tl.fromTo(
+            id,
+            { y: 36, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.65, ease: "power3.out" },
+            start + i * 0.12,
+          );
+        });
+      }
+
+      beat(["#s0-eye", "#s0-title", "#s0-sub"], 0.15);
+      tl.to(["#s0-eye", "#s0-title", "#s0-sub"], { opacity: 0, y: -20, duration: 0.4, ease: "power2.in" }, 5.7);
+
+      beat(["#s1-eye", "#s1-title", "#s1-a", "#s1-b"], 6.35);
+      tl.to(["#s1-eye", "#s1-title", "#s1-a", "#s1-b"], { opacity: 0, y: -20, duration: 0.35, ease: "power2.in" }, 12.4);
+
+      beat(["#s2-eye", "#s2-title", "#s2-a"], 12.95);
+      tl.to(["#s2-eye", "#s2-title", "#s2-a"], { opacity: 0, y: -20, duration: 0.35, ease: "power2.in" }, 19.0);
+
+      beat(["#s3-eye", "#s3-title", "#s3-a", "#s3-b"], 19.55);
+      tl.to(["#s3-eye", "#s3-title", "#s3-a", "#s3-b"], { opacity: 0, y: -20, duration: 0.35, ease: "power2.in" }, 26.1);
+
+      beat(["#s4-eye", "#s4-title", "#s4-pill", "#s4-a"], 26.65);
+      tl.to(["#s4-eye", "#s4-title", "#s4-pill", "#s4-a"], { opacity: 0, y: -20, duration: 0.35, ease: "power2.in" }, 33.7);
+
+      beat(["#s5-eye", "#s5-title", "#s5-a", "#s5-b"], 34.25);
+      tl.to(["#s5-eye", "#s5-title", "#s5-a", "#s5-b"], { opacity: 0, y: -20, duration: 0.35, ease: "power2.in" }, 40.8);
+
+      beat(["#s6-eye", "#s6-title", "#s6-a", "#s6-pill"], 41.35);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

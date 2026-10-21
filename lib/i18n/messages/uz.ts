@@ -24,6 +24,50 @@ export const uzMessages: Messages = {
   "locale.switcherLabel": "Til",
   "restaurant.switcherLabel": "Restoran",
   "restaurant.selectPrompt": "Restoranni almashtirish",
+
+  "addRestaurant.button": "Restoran qo'shish",
+  "addRestaurant.buttonShort": "Qo'shish",
+  "addRestaurant.progress": "{total} dan {step}-qadam",
+  "addRestaurant.step1Title": "Restoran yaratish",
+  "addRestaurant.step2Title": "POS ulash",
+  "addRestaurant.step3Title": "Stollarni sinxronlash",
+  "addRestaurant.step4Title": "Menyuni import qilish",
+  "addRestaurant.nameLabel": "Restoran nomi",
+  "addRestaurant.namePlaceholder": "masalan Blue Kitchen",
+  "addRestaurant.nameHint":
+    "Slug, kategoriyalar, bo'limlar va lokatsiya avtomatik yaratiladi.",
+  "addRestaurant.createAndContinue": "Yaratish",
+  "addRestaurant.creating": "Yaratilmoqda…",
+  "addRestaurant.next": "Keyingisi",
+  "addRestaurant.posTerminalGroupId": "iiko terminal guruhi ID",
+  "addRestaurant.testPos": "Tekshirish",
+  "addRestaurant.testingPos": "Tekshirilmoqda…",
+  "addRestaurant.posTestOk": "POS ma'lumotlari qabul qilindi. Stollarga o'ting.",
+  "addRestaurant.tablesHelp":
+    "Ushbu lokatsiya uchun iiko dan bo'lim va stollarni yuklash.",
+  "addRestaurant.syncTables": "Stollarni sinxronlash",
+  "addRestaurant.syncingTables": "Stollar sinxronlanmoqda…",
+  "addRestaurant.tablesSuccess":
+    "{sections} bo'limda {tables} ta stol ({created} yangi, {updated} yangilandi).",
+  "addRestaurant.menuHelp":
+    "POS kategoriyalari va taomlarini Taqsimlanmaganga import qiling — keyin qo'lda biriktirasiz.",
+  "addRestaurant.syncMenu": "Menyuni sinxronlash",
+  "addRestaurant.syncingMenu": "Menyu import qilinmoqda…",
+  "addRestaurant.menuSuccess":
+    "{categories} kategoriya va {items} taom import qilindi (xatolar: {errors}).",
+  "addRestaurant.menuNothingToImport":
+    "Import qilish uchun yangi POS kategoriya yoki taom yo'q.",
+  "addRestaurant.doneUnassigned": "Taqsimlanmaganni ochish",
+  "addRestaurant.errNameRequired": "Restoran nomini kiriting.",
+  "addRestaurant.errCreate": "Restoranni yaratib bo'lmadi.",
+  "addRestaurant.errPosFieldsRequired":
+    "Organization ID, API token, terminal group ID va external menu ID majburiy.",
+  "addRestaurant.errSavePos": "POS sozlamalarini saqlab bo'lmadi.",
+  "addRestaurant.errPosTest": "POS tekshiruvi muvaffaqiyatsiz.",
+  "addRestaurant.errTablesSync": "Stollarni sinxronlash muvaffaqiyatsiz.",
+  "addRestaurant.errMenuPreview": "POS menyusini yuklab bo'lmadi.",
+  "addRestaurant.errMenuApply": "Menyu importi muvaffaqiyatsiz.",
+
   "nav.home": "Bosh sahifa",
   "nav.globalMenu": "Umumiy menyu",
   "nav.globalMenuDishes": "Taomlar",

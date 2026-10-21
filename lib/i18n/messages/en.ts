@@ -26,6 +26,49 @@ export const enMessages: Messages = {
   "restaurant.switcherLabel": "Restaurant",
   "restaurant.selectPrompt": "Switch restaurant",
 
+  "addRestaurant.button": "Add restaurant",
+  "addRestaurant.buttonShort": "Add",
+  "addRestaurant.progress": "Step {step} of {total}",
+  "addRestaurant.step1Title": "Create restaurant",
+  "addRestaurant.step2Title": "POS connection",
+  "addRestaurant.step3Title": "Sync tables",
+  "addRestaurant.step4Title": "Import menu",
+  "addRestaurant.nameLabel": "Restaurant name",
+  "addRestaurant.namePlaceholder": "e.g. Blue Kitchen",
+  "addRestaurant.nameHint":
+    "We create a default slug, categories, sections, and location automatically.",
+  "addRestaurant.createAndContinue": "Create",
+  "addRestaurant.creating": "Creating…",
+  "addRestaurant.next": "Next",
+  "addRestaurant.posTerminalGroupId": "iiko terminal group ID",
+  "addRestaurant.testPos": "Test",
+  "addRestaurant.testingPos": "Testing…",
+  "addRestaurant.posTestOk": "POS credentials look good. Continue to tables.",
+  "addRestaurant.tablesHelp":
+    "Pull dining sections and tables from iiko for this location.",
+  "addRestaurant.syncTables": "Sync tables",
+  "addRestaurant.syncingTables": "Syncing tables…",
+  "addRestaurant.tablesSuccess":
+    "{tables} tables ({created} new, {updated} updated) across {sections} sections.",
+  "addRestaurant.menuHelp":
+    "Import POS categories and items into Unassigned so you can reassign them manually.",
+  "addRestaurant.syncMenu": "Sync menu",
+  "addRestaurant.syncingMenu": "Importing menu…",
+  "addRestaurant.menuSuccess":
+    "Imported {categories} categories and {items} items ({errors} errors).",
+  "addRestaurant.menuNothingToImport":
+    "No unmatched POS categories or items to import.",
+  "addRestaurant.doneUnassigned": "Open Unassigned",
+  "addRestaurant.errNameRequired": "Enter a restaurant name.",
+  "addRestaurant.errCreate": "Could not create the restaurant.",
+  "addRestaurant.errPosFieldsRequired":
+    "Organization ID, API token, terminal group ID, and external menu ID are required.",
+  "addRestaurant.errSavePos": "Could not save POS settings.",
+  "addRestaurant.errPosTest": "POS credential test failed.",
+  "addRestaurant.errTablesSync": "Tables sync failed.",
+  "addRestaurant.errMenuPreview": "Could not load the POS menu.",
+  "addRestaurant.errMenuApply": "Menu import failed.",
+
   "nav.home": "Home",
   "nav.globalMenu": "Global Menu",
   "nav.globalMenuDishes": "Dishes",

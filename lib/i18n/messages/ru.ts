@@ -24,6 +24,50 @@ export const ruMessages: Messages = {
   "locale.switcherLabel": "Язык",
   "restaurant.switcherLabel": "Ресторан",
   "restaurant.selectPrompt": "Переключить ресторан",
+
+  "addRestaurant.button": "Добавить ресторан",
+  "addRestaurant.buttonShort": "Добавить",
+  "addRestaurant.progress": "Шаг {step} из {total}",
+  "addRestaurant.step1Title": "Создание ресторана",
+  "addRestaurant.step2Title": "Подключение POS",
+  "addRestaurant.step3Title": "Синхронизация столов",
+  "addRestaurant.step4Title": "Импорт меню",
+  "addRestaurant.nameLabel": "Название ресторана",
+  "addRestaurant.namePlaceholder": "например Blue Kitchen",
+  "addRestaurant.nameHint":
+    "Слаг, категории, разделы и локация создаются автоматически.",
+  "addRestaurant.createAndContinue": "Создать",
+  "addRestaurant.creating": "Создание…",
+  "addRestaurant.next": "Далее",
+  "addRestaurant.posTerminalGroupId": "ID терминальной группы iiko",
+  "addRestaurant.testPos": "Проверить",
+  "addRestaurant.testingPos": "Проверка…",
+  "addRestaurant.posTestOk": "Данные POS приняты. Можно перейти к столам.",
+  "addRestaurant.tablesHelp":
+    "Загрузить секции и столы из iiko для этой локации.",
+  "addRestaurant.syncTables": "Синхронизировать столы",
+  "addRestaurant.syncingTables": "Синхронизация столов…",
+  "addRestaurant.tablesSuccess":
+    "{tables} столов ({created} новых, {updated} обновлено) в {sections} секциях.",
+  "addRestaurant.menuHelp":
+    "Импортировать категории и блюда из POS в «Нераспределённое» для ручного назначения.",
+  "addRestaurant.syncMenu": "Синхронизировать меню",
+  "addRestaurant.syncingMenu": "Импорт меню…",
+  "addRestaurant.menuSuccess":
+    "Импортировано {categories} категорий и {items} блюд (ошибок: {errors}).",
+  "addRestaurant.menuNothingToImport":
+    "Нет новых категорий или блюд из POS для импорта.",
+  "addRestaurant.doneUnassigned": "Открыть «Нераспределённое»",
+  "addRestaurant.errNameRequired": "Введите название ресторана.",
+  "addRestaurant.errCreate": "Не удалось создать ресторан.",
+  "addRestaurant.errPosFieldsRequired":
+    "Нужны organization ID, API token, terminal group ID и external menu ID.",
+  "addRestaurant.errSavePos": "Не удалось сохранить настройки POS.",
+  "addRestaurant.errPosTest": "Проверка POS не прошла.",
+  "addRestaurant.errTablesSync": "Синхронизация столов не удалась.",
+  "addRestaurant.errMenuPreview": "Не удалось загрузить меню из POS.",
+  "addRestaurant.errMenuApply": "Импорт меню не удался.",
+
   "nav.home": "Главная",
   "nav.globalMenu": "Общее меню",
   "nav.globalMenuDishes": "Блюда",
