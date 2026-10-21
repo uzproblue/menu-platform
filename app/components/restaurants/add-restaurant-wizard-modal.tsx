@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/app/components/i18n-provider";
 import type { MenuV3PreviewResponse } from "@/lib/auth-api";
+import {
+  DEFAULT_LOCATION_TIMEZONE,
+  LOCATION_TIMEZONE_OPTIONS,
+} from "@/lib/location-timezones";
 import { buildImportActions } from "@/lib/menu-v3-populate-unassigned";
+import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -42,6 +47,8 @@ export function AddRestaurantWizardModal({ open, onClose }: Props) {
   const [created, setCreated] = useState<CreatedRestaurant | null>(null);
 
   const [name, setName] = useState("");
+  const [currency, setCurrency] = useState("UZS");
+  const [timezone, setTimezone] = useState(DEFAULT_LOCATION_TIMEZONE);
   const [posOrganizationId, setPosOrganizationId] = useState("");
   const [posApiToken, setPosApiToken] = useState("");
   const [posTerminalGroupId, setPosTerminalGroupId] = useState("");
@@ -69,6 +76,8 @@ export function AddRestaurantWizardModal({ open, onClose }: Props) {
     setError(null);
     setCreated(null);
     setName("");
+    setCurrency("UZS");
+    setTimezone(DEFAULT_LOCATION_TIMEZONE);
     setPosOrganizationId("");
     setPosApiToken("");
     setPosTerminalGroupId("");
@@ -107,7 +116,11 @@ export function AddRestaurantWizardModal({ open, onClose }: Props) {
       const res = await fetch("/api/settings/restaurants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({
+          name: trimmed,
+          currency,
+          timezone,
+        }),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, t("addRestaurant.errCreate")));
@@ -380,6 +393,36 @@ export function AddRestaurantWizardModal({ open, onClose }: Props) {
                 <span className="block text-xs text-foreground/45">
                   {t("addRestaurant.nameHint")}
                 </span>
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-sm text-foreground/70">{t("global.currency")}</span>
+                <select
+                  className={inputClassName}
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  disabled={pending}
+                >
+                  {SUPPORTED_CATALOG_CURRENCIES.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-sm text-foreground/70">{t("restaurants.timezone")}</span>
+                <select
+                  className={inputClassName}
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  disabled={pending}
+                >
+                  {LOCATION_TIMEZONE_OPTIONS.map((zone) => (
+                    <option key={zone} value={zone}>
+                      {zone}
+                    </option>
+                  ))}
+                </select>
               </label>
             ) : null}
 

@@ -121,7 +121,7 @@ export async function provisionRestaurantWithAuthServer(
 
 export async function createRestaurantAsOwnerWithAuthServer(
   accessToken: string,
-  name: string,
+  input: { name: string; currency?: string; timezone?: string },
 ): Promise<
   | { ok: true; data: OwnerCreateRestaurantResponse }
   | { ok: false; status: number; error: string; message?: string }
@@ -130,7 +130,7 @@ export async function createRestaurantAsOwnerWithAuthServer(
     path: "/api/restaurants/owner-create",
     method: "POST",
     accessToken,
-    body: { name },
+    body: input,
     timeoutMs: 30_000,
   });
 }

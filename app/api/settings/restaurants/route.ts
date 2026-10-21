@@ -38,7 +38,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await createRestaurantAsOwnerWithAuthServer(token, name);
+  const currency = typeof body.currency === "string" ? body.currency.trim() : "";
+  const timezone = typeof body.timezone === "string" ? body.timezone.trim() : "";
+
+  const result = await createRestaurantAsOwnerWithAuthServer(token, {
+    name,
+    ...(currency ? { currency } : {}),
+    ...(timezone ? { timezone } : {}),
+  });
   if (!result.ok) {
     return NextResponse.json(
       {

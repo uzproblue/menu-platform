@@ -142,7 +142,7 @@ export type UpdateLocationDetailsInput = {
   type?: "dine_in" | "delivery";
   currency?: string;
   timezone?: string;
-  logoUrl?: string;
+  logoUrl?: string | null;
   coverImageUrl?: string | null;
   qrCenterImageUrl?: string;
   address?: string | null;

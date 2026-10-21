@@ -93,7 +93,7 @@ export async function PATCH(
     type?: "dine_in" | "delivery";
     currency?: string;
     timezone?: string;
-    logoUrl?: string;
+    logoUrl?: string | null;
     coverImageUrl?: string | null;
     qrCenterImageUrl?: string;
     address?: string | null;
@@ -140,13 +140,14 @@ export async function PATCH(
     payload.timezone = o.timezone.trim();
   }
   if ("logoUrl" in o) {
-    if (typeof o.logoUrl !== "string") {
+    if (o.logoUrl !== null && typeof o.logoUrl !== "string") {
       return NextResponse.json(
-        { error: "invalid_body", message: "logoUrl must be a string" },
+        { error: "invalid_body", message: "logoUrl must be a string or null" },
         { status: 400 },
       );
     }
-    payload.logoUrl = o.logoUrl.trim();
+    const v = o.logoUrl === null ? "" : o.logoUrl.trim();
+    payload.logoUrl = v.length ? v : null;
   }
   if ("qrCenterImageUrl" in o) {
     if (typeof o.qrCenterImageUrl !== "string") {
