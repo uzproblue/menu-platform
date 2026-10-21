@@ -378,6 +378,7 @@ export function AddRestaurantWizardModal({ open, onClose }: Props) {
             ) : null}
 
             {step === 1 ? (
+              <div className="space-y-3">
               <label className="block space-y-1.5">
                 <span className="text-sm text-foreground/70">
                   {t("addRestaurant.nameLabel")}
@@ -424,6 +425,7 @@ export function AddRestaurantWizardModal({ open, onClose }: Props) {
                   ))}
                 </select>
               </label>
+              </div>
             ) : null}
 
             {step === 2 ? (
