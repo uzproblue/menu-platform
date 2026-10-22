@@ -1322,6 +1322,31 @@ export const ruMessages: Messages = {
   "loyalty.operationsReconcileFailed": "Сверка балансов не удалась.",
   "loyalty.incidentStatus.open": "Открытые",
   "loyalty.incidentStatus.resolved": "Решённые",
+  "loyalty.operationsReplay": "Повторить",
+  "loyalty.operationsReplayConfirm":
+    "Начислить эту награду повторно по текущим правилам? Уже начисленные награды повторно не начисляются.",
+  "loyalty.operationsReplayFailed": "Не удалось повторить начисление.",
+  "loyalty.earnTitle": "Правила начисления",
+  "loyalty.earnHint":
+    "Сколько гость тратит за один балл. Каждое изменение создаёт новую версию; закрытые заказы используют версию, действовавшую на момент закрытия.",
+  "loyalty.earnNotConfigured":
+    "Правило начисления не задано. Награды за заказы сохраняются как инциденты, пока вы не сохраните правило; затем их можно повторить.",
+  "loyalty.earnNotConfiguredBanner": "Гости пока не получают баллы: правило начисления не задано.",
+  "loyalty.earnConfigureLink": "Задать правила",
+  "loyalty.earnCurrentRule": "1 балл за каждые {amount}, с {since}.",
+  "loyalty.earnCurrency": "Валюта",
+  "loyalty.earnSpendPerPoint": "Сумма за балл",
+  "loyalty.earnEffectiveAt": "Действует с",
+  "loyalty.earnVersion": "Версия",
+  "loyalty.earnSave": "Сохранить новую версию",
+  "loyalty.earnSaving": "Сохранение…",
+  "loyalty.earnSaved": "Правило начисления сохранено.",
+  "loyalty.earnSaveConfirm":
+    "Сохранить новое правило начисления? Оно применяется к заказам, закрытым с этого момента; прошлые заказы сохраняют своё правило.",
+  "loyalty.earnInvalidCurrency": "Введите трёхбуквенный код валюты, например KZT.",
+  "loyalty.earnInvalidSpend": "Введите сумму больше нуля.",
+  "loyalty.earnLoadFailed": "Не удалось загрузить правила начисления.",
+  "loyalty.earnSaveFailed": "Не удалось сохранить правило начисления.",
   "loyalty.incidentStatus.ignored": "Игнорированные",
   "loyalty.segmentsSubtitle":
     "Автоматические RFM-сегменты и ежедневные действия на основе визитов, трат, баллов и дней рождения.",

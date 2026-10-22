@@ -8,7 +8,6 @@ export type LoyaltyGuest = {
   status: string;
   marketingConsent: boolean;
   consentVersion: string;
-  doSyncPending: boolean;
   lastVisitedAt: string | null;
   lifetimeSpendMinor: number;
   visitCount?: number;
@@ -139,7 +138,9 @@ export type GuestsListResponse = {
   total: number;
   page: number;
   limit: number;
-  currency: string;
+  /** Null until the restaurant has an earn config. */
+  currency: string | null;
+  earnConfigured?: boolean;
 };
 
 export type GuestDetailResponse = {
@@ -151,5 +152,4 @@ export type PromotionResponse = { promotion: LoyaltyPromotion };
 export type PointsMutationResponse = {
   ledgerEntryId: string;
   balance: number;
-  doSyncPending: boolean;
 };

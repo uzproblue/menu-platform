@@ -41,6 +41,53 @@ export type BalanceReconciliationResult = {
   repairedCount: number;
 };
 
+export type EarnConfigVersion = {
+  version: string;
+  spendMinorPerPoint: number;
+  currency: string;
+  effectiveAt: string;
+  createdAt?: string;
+};
+
+export type EarnConfigResponse = {
+  restaurantId: string;
+  configured: boolean;
+  current: EarnConfigVersion | null;
+  history: EarnConfigVersion[];
+};
+
+export type EarnConfigInput = {
+  spendMinorPerPoint: number;
+  currency: string;
+  effectiveAt?: string;
+};
+
+export async function getEarnConfigWithAuthServer(
+  accessToken: string,
+  restaurantId: string | undefined,
+) {
+  return loyaltyApiJson<EarnConfigResponse>({
+    path: "/api/admin/loyalty-config",
+    method: "GET",
+    accessToken,
+    restaurantId,
+  });
+}
+
+export async function putEarnConfigWithAuthServer(
+  accessToken: string,
+  restaurantId: string | undefined,
+  input: EarnConfigInput,
+) {
+  return loyaltyApiJson<EarnConfigVersion & { restaurantId: string }>({
+    path: "/api/admin/loyalty-config",
+    method: "PUT",
+    accessToken,
+    restaurantId,
+    body: input,
+  });
+}
+
 export async function listLoyaltyIncidentsWithAuthServer(
   accessToken: string,
   restaurantId: string | undefined,
@@ -71,6 +118,21 @@ export async function updateLoyaltyIncidentWithAuthServer(
     accessToken,
     restaurantId,
     body: { status },
+  });
+}
+
+export async function replayLoyaltyIncidentWithAuthServer(
+  accessToken: string,
+  restaurantId: string | undefined,
+  incidentId: string,
+) {
+  return loyaltyApiJson<{ ok: true; outcome: string; alreadyReplayed?: boolean }>({
+    path: `/api/admin/loyalty/incidents/${encodeURIComponent(incidentId)}/replay`,
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body: {},
+    timeoutMs: 30_000,
   });
 }
 

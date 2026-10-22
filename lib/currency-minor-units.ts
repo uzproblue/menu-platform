@@ -1,37 +1,39 @@
-const DEFAULT_CURRENCY = "KZT";
-
-export function currencyFractionDigits(currency: string): number {
+export function currencyFractionDigits(currency: string | null | undefined): number {
+  if (!currency) return 2;
   try {
     return new Intl.NumberFormat("en", {
       style: "currency",
-      currency: currency || DEFAULT_CURRENCY,
+      currency,
     }).resolvedOptions().maximumFractionDigits ?? 2;
   } catch {
     return 2;
   }
 }
 
-export function minorToMajor(amountMinor: number, currency: string): number {
+export function minorToMajor(amountMinor: number, currency: string | null | undefined): number {
   return amountMinor / 10 ** currencyFractionDigits(currency);
 }
 
-export function majorToMinor(amountMajor: number, currency: string): number {
+export function majorToMinor(amountMajor: number, currency: string | null | undefined): number {
   return Math.round(amountMajor * 10 ** currencyFractionDigits(currency));
 }
 
+/** Without a currency the amount is shown as a plain number rather than guessing a symbol. */
 export function formatMinorCurrency(
   amountMinor: number,
-  currency: string,
+  currency: string | null | undefined,
   locale: string,
 ): string {
-  const resolvedCurrency = currency || DEFAULT_CURRENCY;
-  const amountMajor = minorToMajor(amountMinor, resolvedCurrency);
+  const amountMajor = minorToMajor(amountMinor, currency);
+  if (!currency) {
+    return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(amountMajor);
+  }
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: resolvedCurrency,
+      currency,
     }).format(amountMajor);
   } catch {
-    return `${amountMajor} ${resolvedCurrency}`;
+    return `${amountMajor} ${currency}`;
   }
 }

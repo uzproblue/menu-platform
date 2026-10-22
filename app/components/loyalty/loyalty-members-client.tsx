@@ -37,7 +37,7 @@ const DEFAULT_FILTERS: AppliedFilters = {
 
 const PAGE_SIZE_OPTIONS = [25, 50] as const;
 
-function parseSpendInput(value: string, currency: string): number | undefined {
+function parseSpendInput(value: string, currency: string | null): number | undefined {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   const n = Number(trimmed);
@@ -70,7 +70,8 @@ export function LoyaltyMembersClient() {
   const { t, locale } = useI18n();
   const [guests, setGuests] = useState<LoyaltyGuest[]>([]);
   const [total, setTotal] = useState(0);
-  const [currency, setCurrency] = useState("KZT");
+  const [currency, setCurrency] = useState<string | null>(null);
+  const [earnConfigured, setEarnConfigured] = useState(true);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
 
@@ -128,7 +129,8 @@ export function LoyaltyMembersClient() {
     const data = (await res.json()) as GuestsListResponse;
     setGuests(data.guests ?? []);
     setTotal(typeof data.total === "number" ? data.total : 0);
-    setCurrency(data.currency?.trim() || "KZT");
+    setCurrency(data.currency?.trim() || null);
+    setEarnConfigured(data.earnConfigured !== false);
   }, [applied, currency, limit, page, t]);
 
   useEffect(() => {
@@ -370,6 +372,15 @@ export function LoyaltyMembersClient() {
       {listError ? (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
           {listError}
+        </p>
+      ) : null}
+
+      {!earnConfigured ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          {t("loyalty.earnNotConfiguredBanner")}{" "}
+          <a href="/loyalty/operations" className="font-medium underline">
+            {t("loyalty.earnConfigureLink")}
+          </a>
         </p>
       ) : null}
 

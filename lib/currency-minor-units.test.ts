@@ -24,4 +24,8 @@ describe("currency minor-unit conversion", () => {
     const formatted = formatMinorCurrency(12_345, "USD", "en-US");
     assert.equal(formatted, "$123.45");
   });
+
+  it("formats a plain number when no currency is configured", () => {
+    assert.equal(formatMinorCurrency(12_345, null, "en-US"), "123.45");
+  });
 });

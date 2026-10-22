@@ -9,6 +9,7 @@ import type {
   LoyaltyIncidentsResponse,
 } from "@/lib/loyalty-api/operations";
 import { useI18n } from "../i18n-provider";
+import { LoyaltyEarnConfigClient } from "./loyalty-earn-config-client";
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
@@ -111,6 +112,28 @@ export function LoyaltyOperationsClient() {
     setIncidents((prev) => prev.filter((incident) => incident.id !== id));
   }
 
+  async function replayIncident(incident: LoyaltyIncident) {
+    if (!window.confirm(t("loyalty.operationsReplayConfirm"))) return;
+    const res = await fetch(
+      `/api/settings/loyalty/incidents/${encodeURIComponent(incident.id)}/replay`,
+      { method: "POST" },
+    );
+    if (!res.ok) {
+      setIncidentsError(await readErrorMessage(res, t("loyalty.operationsReplayFailed")));
+      return;
+    }
+    setIncidents((prev) => prev.filter((row) => row.id !== incident.id));
+  }
+
+  function canReplay(incident: LoyaltyIncident): boolean {
+    return (
+      incident.status === "open" &&
+      incident.details != null &&
+      typeof incident.details === "object" &&
+      "replayBody" in incident.details
+    );
+  }
+
   async function reconcile(repair: boolean) {
     if (repair && !window.confirm(t("loyalty.operationsRepairConfirm"))) return;
     setReconciling(true);
@@ -136,6 +159,8 @@ export function LoyaltyOperationsClient() {
 
   return (
     <div className="space-y-8">
+      <LoyaltyEarnConfigClient />
+
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{t("loyalty.operationsReconciliation")}</h2>
@@ -252,6 +277,15 @@ export function LoyaltyOperationsClient() {
                   </button>
                   {incident.status === "open" ? (
                     <>
+                      {canReplay(incident) ? (
+                        <button
+                          type="button"
+                          onClick={() => void replayIncident(incident)}
+                          className="rounded-xl bg-foreground px-3 py-1.5 text-sm font-medium text-background transition hover:opacity-90"
+                        >
+                          {t("loyalty.operationsReplay")}
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => void updateIncident(incident.id, "resolved")}

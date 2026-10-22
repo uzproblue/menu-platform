@@ -1299,6 +1299,31 @@ export const enMessages: Messages = {
   "loyalty.incidentStatus.open": "Open",
   "loyalty.incidentStatus.resolved": "Resolved",
   "loyalty.incidentStatus.ignored": "Ignored",
+  "loyalty.operationsReplay": "Replay",
+  "loyalty.operationsReplayConfirm":
+    "Apply this reward again using the current earn rules? Rewards that were already applied are not applied twice.",
+  "loyalty.operationsReplayFailed": "Replay failed.",
+  "loyalty.earnTitle": "Earn rules",
+  "loyalty.earnHint":
+    "How much a guest spends to earn one point. Each change creates a new version; closed orders use the version that was in force when they closed.",
+  "loyalty.earnNotConfigured":
+    "No earn rule is set. Order rewards are held as incidents until you save one, then they can be replayed.",
+  "loyalty.earnNotConfiguredBanner": "Guests are not earning points yet because no earn rule is set.",
+  "loyalty.earnConfigureLink": "Set earn rules",
+  "loyalty.earnCurrentRule": "1 point for every {amount}, since {since}.",
+  "loyalty.earnCurrency": "Currency",
+  "loyalty.earnSpendPerPoint": "Spend per point",
+  "loyalty.earnEffectiveAt": "Effective from",
+  "loyalty.earnVersion": "Version",
+  "loyalty.earnSave": "Save new version",
+  "loyalty.earnSaving": "Saving…",
+  "loyalty.earnSaved": "Earn rule saved.",
+  "loyalty.earnSaveConfirm":
+    "Save a new earn rule? It applies to orders closed from now on; past orders keep their rule.",
+  "loyalty.earnInvalidCurrency": "Enter a three-letter currency code, for example KZT.",
+  "loyalty.earnInvalidSpend": "Enter a spend amount greater than zero.",
+  "loyalty.earnLoadFailed": "Could not load earn rules.",
+  "loyalty.earnSaveFailed": "Could not save the earn rule.",
   "loyalty.segmentsSubtitle":
     "Automatic RFM segments and daily action ideas based on visits, spend, points, and birthdays.",
   "loyalty.segmentsLastUpdated": "Last updated",

@@ -1298,6 +1298,31 @@ export const uzMessages: Messages = {
   "loyalty.operationsReconcileFailed": "Balans tekshiruvi muvaffaqiyatsiz tugadi.",
   "loyalty.incidentStatus.open": "Ochiq",
   "loyalty.incidentStatus.resolved": "Hal qilingan",
+  "loyalty.operationsReplay": "Qayta ishlash",
+  "loyalty.operationsReplayConfirm":
+    "Ushbu mukofot joriy qoidalar bo‘yicha qayta qo‘llansinmi? Allaqachon qo‘llangan mukofotlar ikki marta qo‘llanmaydi.",
+  "loyalty.operationsReplayFailed": "Qayta ishlab bo‘lmadi.",
+  "loyalty.earnTitle": "Ball to‘plash qoidalari",
+  "loyalty.earnHint":
+    "Mehmon bitta ball olish uchun qancha sarflaydi. Har bir o‘zgarish yangi versiya yaratadi; yopilgan buyurtmalar yopilgan paytdagi versiyadan foydalanadi.",
+  "loyalty.earnNotConfigured":
+    "Ball to‘plash qoidasi o‘rnatilmagan. Buyurtma mukofotlari qoida saqlanmaguncha hodisa sifatida ushlab turiladi, keyin ularni qayta ishlash mumkin.",
+  "loyalty.earnNotConfiguredBanner": "Ball to‘plash qoidasi o‘rnatilmagani uchun mehmonlar hali ball olmayapti.",
+  "loyalty.earnConfigureLink": "Qoidalarni o‘rnatish",
+  "loyalty.earnCurrentRule": "Har {amount} uchun 1 ball, {since} dan beri.",
+  "loyalty.earnCurrency": "Valyuta",
+  "loyalty.earnSpendPerPoint": "Bir ball uchun summa",
+  "loyalty.earnEffectiveAt": "Amal qilish sanasi",
+  "loyalty.earnVersion": "Versiya",
+  "loyalty.earnSave": "Yangi versiyani saqlash",
+  "loyalty.earnSaving": "Saqlanmoqda…",
+  "loyalty.earnSaved": "Qoida saqlandi.",
+  "loyalty.earnSaveConfirm":
+    "Yangi qoida saqlansinmi? U hozirdan boshlab yopilgan buyurtmalarga qo‘llanadi; avvalgi buyurtmalar o‘z qoidasini saqlaydi.",
+  "loyalty.earnInvalidCurrency": "Uch harfli valyuta kodini kiriting, masalan KZT.",
+  "loyalty.earnInvalidSpend": "Noldan katta summani kiriting.",
+  "loyalty.earnLoadFailed": "Qoidalarni yuklab bo‘lmadi.",
+  "loyalty.earnSaveFailed": "Qoidani saqlab bo‘lmadi.",
   "loyalty.incidentStatus.ignored": "E'tiborsiz",
   "loyalty.segmentsSubtitle":
     "Tashriflar, xarajatlar, ballar va tug'ilgan kunlarga asoslangan avtomatik RFM segmentlar va kundalik tavsiyalar.",
