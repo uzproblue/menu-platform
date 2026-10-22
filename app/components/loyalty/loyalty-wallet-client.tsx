@@ -5,8 +5,6 @@ import type { Location } from "@/lib/auth-api/types/locations";
 import { expandR2AssetToPublicUrl } from "@/lib/r2-object-key";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import type {
-  LoyaltySegmentKey,
-  LoyaltySegmentSummary,
   WalletFeaturedAction,
   WalletPassConfig,
   WalletPassConfigInput,
@@ -15,7 +13,7 @@ import type {
 } from "@/lib/loyalty-api";
 import { useI18n } from "../i18n-provider";
 import {
-  ACTION_LABELS,
+  FEATURED_ACTION_TYPES,
   WalletPassPreview,
   type PreviewPlatform,
 } from "./wallet-pass-preview";
@@ -56,12 +54,17 @@ function TrashIcon({ size = 15 }: { size?: number }) {
   );
 }
 
-const COLOR_PRESETS = ["dark", "blue", "green", "red", "purple", "orange"] as const;
+const PRESET_COLOR_HEX: Record<string, string> = {
+  dark: "#1a1a1a",
+  blue: "#1e3a8a",
+  green: "#14532d",
+  red: "#7f1d1d",
+  purple: "#4c1d95",
+  orange: "#9a3412",
+};
 const BARCODE_FORMATS = ["QR", "PDF417", "Aztec", "Code128"] as const;
-const FEATURED_TYPES = Object.keys(ACTION_LABELS);
 
 type EditorTab = "content" | "barcode" | "style";
-type PreviewMode = "preview" | "code";
 
 type Draft = {
   enabled: boolean;
@@ -76,7 +79,7 @@ type Draft = {
   featuredActions: WalletFeaturedAction[];
   barcodeFormat: (typeof BARCODE_FORMATS)[number];
   barcodeAltText: string | null;
-  colorPreset: (typeof COLOR_PRESETS)[number];
+  colorPreset: WalletPassConfig["colorPreset"];
   color: string;
   logoURL: string;
   stripURL: string;
@@ -111,7 +114,10 @@ function configToDraft(config: WalletPassConfig): Draft {
     barcodeFormat: config.barcodeFormat,
     barcodeAltText: config.barcodeAltText,
     colorPreset: config.colorPreset,
-    color: config.color ?? "",
+    color:
+      config.color?.trim() ||
+      PRESET_COLOR_HEX[config.colorPreset] ||
+      PRESET_COLOR_HEX.dark,
     logoURL: config.logoURL ?? "",
     stripURL: config.stripURL ?? "",
     iconURL: config.iconURL ?? "",
@@ -181,6 +187,7 @@ function FieldListEditor({
   onChange: (next: WalletPassField[]) => void;
   max?: number;
 }) {
+  const { t } = useI18n();
   return (
     <section className="space-y-2 border-t border-foreground/10 pt-4">
       <div className="flex items-center justify-between gap-2">
@@ -193,14 +200,14 @@ function FieldListEditor({
           disabled={fields.length >= max}
           onClick={() => onChange([...fields, { label: "", value: "" }])}
           className="rounded-md p-1.5 text-foreground/60 hover:bg-foreground/5 disabled:opacity-30"
-          aria-label="Add field"
+          aria-label={t("loyalty.walletAddField")}
         >
           <PlusIcon size={16} />
         </button>
       </div>
       {fields.length === 0 ? (
         <p className="rounded-lg border border-dashed border-foreground/15 px-3 py-4 text-center text-xs text-foreground/40">
-          No fields
+          {t("loyalty.walletNoFields")}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -208,7 +215,7 @@ function FieldListEditor({
             <li key={index} className="flex items-start gap-2">
               <input
                 className="w-[38%] rounded-lg border border-foreground/15 bg-background px-2.5 py-2 text-sm"
-                placeholder="Label"
+                placeholder={t("loyalty.walletFieldLabel")}
                 value={field.label ?? ""}
                 onChange={(e) => {
                   const next = [...fields];
@@ -218,7 +225,7 @@ function FieldListEditor({
               />
               <input
                 className="min-w-0 flex-1 rounded-lg border border-foreground/15 bg-background px-2.5 py-2 text-sm"
-                placeholder="Value"
+                placeholder={t("loyalty.walletFieldValue")}
                 value={field.value}
                 onChange={(e) => {
                   const next = [...fields];
@@ -230,7 +237,7 @@ function FieldListEditor({
                 type="button"
                 onClick={() => onChange(fields.filter((_, i) => i !== index))}
                 className="rounded-md p-2 text-foreground/45 hover:bg-foreground/5 hover:text-red-600"
-                aria-label="Remove field"
+                aria-label={t("loyalty.walletRemoveField")}
               >
                 <TrashIcon size={15} />
               </button>
@@ -253,6 +260,7 @@ function ImageSlot({
   value: string;
   onChange: (url: string) => void;
 }) {
+  const { t } = useI18n();
   const [showUrl, setShowUrl] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -271,7 +279,7 @@ function ImageSlot({
             <p className="truncate text-xs text-foreground/70">{value}</p>
             <div className="mt-2 flex gap-2">
               <label className="cursor-pointer rounded-md border border-foreground/15 px-2.5 py-1 text-xs">
-                Replace
+                {t("loyalty.walletReplaceImage")}
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
@@ -284,7 +292,11 @@ function ImageSlot({
                     void uploadToPublicUrl(file)
                       .then(onChange)
                       .catch((err) =>
-                        setError(err instanceof Error ? err.message : "Upload failed"),
+                        setError(
+                          err instanceof Error
+                            ? err.message
+                            : t("loyalty.walletUploadFailed"),
+                        ),
                       )
                       .finally(() => setUploading(false));
                   }}
@@ -295,14 +307,16 @@ function ImageSlot({
                 className="rounded-md px-2 py-1 text-xs text-red-600"
                 onClick={() => onChange("")}
               >
-                Remove
+                {t("loyalty.walletRemoveImage")}
               </button>
             </div>
           </div>
         </div>
       ) : (
         <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/20 bg-foreground/[0.02] px-4 py-8 text-center text-sm text-foreground/55 hover:bg-foreground/[0.04]">
-          <span>{uploading ? "Uploading…" : "Browse or drop an image"}</span>
+          <span>
+            {uploading ? t("loyalty.walletUploading") : t("loyalty.walletBrowseImage")}
+          </span>
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"
@@ -316,7 +330,11 @@ function ImageSlot({
               void uploadToPublicUrl(file)
                 .then(onChange)
                 .catch((err) =>
-                  setError(err instanceof Error ? err.message : "Upload failed"),
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : t("loyalty.walletUploadFailed"),
+                  ),
                 )
                 .finally(() => setUploading(false));
             }}
@@ -328,7 +346,7 @@ function ImageSlot({
         className="text-xs text-foreground/55 underline-offset-2 hover:underline"
         onClick={() => setShowUrl((v) => !v)}
       >
-        or paste an image URL
+        {t("loyalty.walletPasteImageUrl")}
       </button>
       {showUrl ? (
         <input
@@ -347,27 +365,17 @@ export function LoyaltyWalletClient() {
   const { t } = useI18n();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [segments, setSegments] = useState<LoyaltySegmentSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<EditorTab>("content");
-  const [previewMode, setPreviewMode] = useState<PreviewMode>("preview");
   const [platform, setPlatform] = useState<PreviewPlatform>("apple");
-
-  const [message, setMessage] = useState("");
-  const [selectedSegments, setSelectedSegments] = useState<LoyaltySegmentKey[]>([]);
-  const [requireConsent, setRequireConsent] = useState(true);
-  const [previewCount, setPreviewCount] = useState<number | null>(null);
-  const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [configRes, locRes, segRes] = await Promise.all([
+      const [configRes, locRes] = await Promise.all([
         fetch("/api/settings/loyalty/wallet", { cache: "no-store" }),
         fetch("/api/settings/locations", { cache: "no-store" }),
-        fetch("/api/settings/loyalty/segments", { cache: "no-store" }),
       ]);
       if (!configRes.ok) {
         setError(await readErrorMessage(configRes, t("loyalty.walletLoadFailed")));
@@ -380,10 +388,6 @@ export function LoyaltyWalletClient() {
       if (locRes.ok) {
         const locData = (await locRes.json()) as { locations?: Location[] };
         setLocations(locData.locations ?? []);
-      }
-      if (segRes.ok) {
-        const segData = (await segRes.json()) as { segments?: LoyaltySegmentSummary[] };
-        setSegments(segData.segments ?? []);
       }
     } catch {
       setError(t("loyalty.walletLoadFailed"));
@@ -470,72 +474,6 @@ export function LoyaltyWalletClient() {
     }
   }
 
-  async function refreshPreview() {
-    setSendResult(null);
-    try {
-      const params = new URLSearchParams();
-      if (selectedSegments.length) params.set("segments", selectedSegments.join(","));
-      if (!requireConsent) params.set("requireMarketingConsent", "false");
-      const res = await fetch(
-        `/api/settings/loyalty/wallet/messages?${params.toString()}`,
-        { cache: "no-store" },
-      );
-      if (!res.ok) {
-        setError(await readErrorMessage(res, t("loyalty.walletPreviewFailed")));
-        return;
-      }
-      const data = (await res.json()) as { count: number };
-      setPreviewCount(data.count);
-    } catch {
-      setError(t("loyalty.walletPreviewFailed"));
-    }
-  }
-
-  async function sendMarketing(event: FormEvent) {
-    event.preventDefault();
-    const text = message.trim();
-    if (!text) {
-      setError(t("loyalty.walletMessageRequired"));
-      return;
-    }
-    if (!window.confirm(t("loyalty.walletSendConfirm"))) return;
-    setSending(true);
-    setSendResult(null);
-    setError(null);
-    try {
-      const res = await fetch("/api/settings/loyalty/wallet/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          segmentKeys: selectedSegments,
-          requireMarketingConsent: requireConsent,
-        }),
-      });
-      if (!res.ok) {
-        setError(await readErrorMessage(res, t("loyalty.walletSendFailed")));
-        return;
-      }
-      const data = (await res.json()) as {
-        targeted: number;
-        succeeded: number;
-        failed: number;
-      };
-      setSendResult(
-        t("loyalty.walletSendResult")
-          .replace("{targeted}", String(data.targeted))
-          .replace("{succeeded}", String(data.succeeded))
-          .replace("{failed}", String(data.failed)),
-      );
-      setMessage("");
-      await refreshPreview();
-    } catch {
-      setError(t("loyalty.walletSendFailed"));
-    } finally {
-      setSending(false);
-    }
-  }
-
   if (!draft) {
     return (
       <p className="text-sm text-foreground/60">
@@ -545,20 +483,26 @@ export function LoyaltyWalletClient() {
   }
 
   const tabs: Array<{ id: EditorTab; label: string }> = [
-    { id: "content", label: "Content" },
-    { id: "barcode", label: "Barcode" },
-    { id: "style", label: "Style" },
+    { id: "content", label: t("loyalty.walletTabContent") },
+    { id: "barcode", label: t("loyalty.walletTabBarcode") },
+    { id: "style", label: t("loyalty.walletTabStyle") },
   ];
+
+  const actionLabel = (type: string) => {
+    const key = `loyalty.walletAction.${type}`;
+    const translated = t(key);
+    return translated === key ? type : translated;
+  };
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            What each field does
+            {t("loyalty.walletEditorTitle")}
           </h1>
           <p className="mt-1 text-sm text-foreground/55">
-            Edit any field and see the pass update live
+            {t("loyalty.walletEditorHint")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -614,7 +558,9 @@ export function LoyaltyWalletClient() {
             {tab === "content" ? (
               <>
                 <label className="block space-y-1.5 pb-3">
-                  <span className="text-sm font-semibold">Logo Text</span>
+                  <span className="text-sm font-semibold">
+                    {t("loyalty.walletLogoText")}
+                  </span>
                   <input
                     className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
                     value={draft.logoText}
@@ -622,13 +568,16 @@ export function LoyaltyWalletClient() {
                     maxLength={64}
                   />
                   <span className="block text-xs text-foreground/50">
-                    Text next to the logo (top-left)
+                    {t("loyalty.walletLogoTextHint")}
                   </span>
                 </label>
 
                 <label className="block space-y-1.5 border-t border-foreground/10 py-3">
                   <span className="text-sm font-semibold">
-                    Organization Name <span className="font-normal text-foreground/45">(optional)</span>
+                    {t("loyalty.walletOrgName")}{" "}
+                    <span className="font-normal text-foreground/45">
+                      {t("loyalty.walletOptional")}
+                    </span>
                   </span>
                   <input
                     className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
@@ -639,38 +588,38 @@ export function LoyaltyWalletClient() {
                     maxLength={64}
                   />
                   <span className="block text-xs text-foreground/50">
-                    Notification title on pass updates. Defaults to your account name.
+                    {t("loyalty.walletOrgNameHint")}
                   </span>
                 </label>
 
                 <FieldListEditor
-                  title="Header Fields (top-right)"
-                  hint="Visible when the pass is stacked. Use {{balance}} for live points."
+                  title={t("loyalty.walletHeaderFields")}
+                  hint={t("loyalty.walletHeaderFieldsHint")}
                   fields={draft.headerFields}
                   onChange={(headerFields) => setDraft({ ...draft, headerFields })}
                 />
                 <FieldListEditor
-                  title="Primary Fields (main content)"
-                  hint="Main content on the pass face."
+                  title={t("loyalty.walletPrimaryFields")}
+                  hint={t("loyalty.walletPrimaryFieldsHint")}
                   fields={draft.primaryFields}
                   onChange={(primaryFields) => setDraft({ ...draft, primaryFields })}
                 />
                 <FieldListEditor
-                  title="Secondary Fields (below primary)"
-                  hint="Use {{name}} for the member’s name."
+                  title={t("loyalty.walletSecondaryFields")}
+                  hint={t("loyalty.walletSecondaryFieldsHint")}
                   fields={draft.secondaryFields}
                   onChange={(secondaryFields) => setDraft({ ...draft, secondaryFields })}
                 />
                 <FieldListEditor
-                  title="Footer Fields (poster layout)"
-                  hint="Up to two short lines along the bottom of the poster layout."
+                  title={t("loyalty.walletFooterFields")}
+                  hint={t("loyalty.walletFooterFieldsHint")}
                   fields={draft.footerFields}
                   max={2}
                   onChange={(footerFields) => setDraft({ ...draft, footerFields })}
                 />
                 <FieldListEditor
-                  title="Back Fields (back of pass)"
-                  hint="Shown when the guest taps ⓘ."
+                  title={t("loyalty.walletBackFields")}
+                  hint={t("loyalty.walletBackFieldsHint")}
                   fields={draft.backFields}
                   onChange={(backFields) => setDraft({ ...draft, backFields })}
                 />
@@ -679,11 +628,12 @@ export function LoyaltyWalletClient() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-semibold">
-                        Lock-Screen Locations ({draft.locations.length}/10)
+                        {t("loyalty.walletLocationsTitle", {
+                          count: draft.locations.length,
+                        })}
                       </h3>
                       <p className="text-xs text-foreground/50">
-                        Wallet shows the pass on the lock screen within ~100m of a
-                        coordinate.
+                        {t("loyalty.walletLocationsHint")}
                       </p>
                     </div>
                   </div>
@@ -744,10 +694,12 @@ export function LoyaltyWalletClient() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-semibold">
-                        Featured Actions ({draft.featuredActions.length}/2)
+                        {t("loyalty.walletFeaturedActions", {
+                          count: draft.featuredActions.length,
+                        })}
                       </h3>
                       <p className="text-xs text-foreground/50">
-                        Up to two buttons under the pass. Apple sets the icon and wording.
+                        {t("loyalty.walletFeaturedActionsHint")}
                       </p>
                     </div>
                     <button
@@ -787,9 +739,9 @@ export function LoyaltyWalletClient() {
                               setDraft({ ...draft, featuredActions: next });
                             }}
                           >
-                            {FEATURED_TYPES.map((type) => (
+                            {FEATURED_ACTION_TYPES.map((type) => (
                               <option key={type} value={type}>
-                                {ACTION_LABELS[type] ?? type}
+                                {actionLabel(type)}
                               </option>
                             ))}
                           </select>
@@ -828,7 +780,9 @@ export function LoyaltyWalletClient() {
             {tab === "barcode" ? (
               <>
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-semibold">Barcode</span>
+                  <span className="text-sm font-semibold">
+                    {t("loyalty.walletBarcode")}
+                  </span>
                   <select
                     className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
                     value={draft.barcodeFormat}
@@ -847,63 +801,73 @@ export function LoyaltyWalletClient() {
                   </select>
                 </label>
                 <div className="mt-4 space-y-1.5 border-t border-foreground/10 pt-4">
-                  <span className="text-sm font-semibold">Barcode Value</span>
+                  <span className="text-sm font-semibold">
+                    {t("loyalty.walletBarcodeValue")}
+                  </span>
                   <div className="rounded-lg border border-foreground/15 bg-foreground/[0.03] px-3 py-3 text-sm text-foreground/70">
-                    Issued per guest as their loyalty member id.
+                    {t("loyalty.walletBarcodeValueHint")}
                     <p className="mt-1 font-mono text-xs text-foreground/45">
                       {"{{guestId}}"}
                     </p>
                   </div>
                   <p className="text-xs text-foreground/50">
-                    Line breaks are kept. Up to 1024 characters.
+                    {t("loyalty.walletBarcodeValueHelp")}
                   </p>
                 </div>
-                <label className="mt-4 flex items-start gap-3 border-t border-foreground/10 pt-4 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={draft.barcodeAltText === ""}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        barcodeAltText: e.target.checked ? "" : null,
-                      })
-                    }
-                  />
-                  <span>
-                    <span className="font-semibold">Override text under barcode</span>
-                    <span className="mt-0.5 block text-xs text-foreground/50">
-                      By default Google prints the value under the code and Apple prints
-                      nothing. Enable to hide text on both.
+                <div className="mt-4 space-y-3 border-t border-foreground/10 pt-4">
+                  <label className="flex items-start gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={draft.barcodeAltText !== null}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          barcodeAltText: e.target.checked ? "" : null,
+                        })
+                      }
+                    />
+                    <span>
+                      <span className="font-semibold">
+                        {t("loyalty.walletBarcodeOverride")}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-foreground/50">
+                        {t("loyalty.walletBarcodeOverrideHint")}
+                      </span>
                     </span>
-                  </span>
-                </label>
+                  </label>
+                  {draft.barcodeAltText !== null ? (
+                    <label className="block space-y-1.5">
+                      <span className="text-sm font-semibold">
+                        {t("loyalty.walletBarcodeAltText")}
+                      </span>
+                      <input
+                        className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
+                        value={draft.barcodeAltText}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            barcodeAltText: e.target.value.slice(0, 128),
+                          })
+                        }
+                        placeholder={t("loyalty.walletBarcodeAltPlaceholder")}
+                        maxLength={128}
+                      />
+                      <span className="block text-xs text-foreground/50">
+                        {t("loyalty.walletBarcodeAltHelp")}
+                      </span>
+                    </label>
+                  ) : null}
+                </div>
               </>
             ) : null}
 
             {tab === "style" ? (
               <>
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-semibold">Color Preset</span>
-                  <select
-                    className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
-                    value={draft.colorPreset}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        colorPreset: e.target.value as Draft["colorPreset"],
-                      })
-                    }
-                  >
-                    {COLOR_PRESETS.map((p) => (
-                      <option key={p} value={p}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="mt-4 block space-y-1.5 border-t border-foreground/10 pt-4">
-                  <span className="text-sm font-semibold">Custom Color</span>
+                  <span className="text-sm font-semibold">
+                    {t("loyalty.walletColor")}
+                  </span>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -920,42 +884,42 @@ export function LoyaltyWalletClient() {
                     />
                   </div>
                   <span className="block text-xs text-foreground/50">
-                    Overrides color preset.
+                    {t("loyalty.walletColorHint")}
                   </span>
                 </label>
                 <ImageSlot
-                  label="Logo (160×160)"
-                  hint="Brand mark on the pass face (top-left)."
+                  label={t("loyalty.walletImageLogo")}
+                  hint={t("loyalty.walletImageLogoHint")}
                   value={draft.logoURL}
                   onChange={(logoURL) => setDraft({ ...draft, logoURL })}
                 />
                 <ImageSlot
-                  label="Wide Logo (1280×400)"
-                  hint="Transparent PNG wordmark for Google Wallet."
+                  label={t("loyalty.walletImageWideLogo")}
+                  hint={t("loyalty.walletImageWideLogoHint")}
                   value={draft.wideLogoURL}
                   onChange={(wideLogoURL) => setDraft({ ...draft, wideLogoURL })}
                 />
                 <ImageSlot
-                  label="Icon (120×120)"
-                  hint="Lock-screen notification icon."
+                  label={t("loyalty.walletImageIcon")}
+                  hint={t("loyalty.walletImageIconHint")}
                   value={draft.iconURL}
                   onChange={(iconURL) => setDraft({ ...draft, iconURL })}
                 />
                 <ImageSlot
-                  label="Thumbnail (180×180)"
-                  hint="Small image, top-right of the pass face."
+                  label={t("loyalty.walletImageThumbnail")}
+                  hint={t("loyalty.walletImageThumbnailHint")}
                   value={draft.thumbnailURL}
                   onChange={(thumbnailURL) => setDraft({ ...draft, thumbnailURL })}
                 />
                 <ImageSlot
-                  label="Strip Image (1080×360)"
-                  hint="Wide banner behind the primary field (store card layout)."
+                  label={t("loyalty.walletImageStrip")}
+                  hint={t("loyalty.walletImageStripHint")}
                   value={draft.stripURL}
                   onChange={(stripURL) => setDraft({ ...draft, stripURL })}
                 />
                 <ImageSlot
-                  label="Background (690×1010)"
-                  hint="Full-bleed poster artwork (iOS 17+ poster layout)."
+                  label={t("loyalty.walletImageBackground")}
+                  hint={t("loyalty.walletImageBackgroundHint")}
                   value={draft.backgroundURL}
                   onChange={(backgroundURL) => setDraft({ ...draft, backgroundURL })}
                 />
@@ -966,23 +930,7 @@ export function LoyaltyWalletClient() {
 
         {/* Preview */}
         <aside className="xl:sticky xl:top-4 xl:self-start">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex gap-4">
-              {(["preview", "code"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setPreviewMode(mode)}
-                  className={`border-b-2 pb-1 text-sm font-medium capitalize ${
-                    previewMode === mode
-                      ? "border-foreground text-foreground"
-                      : "border-transparent text-foreground/45"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
+          <div className="mb-3 flex justify-end">
             <div className="inline-flex rounded-full border border-foreground/15 p-0.5">
               {(["apple", "google"] as const).map((p) => (
                 <button
@@ -995,125 +943,33 @@ export function LoyaltyWalletClient() {
                       : "text-foreground/55"
                   }`}
                 >
-                  {p === "apple" ? "Apple" : "Google"}
+                  {p === "apple" ? t("loyalty.walletApple") : t("loyalty.walletGoogle")}
                 </button>
               ))}
             </div>
           </div>
 
-          {previewMode === "preview" ? (
-            <WalletPassPreview
-              platform={platform}
-              draft={{
-                logoText: draft.logoText,
-                organizationName: draft.organizationName,
-                primaryFields: draft.primaryFields,
-                secondaryFields: draft.secondaryFields,
-                headerFields: draft.headerFields,
-                footerFields: draft.footerFields,
-                featuredActions: draft.featuredActions,
-                barcodeFormat: draft.barcodeFormat,
-                barcodeAltText: draft.barcodeAltText,
-                colorPreset: draft.colorPreset,
-                color: draft.color,
-                logoURL: draft.logoURL,
-                stripURL: draft.stripURL,
-                backgroundURL: draft.backgroundURL,
-              }}
-            />
-          ) : (
-            <pre className="max-h-[560px] overflow-auto rounded-2xl border border-foreground/10 bg-zinc-950 p-4 text-[11px] leading-relaxed text-zinc-100">
-              {JSON.stringify(draftToInput(draft), null, 2)}
-            </pre>
-          )}
+          <WalletPassPreview
+            platform={platform}
+            draft={{
+              logoText: draft.logoText,
+              organizationName: draft.organizationName,
+              primaryFields: draft.primaryFields,
+              secondaryFields: draft.secondaryFields,
+              headerFields: draft.headerFields,
+              footerFields: draft.footerFields,
+              featuredActions: draft.featuredActions,
+              barcodeFormat: draft.barcodeFormat,
+              barcodeAltText: draft.barcodeAltText,
+              colorPreset: draft.colorPreset,
+              color: draft.color,
+              logoURL: draft.logoURL,
+              stripURL: draft.stripURL,
+              backgroundURL: draft.backgroundURL,
+            }}
+          />
         </aside>
       </div>
-
-      {/* Marketing */}
-      <section className="rounded-2xl border border-foreground/10 bg-background/80 p-5 shadow-sm ring-1 ring-foreground/5">
-        <h2 className="text-lg font-semibold">{t("loyalty.walletMarketingTitle")}</h2>
-        <p className="mt-1 text-sm text-foreground/60">{t("loyalty.walletMarketingHint")}</p>
-        <form onSubmit={(e) => void sendMarketing(e)} className="mt-4 space-y-4">
-          <label className="block text-sm">
-            <span className="block text-foreground/60">{t("loyalty.walletMessage")}</span>
-            <textarea
-              className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2"
-              rows={3}
-              maxLength={256}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-            <span className="mt-1 block text-xs text-foreground/45">
-              {message.length}/256
-            </span>
-          </label>
-          <div>
-            <p className="text-sm text-foreground/60">{t("loyalty.walletSegments")}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {segments.map((seg) => {
-                const key = seg.key as LoyaltySegmentKey;
-                const active = selectedSegments.includes(key);
-                return (
-                  <button
-                    key={seg.key}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSegments((prev) =>
-                        prev.includes(key)
-                          ? prev.filter((k) => k !== key)
-                          : [...prev, key],
-                      );
-                      setPreviewCount(null);
-                    }}
-                    className={`rounded-full border px-3 py-1 text-xs ${
-                      active
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-foreground/20 text-foreground/70"
-                    }`}
-                  >
-                    {seg.labelEn}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={requireConsent}
-              onChange={(e) => {
-                setRequireConsent(e.target.checked);
-                setPreviewCount(null);
-              }}
-            />
-            {t("loyalty.walletRequireConsent")}
-          </label>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void refreshPreview()}
-              className="rounded-lg border border-foreground/20 px-3 py-2 text-sm"
-            >
-              {t("loyalty.walletPreview")}
-            </button>
-            {previewCount !== null ? (
-              <span className="text-sm text-foreground/60">
-                {t("loyalty.walletPreviewCount").replace("{count}", String(previewCount))}
-              </span>
-            ) : null}
-            <button
-              type="submit"
-              disabled={sending || !draft.enabled}
-              className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
-            >
-              {sending ? t("loyalty.walletSending") : t("loyalty.walletSend")}
-            </button>
-          </div>
-          {sendResult ? (
-            <p className="text-sm text-emerald-600">{sendResult}</p>
-          ) : null}
-        </form>
-      </section>
     </div>
   );
 }

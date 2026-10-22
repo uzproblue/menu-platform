@@ -5,6 +5,7 @@ import type {
   WalletFeaturedAction,
   WalletPassField,
 } from "@/lib/loyalty-api";
+import { useI18n } from "../i18n-provider";
 
 export type PreviewPlatform = "apple" | "google";
 
@@ -34,22 +35,22 @@ const PRESET_COLORS: Record<string, string> = {
   orange: "#9a3412",
 };
 
-const ACTION_LABELS: Record<string, string> = {
-  order: "Order Delivery or Pickup",
-  viewOffersRewards: "View Offers and Rewards",
-  shop: "Shop",
-  membershipBenefits: "View Membership Benefits",
-  addToBalance: "Add to Balance",
-  call: "Call",
-  place: "Go to Location",
-  bookAppointment: "Book Appointment",
-  viewSchedule: "View Schedule",
-  watchTrailer: "Watch Trailer",
-  listenToMusic: "Listen to Music",
-  bookCar: "Book a Car",
-  bookFlight: "Book a Flight",
-  bookStay: "Book a Stay",
-};
+export const FEATURED_ACTION_TYPES = [
+  "order",
+  "viewOffersRewards",
+  "shop",
+  "membershipBenefits",
+  "addToBalance",
+  "call",
+  "place",
+  "bookAppointment",
+  "viewSchedule",
+  "watchTrailer",
+  "listenToMusic",
+  "bookCar",
+  "bookFlight",
+  "bookStay",
+] as const;
 
 function substitutePreview(value: string): string {
   return value
@@ -73,35 +74,129 @@ function FieldBlock({ field }: { field: WalletPassField }) {
   );
 }
 
-function QrPlaceholder({ value }: { value: string }) {
-  // Deterministic fake QR cells for preview only (not scannable).
-  const cells = useMemo(() => {
-    const size = 21;
+function seededRng(seedText: string) {
+  let seed = 0;
+  for (let i = 0; i < seedText.length; i++) {
+    seed = (seed * 31 + seedText.charCodeAt(i)) >>> 0;
+  }
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed;
+  };
+}
+
+function BarcodePlaceholder({
+  value,
+  format,
+}: {
+  value: string;
+  format: string;
+}) {
+  const graphic = useMemo(() => {
+    const next = seededRng(`${format}:${value}`);
+    const fmt = format.toUpperCase();
+
+    if (fmt === "CODE128") {
+      const bars: number[] = [];
+      for (let i = 0; i < 48; i++) {
+        bars.push((next() % 3) + 1);
+      }
+      return { kind: "linear" as const, bars };
+    }
+
+    if (fmt === "PDF417") {
+      const rows = 8;
+      const cols = 40;
+      const bits: boolean[] = [];
+      for (let i = 0; i < rows * cols; i++) {
+        bits.push(next() % 3 !== 0);
+      }
+      return { kind: "pdf417" as const, rows, cols, bits };
+    }
+
+    // QR / Aztec — square matrix
+    const size = fmt === "AZTEC" ? 19 : 21;
     const bits: boolean[] = [];
-    let seed = 0;
-    for (let i = 0; i < value.length; i++) seed = (seed * 31 + value.charCodeAt(i)) >>> 0;
     for (let i = 0; i < size * size; i++) {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
       const x = i % size;
       const y = Math.floor(i / size);
       const finder =
-        (x < 7 && y < 7) ||
-        (x >= size - 7 && y < 7) ||
-        (x < 7 && y >= size - 7);
-      bits.push(finder ? x === 0 || y === 0 || x === 6 || y === 6 || (x > 1 && x < 5 && y > 1 && y < 5) : seed % 3 !== 0);
+        fmt === "QR" &&
+        ((x < 7 && y < 7) ||
+          (x >= size - 7 && y < 7) ||
+          (x < 7 && y >= size - 7));
+      bits.push(
+        finder
+          ? x === 0 ||
+              y === 0 ||
+              x === 6 ||
+              y === 6 ||
+              (x > 1 && x < 5 && y > 1 && y < 5)
+          : next() % 3 !== 0,
+      );
     }
-    return { size, bits };
-  }, [value]);
+    return { kind: "matrix" as const, size, bits };
+  }, [format, value]);
+
+  if (graphic.kind === "linear") {
+    let x = 0;
+    const total = graphic.bars.reduce((a, b) => a + b, 0);
+    return (
+      <div className="mx-auto w-[78%] rounded-md bg-white px-3 py-3">
+        <svg viewBox={`0 0 ${total} 40`} className="h-12 w-full">
+          {graphic.bars.map((w, i) => {
+            const rect = (
+              <rect
+                key={i}
+                x={x}
+                y="0"
+                width={w}
+                height="40"
+                fill={i % 2 === 0 ? "#111" : "transparent"}
+              />
+            );
+            x += w;
+            return rect;
+          })}
+        </svg>
+      </div>
+    );
+  }
+
+  if (graphic.kind === "pdf417") {
+    return (
+      <div className="mx-auto w-[78%] rounded-md bg-white p-2">
+        <svg
+          viewBox={`0 0 ${graphic.cols} ${graphic.rows}`}
+          className="h-14 w-full"
+          preserveAspectRatio="none"
+        >
+          {graphic.bits.map((on, i) =>
+            on ? (
+              <rect
+                key={i}
+                x={i % graphic.cols}
+                y={Math.floor(i / graphic.cols)}
+                width="1"
+                height="1"
+                fill="#111"
+              />
+            ) : null,
+          )}
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto aspect-square w-[58%] rounded-md bg-white p-2">
-      <svg viewBox={`0 0 ${cells.size} ${cells.size}`} className="h-full w-full">
-        {cells.bits.map((on, i) =>
+      <svg viewBox={`0 0 ${graphic.size} ${graphic.size}`} className="h-full w-full">
+        {graphic.bits.map((on, i) =>
           on ? (
             <rect
               key={i}
-              x={i % cells.size}
-              y={Math.floor(i / cells.size)}
+              x={i % graphic.size}
+              y={Math.floor(i / graphic.size)}
               width="1"
               height="1"
               fill="#111"
@@ -113,8 +208,19 @@ function QrPlaceholder({ value }: { value: string }) {
   );
 }
 
-function actionLabel(type: string): string {
-  return ACTION_LABELS[type] ?? type;
+function barcodeCaption(
+  barcodeAltText: string | null,
+  platform: PreviewPlatform,
+  fallbackValue: string,
+): string | null {
+  // Override on: show the custom text (empty = nothing).
+  if (barcodeAltText !== null) {
+    const trimmed = barcodeAltText.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  // Defaults: Google shows value, Apple shows nothing.
+  if (platform === "google") return fallbackValue.slice(0, 12);
+  return null;
 }
 
 type Props = {
@@ -123,6 +229,12 @@ type Props = {
 };
 
 export function WalletPassPreview({ draft, platform }: Props) {
+  const { t } = useI18n();
+  const actionLabel = (type: string) => {
+    const key = `loyalty.walletAction.${type}`;
+    const translated = t(key);
+    return translated === key ? type : translated;
+  };
   const bg =
     draft.color.trim() ||
     PRESET_COLORS[draft.colorPreset] ||
@@ -130,6 +242,11 @@ export function WalletPassPreview({ draft, platform }: Props) {
   const logoText = draft.logoText.trim() || "Loyalty";
   const org = draft.organizationName.trim() || logoText;
   const barcodeValue = "guest-demo";
+  const underBarcode = barcodeCaption(
+    draft.barcodeAltText,
+    platform,
+    barcodeValue,
+  );
 
   if (platform === "google") {
     return (
@@ -170,10 +287,13 @@ export function WalletPassPreview({ draft, platform }: Props) {
             </div>
 
             <div className="mt-6">
-              <QrPlaceholder value={barcodeValue} />
-              {draft.barcodeAltText !== "" ? (
+              <BarcodePlaceholder
+                value={barcodeValue}
+                format={draft.barcodeFormat}
+              />
+              {underBarcode ? (
                 <p className="mt-2 text-center text-xs text-white/70">
-                  {draft.barcodeAltText?.trim() || barcodeValue.slice(0, 8)}
+                  {underBarcode}
                 </p>
               ) : null}
             </div>
@@ -203,8 +323,7 @@ export function WalletPassPreview({ draft, platform }: Props) {
           </div>
         </div>
         <p className="mt-3 max-w-[280px] text-center text-xs text-foreground/50">
-          Google Wallet fills the screen with the pass; featured actions become
-          tappable rows.
+          {t("loyalty.walletPreviewGoogleHint")}
         </p>
       </div>
     );
@@ -259,7 +378,15 @@ export function WalletPassPreview({ draft, platform }: Props) {
             </div>
 
             <div className="px-4 pb-4 pt-1">
-              <QrPlaceholder value={barcodeValue} />
+              <BarcodePlaceholder
+                value={barcodeValue}
+                format={draft.barcodeFormat}
+              />
+              {underBarcode ? (
+                <p className="mt-2 text-center text-xs text-white/80">
+                  {underBarcode}
+                </p>
+              ) : null}
               <p className="mt-2 text-center text-[10px] text-white/55">{org}</p>
             </div>
           </div>
@@ -283,7 +410,9 @@ export function WalletPassPreview({ draft, platform }: Props) {
                   <p className="text-[11px] font-semibold leading-snug text-zinc-900">
                     {actionLabel(action.type)}
                   </p>
-                  <p className="mt-1 text-[10px] text-zinc-500">Open Link</p>
+                  <p className="mt-1 text-[10px] text-zinc-500">
+                    {t("loyalty.walletOpenLink")}
+                  </p>
                 </div>
               ))}
             </div>
@@ -291,10 +420,8 @@ export function WalletPassPreview({ draft, platform }: Props) {
         </div>
       </div>
       <p className="mt-3 max-w-[280px] text-center text-xs text-foreground/50">
-        Featured actions are available on iOS 17 and later.
+        {t("loyalty.walletPreviewAppleHint")}
       </p>
     </div>
   );
 }
-
-export { ACTION_LABELS };
