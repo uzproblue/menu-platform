@@ -8,9 +8,15 @@ export type WalletPassLocation = {
   relevantText?: string;
 };
 
-export type WalletBackField = {
+export type WalletPassField = {
   label?: string;
   value: string;
+};
+
+export type WalletFeaturedAction = {
+  identifier: string;
+  type: string;
+  url: string;
 };
 
 export type WalletPassConfig = {
@@ -22,8 +28,14 @@ export type WalletPassConfig = {
   programTitle: string;
   pointsLabel: string;
   memberNameLabel: string;
-  backFields: WalletBackField[];
+  primaryFields: WalletPassField[];
+  secondaryFields: WalletPassField[];
+  headerFields: WalletPassField[];
+  footerFields: WalletPassField[];
+  backFields: WalletPassField[];
+  featuredActions: WalletFeaturedAction[];
   barcodeFormat: "QR" | "PDF417" | "Aztec" | "Code128";
+  barcodeAltText: string | null;
   colorPreset: "dark" | "blue" | "green" | "red" | "purple" | "orange";
   color: string | null;
   logoURL: string | null;
@@ -45,8 +57,14 @@ export type WalletPassConfigInput = {
   programTitle: string;
   pointsLabel: string;
   memberNameLabel: string;
-  backFields: WalletBackField[];
+  primaryFields: WalletPassField[];
+  secondaryFields: WalletPassField[];
+  headerFields: WalletPassField[];
+  footerFields: WalletPassField[];
+  backFields: WalletPassField[];
+  featuredActions: WalletFeaturedAction[];
   barcodeFormat: WalletPassConfig["barcodeFormat"];
+  barcodeAltText: string | null;
   colorPreset: WalletPassConfig["colorPreset"];
   color: string | null;
   logoURL: string | null;

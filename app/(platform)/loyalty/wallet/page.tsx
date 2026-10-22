@@ -8,23 +8,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoyaltyWalletPage() {
-  const { t } = await getServerT();
-
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-7">
-        <header className="max-w-2xl">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("loyalty.walletTitle")}
-          </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-foreground/60">
-            {t("loyalty.walletSubtitle")}
-          </p>
-        </header>
-        <div className="mt-6">
-          <LoyaltyWalletClient />
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-[1600px]">
+      <LoyaltyWalletClient />
     </div>
   );
 }
