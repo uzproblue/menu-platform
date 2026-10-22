@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
 import type { Location } from "@/lib/auth-api/types/locations";
 import { expandR2AssetToPublicUrl } from "@/lib/r2-object-key";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
@@ -28,6 +27,33 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
   } catch {
     return fallback;
   }
+}
+
+function PlusIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function TrashIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 const COLOR_PRESETS = ["dark", "blue", "green", "red", "purple", "orange"] as const;
@@ -169,7 +195,7 @@ function FieldListEditor({
           className="rounded-md p-1.5 text-foreground/60 hover:bg-foreground/5 disabled:opacity-30"
           aria-label="Add field"
         >
-          <Plus size={16} />
+          <PlusIcon size={16} />
         </button>
       </div>
       {fields.length === 0 ? (
@@ -206,7 +232,7 @@ function FieldListEditor({
                 className="rounded-md p-2 text-foreground/45 hover:bg-foreground/5 hover:text-red-600"
                 aria-label="Remove field"
               >
-                <Trash2 size={15} />
+                <TrashIcon size={15} />
               </button>
             </li>
           ))}
@@ -742,7 +768,7 @@ export function LoyaltyWalletClient() {
                       }
                       className="rounded-md p-1.5 text-foreground/60 hover:bg-foreground/5 disabled:opacity-30"
                     >
-                      <Plus size={16} />
+                      <PlusIcon size={16} />
                     </button>
                   </div>
                   <ul className="space-y-3">
@@ -779,7 +805,7 @@ export function LoyaltyWalletClient() {
                             }
                             className="rounded-md p-2 text-foreground/45 hover:text-red-600"
                           >
-                            <Trash2 size={15} />
+                            <TrashIcon size={15} />
                           </button>
                         </div>
                         <input
