@@ -55,6 +55,11 @@ const loyaltyChildren: Array<{
     labelKey: "nav.loyaltyPromotions",
     match: (p) => p.startsWith("/loyalty/promotions"),
   },
+  {
+    href: "/loyalty/operations",
+    labelKey: "nav.loyaltyOperations",
+    match: (p) => p.startsWith("/loyalty/operations"),
+  },
 ];
 
 function isLoyaltyGroupPath(pathname: string): boolean {

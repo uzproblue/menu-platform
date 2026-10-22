@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { updateSegmentActionWithAuthServer } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 
 export async function PATCH(
   req: Request,
@@ -26,8 +26,14 @@ export async function PATCH(
     );
   }
 
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await updateSegmentActionWithAuthServer(token, restaurantId, id, {
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await updateSegmentActionWithAuthServer(token, access.restaurantId, id, {
     status,
   });
   if (!result.ok) {

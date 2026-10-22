@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { mutateGuestPointsWithAuthServer } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 type Props = { params: Promise<{ guestId: string }> };
@@ -22,10 +22,16 @@ export async function POST(req: Request, { params }: Props) {
   }
 
   const { guestId } = await params;
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
   const result = await mutateGuestPointsWithAuthServer(
     token,
-    restaurantId,
+    access.restaurantId,
     guestId,
     body as {
       kind: "earn" | "redeem" | "adjust";

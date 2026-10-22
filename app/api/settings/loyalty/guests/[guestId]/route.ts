@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getGuestWithAuthServer } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 
 type Props = { params: Promise<{ guestId: string }> };
 
@@ -14,8 +14,14 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   const { guestId } = await params;
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await getGuestWithAuthServer(token, restaurantId, guestId);
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await getGuestWithAuthServer(token, access.restaurantId, guestId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

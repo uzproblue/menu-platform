@@ -6,7 +6,7 @@ import {
   getPromotionWithAuthServer,
   updatePromotionWithAuthServer,
 } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 type Props = { params: Promise<{ id: string }> };
@@ -19,8 +19,14 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   const { id } = await params;
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await getPromotionWithAuthServer(token, restaurantId, id);
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await getPromotionWithAuthServer(token, access.restaurantId, id);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -45,10 +51,16 @@ export async function PATCH(req: Request, { params }: Props) {
   }
 
   const { id } = await params;
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
   const result = await updatePromotionWithAuthServer(
     token,
-    restaurantId,
+    access.restaurantId,
     id,
     body as Record<string, unknown>,
   );
@@ -71,8 +83,14 @@ export async function DELETE(_req: Request, { params }: Props) {
   }
 
   const { id } = await params;
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await deletePromotionWithAuthServer(token, restaurantId, id);
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await deletePromotionWithAuthServer(token, access.restaurantId, id);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

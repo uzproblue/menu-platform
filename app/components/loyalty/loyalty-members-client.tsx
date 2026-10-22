@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { GuestsListResponse, LoyaltyGuest, LoyaltyLedgerEntry } from "@/lib/loyalty-api/types";
 import { buildGuestsListQuery } from "@/lib/loyalty-api/guests-query";
+import { formatMinorCurrency, majorToMinor } from "@/lib/currency-minor-units";
 import { useI18n } from "../i18n-provider";
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
@@ -36,12 +37,12 @@ const DEFAULT_FILTERS: AppliedFilters = {
 
 const PAGE_SIZE_OPTIONS = [25, 50] as const;
 
-function parseSpendInput(value: string): number | undefined {
+function parseSpendInput(value: string, currency: string): number | undefined {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   const n = Number(trimmed);
   if (!Number.isFinite(n) || n < 0) return undefined;
-  return Math.floor(n);
+  return majorToMinor(n, currency);
 }
 
 function formatVisitDate(value: string | null, neverLabel: string, locale: string): string {
@@ -53,18 +54,6 @@ function formatVisitDate(value: string | null, neverLabel: string, locale: strin
     month: "short",
     day: "numeric",
   }).format(new Date(ms));
-}
-
-function formatOrdersValue(amount: number, currency: string, locale: string): string {
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currency || "KZT",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${amount} ${currency || "KZT"}`;
-  }
 }
 
 function statusBadgeClass(status: string): string {
@@ -95,13 +84,16 @@ export function LoyaltyMembersClient() {
   const [applied, setApplied] = useState<AppliedFilters>(DEFAULT_FILTERS);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [selected, setSelected] = useState<LoyaltyGuest | null>(null);
   const [transactions, setTransactions] = useState<LoyaltyLedgerEntry[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [pointsInput, setPointsInput] = useState("10");
   const [noteInput, setNoteInput] = useState("");
   const [mutating, setMutating] = useState(false);
+  const mutationAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
   const hasActiveFilters = useMemo(() => {
@@ -116,14 +108,14 @@ export function LoyaltyMembersClient() {
   }, [applied]);
 
   const loadGuests = useCallback(async () => {
-    setError(null);
+    setListError(null);
     const params = buildGuestsListQuery({
       q: applied.search || undefined,
       status: applied.status || undefined,
       lastVisitedFrom: applied.lastVisitedFrom || undefined,
       lastVisitedTo: applied.lastVisitedTo || undefined,
-      minSpend: parseSpendInput(applied.minSpend),
-      maxSpend: parseSpendInput(applied.maxSpend),
+      minSpend: parseSpendInput(applied.minSpend, currency),
+      maxSpend: parseSpendInput(applied.maxSpend, currency),
       page,
       limit,
       sort: "createdAt",
@@ -137,7 +129,7 @@ export function LoyaltyMembersClient() {
     setGuests(data.guests ?? []);
     setTotal(typeof data.total === "number" ? data.total : 0);
     setCurrency(data.currency?.trim() || "KZT");
-  }, [applied, limit, page, t]);
+  }, [applied, currency, limit, page, t]);
 
   useEffect(() => {
     void (async () => {
@@ -145,12 +137,28 @@ export function LoyaltyMembersClient() {
       try {
         await loadGuests();
       } catch (e) {
-        setError(e instanceof Error ? e.message : t("loyalty.errLoadMembers"));
+        setListError(e instanceof Error ? e.message : t("loyalty.errLoadMembers"));
       } finally {
         setLoading(false);
       }
     })();
   }, [loadGuests, t]);
+
+  useEffect(() => {
+    const onContextChanged = () => {
+      setSelected(null);
+      setTransactions([]);
+      setDetailError(null);
+      setMutationError(null);
+      mutationAttempt.current = null;
+      setMinSpendDraft("");
+      setMaxSpendDraft("");
+      setApplied((current) => ({ ...current, minSpend: "", maxSpend: "" }));
+      setPage(1);
+    };
+    window.addEventListener("restaurant-context-changed", onContextChanged);
+    return () => window.removeEventListener("restaurant-context-changed", onContextChanged);
+  }, []);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -186,6 +194,9 @@ export function LoyaltyMembersClient() {
 
   async function openGuest(guest: LoyaltyGuest) {
     setSelected(guest);
+    setDetailError(null);
+    setMutationError(null);
+    mutationAttempt.current = null;
     setDetailLoading(true);
     setTransactions([]);
     try {
@@ -202,7 +213,7 @@ export function LoyaltyMembersClient() {
       setSelected(data.guest);
       setTransactions(data.recentTransactions);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("loyalty.errLoadMember"));
+      setDetailError(e instanceof Error ? e.message : t("loyalty.errLoadMember"));
     } finally {
       setDetailLoading(false);
     }
@@ -212,26 +223,42 @@ export function LoyaltyMembersClient() {
     if (!selected) return;
     const points = Number(pointsInput);
     if (!Number.isFinite(points) || points === 0) return;
+    const note = noteInput.trim();
+    const fingerprint = JSON.stringify([selected.id, kind, points, note]);
+    if (mutationAttempt.current?.fingerprint !== fingerprint) {
+      mutationAttempt.current = {
+        fingerprint,
+        key: globalThis.crypto.randomUUID(),
+      };
+    }
     setMutating(true);
-    setError(null);
+    setMutationError(null);
     try {
       const res = await fetch(
         `/api/settings/loyalty/guests/${encodeURIComponent(selected.id)}/points`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ kind, points, note: noteInput.trim() || undefined }),
+          body: JSON.stringify({
+            kind,
+            points,
+            note: note || undefined,
+            idempotencyKey: mutationAttempt.current.key,
+          }),
         },
       );
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, t("loyalty.errAdjustPoints")));
       }
       const data = (await res.json()) as { balance: number };
+      mutationAttempt.current = null;
       setSelected({ ...selected, balance: data.balance });
-      await loadGuests();
+      await loadGuests().catch((e: unknown) => {
+        setListError(e instanceof Error ? e.message : t("loyalty.errLoadMembers"));
+      });
       await openGuest({ ...selected, balance: data.balance });
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("loyalty.errAdjustPoints"));
+      setMutationError(e instanceof Error ? e.message : t("loyalty.errAdjustPoints"));
     } finally {
       setMutating(false);
     }
@@ -340,9 +367,9 @@ export function LoyaltyMembersClient() {
         ) : null}
       </form>
 
-      {error ? (
+      {listError ? (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-          {error}
+          {listError}
         </p>
       ) : null}
 
@@ -412,7 +439,7 @@ export function LoyaltyMembersClient() {
                     {formatVisitDate(g.lastVisitedAt, t("loyalty.neverVisited"), locale)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-foreground/80">
-                    {formatOrdersValue(g.lifetimeSpendMinor ?? 0, currency, locale)}
+                    {formatMinorCurrency(g.lifetimeSpendMinor ?? 0, currency, locale)}
                   </td>
                   <td className="px-4 py-3 pr-5">
                     <span
@@ -481,7 +508,7 @@ export function LoyaltyMembersClient() {
                 <p>
                   {t("loyalty.ordersValue")}:{" "}
                   <strong>
-                    {formatOrdersValue(selected.lifetimeSpendMinor ?? 0, currency, locale)}
+                    {formatMinorCurrency(selected.lifetimeSpendMinor ?? 0, currency, locale)}
                   </strong>
                 </p>
               </div>
@@ -494,6 +521,12 @@ export function LoyaltyMembersClient() {
               {t("common.close")}
             </button>
           </div>
+
+          {detailError ? (
+            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+              {detailError}
+            </p>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-xs">
@@ -539,6 +572,12 @@ export function LoyaltyMembersClient() {
               {t("loyalty.adjust")}
             </button>
           </div>
+
+          {mutationError ? (
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+              {mutationError}
+            </p>
+          ) : null}
 
           <div className="mt-4">
             <h3 className="text-sm font-medium">{t("loyalty.recentTransactions")}</h3>

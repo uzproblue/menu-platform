@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { listSegmentActionsWithAuthServer } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -12,8 +12,14 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await listSegmentActionsWithAuthServer(token, restaurantId, {
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await listSegmentActionsWithAuthServer(token, access.restaurantId, {
     date: searchParams.get("date") ?? undefined,
     status: searchParams.get("status") ?? undefined,
   });

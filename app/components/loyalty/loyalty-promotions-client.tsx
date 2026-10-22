@@ -44,6 +44,19 @@ export function LoyaltyPromotionsClient() {
     })();
   }, [load, t]);
 
+  useEffect(() => {
+    const onContextChanged = () => {
+      setLoading(true);
+      void load()
+        .catch((e: unknown) => {
+          setError(e instanceof Error ? e.message : t("loyalty.errLoadPromotions"));
+        })
+        .finally(() => setLoading(false));
+    };
+    window.addEventListener("restaurant-context-changed", onContextChanged);
+    return () => window.removeEventListener("restaurant-context-changed", onContextChanged);
+  }, [load, t]);
+
   async function handleDelete(id: string) {
     if (!window.confirm(t("loyalty.deletePromotionConfirm"))) return;
     setDeletingId(id);

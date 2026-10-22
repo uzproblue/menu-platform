@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { runSegmentationWithAuthServer } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -11,8 +11,14 @@ export async function POST() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await runSegmentationWithAuthServer(token, restaurantId);
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await runSegmentationWithAuthServer(token, access.restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

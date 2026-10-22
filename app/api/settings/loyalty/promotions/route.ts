@@ -5,7 +5,7 @@ import {
   createPromotionWithAuthServer,
   listPromotionsWithAuthServer,
 } from "@/lib/loyalty-api";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
 export async function GET() {
@@ -15,8 +15,14 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await listPromotionsWithAuthServer(token, restaurantId);
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await listPromotionsWithAuthServer(token, access.restaurantId);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },
@@ -40,10 +46,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
   const result = await createPromotionWithAuthServer(
     token,
-    restaurantId,
+    access.restaurantId,
     body as Record<string, unknown>,
   );
   if (!result.ok) {

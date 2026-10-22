@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { listGuestsWithAuthServer } from "@/lib/loyalty-api";
 import type { GuestsListParams } from "@/lib/loyalty-api/types";
-import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
+import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 
 function parseOptionalInt(value: string | null): number | undefined {
   if (value == null || value.trim() === "") return undefined;
@@ -48,8 +48,14 @@ export async function GET(req: Request) {
     order,
   };
 
-  const restaurantId = await getSelectedRestaurantIdFromCookies();
-  const result = await listGuestsWithAuthServer(token, restaurantId, params);
+  const access = await requireLoyaltyRestaurantAccess(token);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.error, message: access.message },
+      { status: access.status },
+    );
+  }
+  const result = await listGuestsWithAuthServer(token, access.restaurantId, params);
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, message: result.message },

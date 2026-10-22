@@ -14,8 +14,10 @@ import type {
   LoyaltySegmentSummary,
   SegmentActionsResponse,
   SegmentMembersResponse,
+  SegmentRunResponse,
   SegmentsListResponse,
 } from "@/lib/loyalty-api/types";
+import { formatMinorCurrency } from "@/lib/currency-minor-units";
 import { useI18n } from "../i18n-provider";
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
@@ -28,15 +30,7 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
 }
 
 function formatMoney(amount: number, currency: string, locale: string): string {
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currency || "KZT",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${amount} ${currency || "KZT"}`;
-  }
+  return formatMinorCurrency(amount, currency, locale);
 }
 
 function formatRelativeUpdated(
@@ -128,6 +122,7 @@ export function LoyaltySegmentsClient() {
   const [members, setMembers] = useState<LoyaltyGuest[]>([]);
   const [membersTotal, setMembersTotal] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [contextVersion, setContextVersion] = useState(0);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   const load = useCallback(async (opts?: { quiet?: boolean }) => {
@@ -176,6 +171,9 @@ export function LoyaltySegmentsClient() {
 
   useEffect(() => {
     const onContext = () => {
+      setMembers([]);
+      setMembersTotal(0);
+      setContextVersion((version) => version + 1);
       void load({ quiet: true });
     };
     window.addEventListener("restaurant-context-changed", onContext);
@@ -235,7 +233,7 @@ export function LoyaltySegmentsClient() {
     return () => {
       cancelled = true;
     };
-  }, [selectedKey, t]);
+  }, [contextVersion, selectedKey, t]);
 
   const runNow = async () => {
     setRunning(true);
@@ -247,7 +245,27 @@ export function LoyaltySegmentsClient() {
       if (!res.ok && res.status !== 202) {
         throw new Error(await readErrorMessage(res, t("loyalty.errRunSegments")));
       }
-      await new Promise((r) => setTimeout(r, res.status === 202 ? 2800 : 500));
+      const run = (await res.json()) as SegmentRunResponse;
+      if (run.queued) {
+        for (let attempt = 0; attempt < 15; attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const statusRes = await fetch("/api/settings/loyalty/segments", {
+            cache: "no-store",
+          });
+          if (!statusRes.ok) continue;
+          const status = (await statusRes.json()) as SegmentsListResponse;
+          const observedRun = status.lastRun;
+          const isRequestedRun = run.jobRunId
+            ? observedRun?.id === run.jobRunId
+            : observedRun?.runDate === run.runDate;
+          if (
+            isRequestedRun &&
+            (observedRun?.finishedAt || observedRun?.errorMessage)
+          ) {
+            break;
+          }
+        }
+      }
       await load({ quiet: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loyalty.errRunSegments"));
