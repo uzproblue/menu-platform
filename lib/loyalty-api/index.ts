@@ -5,3 +5,4 @@ export * from "./guests-query";
 export * from "./promotions";
 export * from "./segments";
 export * from "./operations";
+export * from "./wallet";
