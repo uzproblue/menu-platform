@@ -39,6 +39,7 @@ const loyaltyChildren: Array<{
   href: string;
   labelKey: string;
   match: (pathname: string, searchParams: URLSearchParams) => boolean;
+  ownerOnly?: boolean;
 }> = [
   {
     href: "/loyalty/members",
@@ -63,7 +64,14 @@ const loyaltyChildren: Array<{
   {
     href: "/loyalty/wallet",
     labelKey: "nav.loyaltyWallet",
-    match: (p) => p.startsWith("/loyalty/wallet"),
+    match: (p) =>
+      p.startsWith("/loyalty/wallet") && !p.startsWith("/loyalty/wallet/template"),
+  },
+  {
+    href: "/loyalty/wallet/template",
+    labelKey: "nav.loyaltyWalletTemplate",
+    match: (p) => p.startsWith("/loyalty/wallet/template"),
+    ownerOnly: true,
   },
 ];
 
@@ -181,6 +189,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const { t } = useI18n();
   const [sections, setSections] = useState<MenuSectionEntity[]>([]);
   const [unassignedCount, setUnassignedCount] = useState<number>(0);
+  const [isOwner, setIsOwner] = useState(false);
   const [globalMenuExpanded, setGlobalMenuExpanded] = useState(() =>
     isGlobalMenuGroupPath(pathname),
   );
@@ -208,6 +217,25 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
       setLoyaltyExpanded(true);
     }
   }, [pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/settings/restaurant-context", {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { isOwner?: boolean };
+        if (!cancelled) setIsOwner(Boolean(payload?.isOwner));
+      } catch {
+        /* non-fatal */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,13 +303,13 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
 
   const labelForKey = (key: string) => t(key as Parameters<typeof t>[0]);
 
-  const loyaltyNavChildren: NavLinkItem[] = loyaltyChildren.map(
-    ({ href, labelKey, match }) => ({
+  const loyaltyNavChildren: NavLinkItem[] = loyaltyChildren
+    .filter((item) => !item.ownerOnly || isOwner)
+    .map(({ href, labelKey, match }) => ({
       href,
       label: labelForKey(labelKey),
       match,
-    }),
-  );
+    }));
 
   return (
     <nav className="flex h-full min-h-0 flex-col p-2" aria-label="Main">

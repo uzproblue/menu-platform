@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import {
   getWalletConfigWithAuthServer,
   putWalletConfigWithAuthServer,
-  type WalletPassConfigInput,
+  type WalletPassRestaurantInput,
 } from "@/lib/loyalty-api";
 import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-access";
 
@@ -42,7 +42,7 @@ export async function GET() {
 export async function PUT(req: Request) {
   const auth = await authorize();
   if ("response" in auth) return auth.response;
-  const body = (await req.json().catch(() => null)) as WalletPassConfigInput | null;
+  const body = (await req.json().catch(() => null)) as WalletPassRestaurantInput | null;
   if (!body) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }

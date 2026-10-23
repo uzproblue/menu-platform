@@ -36,20 +36,10 @@ const PRESET_COLORS: Record<string, string> = {
 };
 
 export const FEATURED_ACTION_TYPES = [
-  "order",
-  "viewOffersRewards",
-  "shop",
-  "membershipBenefits",
-  "addToBalance",
   "call",
   "place",
-  "bookAppointment",
-  "viewSchedule",
-  "watchTrailer",
-  "listenToMusic",
-  "bookCar",
-  "bookFlight",
-  "bookStay",
+  "order",
+  "membershipBenefits",
 ] as const;
 
 function substitutePreview(value: string): string {
@@ -411,7 +401,11 @@ export function WalletPassPreview({ draft, platform }: Props) {
                     {actionLabel(action.type)}
                   </p>
                   <p className="mt-1 text-[10px] text-zinc-500">
-                    {t("loyalty.walletOpenLink")}
+                    {action.type === "place"
+                      ? t("loyalty.walletOpenInMaps")
+                      : action.type === "call"
+                        ? t("loyalty.walletOpenCall")
+                        : t("loyalty.walletOpenLink")}
                   </p>
                 </div>
               ))}

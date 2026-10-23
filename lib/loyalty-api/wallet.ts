@@ -16,9 +16,55 @@ export type WalletPassField = {
 export type WalletFeaturedAction = {
   identifier: string;
   type: string;
-  url: string;
+  /** HTTPS URL, or `tel:` for `call`. Optional Google Maps link for `place`. */
+  url?: string;
+  /** Apple Maps Place ID. Required for `place`. */
+  placeIdentifier?: string;
 };
 
+export type WalletFeaturedActionSlot = {
+  identifier: string;
+  type: string;
+};
+
+export type WalletPassSystemTemplate = {
+  id: string;
+  description: string;
+  programTitle: string;
+  pointsLabel: string;
+  memberNameLabel: string;
+  primaryFields: WalletPassField[];
+  secondaryFields: WalletPassField[];
+  headerFields: WalletPassField[];
+  footerFields: WalletPassField[];
+  backFields: WalletPassField[];
+  featuredActionSlots: WalletFeaturedActionSlot[];
+  barcodeFormat: "QR" | "PDF417" | "Aztec" | "Code128";
+  barcodeAltText: string | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+
+export type WalletPassRestaurantConfig = {
+  restaurantId: string;
+  enabled: boolean;
+  organizationName: string;
+  logoText: string;
+  featuredActions: WalletFeaturedAction[];
+  colorPreset: "dark" | "blue" | "green" | "red" | "purple" | "orange";
+  color: string | null;
+  logoURL: string | null;
+  stripURL: string | null;
+  iconURL: string | null;
+  wideLogoURL: string | null;
+  thumbnailURL: string | null;
+  backgroundURL: string | null;
+  locations: WalletPassLocation[];
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+
+/** Merged template + restaurant config used for preview and pass issue. */
 export type WalletPassConfig = {
   restaurantId: string;
   enabled: boolean;
@@ -36,7 +82,7 @@ export type WalletPassConfig = {
   featuredActions: WalletFeaturedAction[];
   barcodeFormat: "QR" | "PDF417" | "Aztec" | "Code128";
   barcodeAltText: string | null;
-  colorPreset: "dark" | "blue" | "green" | "red" | "purple" | "orange";
+  colorPreset: WalletPassRestaurantConfig["colorPreset"];
   color: string | null;
   logoURL: string | null;
   stripURL: string | null;
@@ -49,10 +95,26 @@ export type WalletPassConfig = {
   updatedBy: string | null;
 };
 
-export type WalletPassConfigInput = {
+export type WalletPassRestaurantInput = {
   enabled: boolean;
   organizationName: string;
   logoText: string;
+  featuredActions: WalletFeaturedAction[];
+  colorPreset: WalletPassRestaurantConfig["colorPreset"];
+  color: string | null;
+  logoURL: string | null;
+  stripURL: string | null;
+  iconURL: string | null;
+  wideLogoURL: string | null;
+  thumbnailURL: string | null;
+  backgroundURL: string | null;
+  locations: WalletPassLocation[];
+};
+
+/** @deprecated Use WalletPassRestaurantInput */
+export type WalletPassConfigInput = WalletPassRestaurantInput;
+
+export type WalletPassSystemTemplateInput = {
   description: string;
   programTitle: string;
   pointsLabel: string;
@@ -62,18 +124,15 @@ export type WalletPassConfigInput = {
   headerFields: WalletPassField[];
   footerFields: WalletPassField[];
   backFields: WalletPassField[];
-  featuredActions: WalletFeaturedAction[];
-  barcodeFormat: WalletPassConfig["barcodeFormat"];
+  featuredActionSlots: WalletFeaturedActionSlot[];
+  barcodeFormat: WalletPassSystemTemplate["barcodeFormat"];
   barcodeAltText: string | null;
-  colorPreset: WalletPassConfig["colorPreset"];
-  color: string | null;
-  logoURL: string | null;
-  stripURL: string | null;
-  iconURL: string | null;
-  wideLogoURL: string | null;
-  thumbnailURL: string | null;
-  backgroundURL: string | null;
-  locations: WalletPassLocation[];
+};
+
+export type WalletConfigBundle = {
+  restaurant: WalletPassRestaurantConfig;
+  template: WalletPassSystemTemplate;
+  effective: WalletPassConfig;
 };
 
 export type WalletMarketingSendResult = {
@@ -97,7 +156,7 @@ export async function getWalletConfigWithAuthServer(
   accessToken: string,
   restaurantId: string | undefined,
 ) {
-  return loyaltyApiJson<{ config: WalletPassConfig }>({
+  return loyaltyApiJson<WalletConfigBundle>({
     path: "/api/admin/wallet/config",
     method: "GET",
     accessToken,
@@ -108,13 +167,33 @@ export async function getWalletConfigWithAuthServer(
 export async function putWalletConfigWithAuthServer(
   accessToken: string,
   restaurantId: string | undefined,
-  input: WalletPassConfigInput,
+  input: WalletPassRestaurantInput,
 ) {
-  return loyaltyApiJson<{ config: WalletPassConfig }>({
+  return loyaltyApiJson<WalletConfigBundle>({
     path: "/api/admin/wallet/config",
     method: "PUT",
     accessToken,
     restaurantId,
+    body: input,
+  });
+}
+
+export async function getWalletSystemTemplateWithAuthServer(accessToken: string) {
+  return loyaltyApiJson<{ template: WalletPassSystemTemplate }>({
+    path: "/api/admin/wallet/system-template",
+    method: "GET",
+    accessToken,
+  });
+}
+
+export async function putWalletSystemTemplateWithAuthServer(
+  accessToken: string,
+  input: WalletPassSystemTemplateInput,
+) {
+  return loyaltyApiJson<{ template: WalletPassSystemTemplate }>({
+    path: "/api/admin/wallet/system-template",
+    method: "PUT",
+    accessToken,
     body: input,
   });
 }

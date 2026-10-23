@@ -92,6 +92,7 @@ export const uzMessages: Messages = {
   "nav.loyaltyOperations": "Ballar nazorati",
   "nav.loyaltyPromotions": "Stories va takliflar",
   "nav.loyaltyWallet": "Wallet kartalar",
+  "nav.loyaltyWalletTemplate": "Wallet shablon",
   "nav.settings": "Sozlamalar",
   "auth.signOut": "Chiqish",
   "login.welcomeBack": "Xush kelibsiz",
@@ -1330,12 +1331,29 @@ export const uzMessages: Messages = {
   "loyalty.walletLoading": "Wallet sozlamalari yuklanmoqda…",
   "loyalty.walletLoadFailed": "Wallet sozlamalarini yuklab bo‘lmadi.",
   "loyalty.walletSaveFailed": "Wallet sozlamalarini saqlab bo‘lmadi.",
-  "loyalty.walletEditorTitle": "Har bir maydon nima qiladi",
+  "loyalty.walletEditorTitle": "Wallet karta",
   "loyalty.walletEditorHint": "Istalgan maydonni o‘zgartiring — karta darhol yangilanadi",
+  "loyalty.walletRestaurantHint":
+    "Brend, amal havolalari, lokatsiyalar va uslubni sozlang. Karta maydonlari tizim bo‘ylab beriladi.",
   "loyalty.walletEnabled": "Mehmonlar uchun «Walletga qo‘shish»ni yoqish",
   "loyalty.walletTabContent": "Kontent",
   "loyalty.walletTabBarcode": "Shtrixkod",
+  "loyalty.walletTabBrand": "Brend",
+  "loyalty.walletTabLinks": "Havolalar",
   "loyalty.walletTabStyle": "Uslub",
+  "loyalty.walletTemplateTitle": "Wallet tizim shabloni",
+  "loyalty.walletTemplateHint":
+    "Barcha restoranlar uchun umumiy karta tuzilmasi. Restoranlar faqat brend, havolalar, lokatsiyalar va uslubni o‘zgartiradi.",
+  "loyalty.walletTemplateSave": "Shablonni saqlash",
+  "loyalty.walletTemplateSaved": "Tizim shabloni saqlandi.",
+  "loyalty.walletTemplateLoadFailed": "Wallet shablonini yuklab bo‘lmadi.",
+  "loyalty.walletTemplateSaveFailed": "Wallet shablonini saqlab bo‘lmadi.",
+  "loyalty.walletTemplateSlotsHint":
+    "Ikki amal turigacha. Restoranlar telefon, Place ID va havolalarni to‘ldiradi.",
+  "loyalty.walletRestaurantActionsHint":
+    "Tizim slotlari uchun havolalarni to‘ldiring. To‘liq emas slotlar kartaga kirmaydi.",
+  "loyalty.walletNoActionSlots":
+    "Hali tezkor amal slotlari yo‘q. Egasi ularni Wallet shablonida qo‘shishi mumkin.",
   "loyalty.walletLogoText": "Logo matni",
   "loyalty.walletLogoTextHint": "Logotip yonidagi matn (chap yuqori)",
   "loyalty.walletOrgName": "Tashkilot nomi",
@@ -1368,7 +1386,7 @@ export const uzMessages: Messages = {
   "loyalty.walletMaxLocations": "Eng ko‘pi bilan 10 ta lokatsiya tanlash mumkin.",
   "loyalty.walletFeaturedActions": "Tezkor amallar ({count}/2)",
   "loyalty.walletFeaturedActionsHint":
-    "Karta ostida ikkita tugmagacha. Ikonka va matnni Apple belgilaydi.",
+    "Ikki tugmagacha: Qo‘ng‘iroq, Lokatsiyaga o‘tish, Buyurtma yoki A’zolik imtiyozlari. Ikonka va matnni Apple belgilaydi.",
   "loyalty.walletBarcode": "Shtrixkod",
   "loyalty.walletBarcodeValue": "Shtrixkod qiymati",
   "loyalty.walletBarcodeValueHint":
@@ -1410,24 +1428,25 @@ export const uzMessages: Messages = {
   "loyalty.walletApple": "Apple",
   "loyalty.walletGoogle": "Google",
   "loyalty.walletOpenLink": "Havolani ochish",
+  "loyalty.walletOpenInMaps": "Xaritalarda ochish",
+  "loyalty.walletOpenCall": "Qo‘ng‘iroq",
+  "loyalty.walletActionUrl": "Havola (HTTPS)",
+  "loyalty.walletActionCallUrl": "Telefon raqami",
+  "loyalty.walletActionPlaceId": "Apple Maps Place ID",
+  "loyalty.walletActionPlaceIdPlaceholder": "masalan I7C250D2CDCB364A",
+  "loyalty.walletActionPlaceIdHint":
+    "Apple Wallet bu Place ID ni Mapsda ochadi. Uni Apple Place ID Lookup orqali toping.",
+  "loyalty.walletActionGoogleMaps": "Google Maps ulashish havolasi",
+  "loyalty.walletActionGoogleMapsHint":
+    "Ixtiyoriy. Google Wallet bu havolani ochadi (Androidda Maps ilovasi). Bo‘lmasa, joy maps.apple.com da ko‘rsatiladi.",
   "loyalty.walletPreviewAppleHint":
     "Tezkor amallar iOS 17 va undan keyingilarida mavjud.",
   "loyalty.walletPreviewGoogleHint":
     "Google Wallet ekranni karta bilan to‘ldiradi; tezkor amallar qatorlarga aylanadi.",
   "loyalty.walletAction.order": "Yetkazib berish yoki olib ketish",
-  "loyalty.walletAction.viewOffersRewards": "Taklif va mukofotlarni ko‘rish",
-  "loyalty.walletAction.shop": "Do‘kon",
   "loyalty.walletAction.membershipBenefits": "A’zolik imtiyozlari",
-  "loyalty.walletAction.addToBalance": "Balansni to‘ldirish",
   "loyalty.walletAction.call": "Qo‘ng‘iroq",
   "loyalty.walletAction.place": "Lokatsiyaga o‘tish",
-  "loyalty.walletAction.bookAppointment": "Yozilish",
-  "loyalty.walletAction.viewSchedule": "Jadvalni ko‘rish",
-  "loyalty.walletAction.watchTrailer": "Treylerni ko‘rish",
-  "loyalty.walletAction.listenToMusic": "Musiqa tinglash",
-  "loyalty.walletAction.bookCar": "Avtomobil buyurtma",
-  "loyalty.walletAction.bookFlight": "Parvoz band qilish",
-  "loyalty.walletAction.bookStay": "Yashash joyini band qilish",
   "loyalty.incidentStatus.ignored": "E'tiborsiz",
   "loyalty.segmentsSubtitle":
     "Tashriflar, xarajatlar, ballar va tug'ilgan kunlarga asoslangan avtomatik RFM segmentlar va kundalik tavsiyalar.",

@@ -93,6 +93,7 @@ export const enMessages: Messages = {
   "nav.loyaltyOperations": "Points integrity",
   "nav.loyaltyPromotions": "Stories & offers",
   "nav.loyaltyWallet": "Wallet passes",
+  "nav.loyaltyWalletTemplate": "Wallet template",
   "nav.settings": "Settings",
   "auth.signOut": "Sign out",
 
@@ -1331,12 +1332,29 @@ export const enMessages: Messages = {
   "loyalty.walletLoading": "Loading wallet settings…",
   "loyalty.walletLoadFailed": "Could not load wallet settings.",
   "loyalty.walletSaveFailed": "Could not save wallet settings.",
-  "loyalty.walletEditorTitle": "What each field does",
+  "loyalty.walletEditorTitle": "Wallet pass",
   "loyalty.walletEditorHint": "Edit any field and see the pass update live",
+  "loyalty.walletRestaurantHint":
+    "Customize your brand, action links, locations, and style. Card fields are set systemwide.",
   "loyalty.walletEnabled": "Enable Add to Wallet for guests",
   "loyalty.walletTabContent": "Content",
   "loyalty.walletTabBarcode": "Barcode",
+  "loyalty.walletTabBrand": "Brand",
+  "loyalty.walletTabLinks": "Links",
   "loyalty.walletTabStyle": "Style",
+  "loyalty.walletTemplateTitle": "Wallet system template",
+  "loyalty.walletTemplateHint":
+    "Define the shared pass structure for every restaurant. Restaurants only edit brand, links, locations, and style.",
+  "loyalty.walletTemplateSave": "Save template",
+  "loyalty.walletTemplateSaved": "System template saved.",
+  "loyalty.walletTemplateLoadFailed": "Could not load the wallet template.",
+  "loyalty.walletTemplateSaveFailed": "Could not save the wallet template.",
+  "loyalty.walletTemplateSlotsHint":
+    "Up to two action types. Restaurants fill in phone numbers, Place IDs, and links.",
+  "loyalty.walletRestaurantActionsHint":
+    "Fill links for the systemwide action slots. Incomplete slots are omitted from the pass.",
+  "loyalty.walletNoActionSlots":
+    "No featured action slots yet. An owner can add them in Wallet template.",
   "loyalty.walletLogoText": "Logo Text",
   "loyalty.walletLogoTextHint": "Text next to the logo (top-left)",
   "loyalty.walletOrgName": "Organization Name",
@@ -1369,7 +1387,7 @@ export const enMessages: Messages = {
   "loyalty.walletMaxLocations": "You can select at most 10 locations.",
   "loyalty.walletFeaturedActions": "Featured Actions ({count}/2)",
   "loyalty.walletFeaturedActionsHint":
-    "Up to two buttons under the pass. Apple sets the icon and wording.",
+    "Up to two buttons under the pass: Call, Go to Location, Order, or Membership Benefits. Apple sets the icon and wording.",
   "loyalty.walletBarcode": "Barcode",
   "loyalty.walletBarcodeValue": "Barcode Value",
   "loyalty.walletBarcodeValueHint":
@@ -1411,24 +1429,25 @@ export const enMessages: Messages = {
   "loyalty.walletApple": "Apple",
   "loyalty.walletGoogle": "Google",
   "loyalty.walletOpenLink": "Open Link",
+  "loyalty.walletOpenInMaps": "Open in Maps",
+  "loyalty.walletOpenCall": "Call",
+  "loyalty.walletActionUrl": "Link (HTTPS)",
+  "loyalty.walletActionCallUrl": "Phone number",
+  "loyalty.walletActionPlaceId": "Apple Maps Place ID",
+  "loyalty.walletActionPlaceIdPlaceholder": "e.g. I7C250D2CDCB364A",
+  "loyalty.walletActionPlaceIdHint":
+    "Apple Wallet opens this Place ID in Maps. Find it with Apple’s Place ID Lookup.",
+  "loyalty.walletActionGoogleMaps": "Google Maps share link",
+  "loyalty.walletActionGoogleMapsHint":
+    "Optional. Google Wallet opens this link (Maps app on Android). Without one, it shows the place on maps.apple.com.",
   "loyalty.walletPreviewAppleHint":
     "Featured actions are available on iOS 17 and later.",
   "loyalty.walletPreviewGoogleHint":
     "Google Wallet fills the screen with the pass; featured actions become tappable rows.",
   "loyalty.walletAction.order": "Order Delivery or Pickup",
-  "loyalty.walletAction.viewOffersRewards": "View Offers and Rewards",
-  "loyalty.walletAction.shop": "Shop",
   "loyalty.walletAction.membershipBenefits": "View Membership Benefits",
-  "loyalty.walletAction.addToBalance": "Add to Balance",
   "loyalty.walletAction.call": "Call",
   "loyalty.walletAction.place": "Go to Location",
-  "loyalty.walletAction.bookAppointment": "Book Appointment",
-  "loyalty.walletAction.viewSchedule": "View Schedule",
-  "loyalty.walletAction.watchTrailer": "Watch Trailer",
-  "loyalty.walletAction.listenToMusic": "Listen to Music",
-  "loyalty.walletAction.bookCar": "Book a Car",
-  "loyalty.walletAction.bookFlight": "Book a Flight",
-  "loyalty.walletAction.bookStay": "Book a Stay",
   "loyalty.segmentsSubtitle":
     "Automatic RFM segments and daily action ideas based on visits, spend, points, and birthdays.",
   "loyalty.segmentsLastUpdated": "Last updated",

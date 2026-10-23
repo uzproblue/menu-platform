@@ -92,6 +92,7 @@ export const ruMessages: Messages = {
   "nav.loyaltyOperations": "Контроль баллов",
   "nav.loyaltyPromotions": "Stories и предложения",
   "nav.loyaltyWallet": "Wallet-карты",
+  "nav.loyaltyWalletTemplate": "Шаблон Wallet",
   "nav.settings": "Настройки",
   "auth.signOut": "Выйти",
   "login.welcomeBack": "С возвращением",
@@ -1354,12 +1355,29 @@ export const ruMessages: Messages = {
   "loyalty.walletLoading": "Загрузка настроек Wallet…",
   "loyalty.walletLoadFailed": "Не удалось загрузить настройки Wallet.",
   "loyalty.walletSaveFailed": "Не удалось сохранить настройки Wallet.",
-  "loyalty.walletEditorTitle": "Что делает каждое поле",
+  "loyalty.walletEditorTitle": "Wallet-карта",
   "loyalty.walletEditorHint": "Меняйте любое поле — карта обновится сразу",
+  "loyalty.walletRestaurantHint":
+    "Настройте бренд, ссылки действий, локации и стиль. Поля карты задаются системно.",
   "loyalty.walletEnabled": "Включить «Добавить в Wallet» для гостей",
   "loyalty.walletTabContent": "Контент",
   "loyalty.walletTabBarcode": "Штрихкод",
+  "loyalty.walletTabBrand": "Бренд",
+  "loyalty.walletTabLinks": "Ссылки",
   "loyalty.walletTabStyle": "Стиль",
+  "loyalty.walletTemplateTitle": "Системный шаблон Wallet",
+  "loyalty.walletTemplateHint":
+    "Общая структура карты для всех ресторанов. Рестораны меняют только бренд, ссылки, локации и стиль.",
+  "loyalty.walletTemplateSave": "Сохранить шаблон",
+  "loyalty.walletTemplateSaved": "Системный шаблон сохранён.",
+  "loyalty.walletTemplateLoadFailed": "Не удалось загрузить шаблон Wallet.",
+  "loyalty.walletTemplateSaveFailed": "Не удалось сохранить шаблон Wallet.",
+  "loyalty.walletTemplateSlotsHint":
+    "До двух типов действий. Рестораны заполняют телефоны, Place ID и ссылки.",
+  "loyalty.walletRestaurantActionsHint":
+    "Заполните ссылки для системных слотов. Незаполненные слоты не попадают на карту.",
+  "loyalty.walletNoActionSlots":
+    "Пока нет слотов быстрых действий. Владелец может добавить их в шаблоне Wallet.",
   "loyalty.walletLogoText": "Текст у логотипа",
   "loyalty.walletLogoTextHint": "Текст рядом с логотипом (слева сверху)",
   "loyalty.walletOrgName": "Название организации",
@@ -1392,7 +1410,7 @@ export const ruMessages: Messages = {
   "loyalty.walletMaxLocations": "Можно выбрать не более 10 локаций.",
   "loyalty.walletFeaturedActions": "Быстрые действия ({count}/2)",
   "loyalty.walletFeaturedActionsHint":
-    "До двух кнопок под картой. Иконку и текст задаёт Apple.",
+    "До двух кнопок: Позвонить, Перейти к локации, Заказ или Преимущества членства. Иконку и текст задаёт Apple.",
   "loyalty.walletBarcode": "Штрихкод",
   "loyalty.walletBarcodeValue": "Значение штрихкода",
   "loyalty.walletBarcodeValueHint":
@@ -1434,24 +1452,25 @@ export const ruMessages: Messages = {
   "loyalty.walletApple": "Apple",
   "loyalty.walletGoogle": "Google",
   "loyalty.walletOpenLink": "Открыть ссылку",
+  "loyalty.walletOpenInMaps": "Открыть в Картах",
+  "loyalty.walletOpenCall": "Позвонить",
+  "loyalty.walletActionUrl": "Ссылка (HTTPS)",
+  "loyalty.walletActionCallUrl": "Номер телефона",
+  "loyalty.walletActionPlaceId": "Place ID Apple Maps",
+  "loyalty.walletActionPlaceIdPlaceholder": "напр. I7C250D2CDCB364A",
+  "loyalty.walletActionPlaceIdHint":
+    "Apple Wallet открывает этот Place ID в Картах. Найдите его через Place ID Lookup Apple.",
+  "loyalty.walletActionGoogleMaps": "Ссылка Google Maps",
+  "loyalty.walletActionGoogleMapsHint":
+    "Необязательно. Google Wallet открывает эту ссылку (приложение Карты на Android). Без неё место показывается на maps.apple.com.",
   "loyalty.walletPreviewAppleHint":
     "Быстрые действия доступны на iOS 17 и новее.",
   "loyalty.walletPreviewGoogleHint":
     "Google Wallet заполняет экран картой; быстрые действия становятся строками.",
   "loyalty.walletAction.order": "Заказать доставку или самовывоз",
-  "loyalty.walletAction.viewOffersRewards": "Смотреть предложения и награды",
-  "loyalty.walletAction.shop": "Магазин",
   "loyalty.walletAction.membershipBenefits": "Преимущества членства",
-  "loyalty.walletAction.addToBalance": "Пополнить баланс",
   "loyalty.walletAction.call": "Позвонить",
   "loyalty.walletAction.place": "Перейти к локации",
-  "loyalty.walletAction.bookAppointment": "Записаться",
-  "loyalty.walletAction.viewSchedule": "Смотреть расписание",
-  "loyalty.walletAction.watchTrailer": "Смотреть трейлер",
-  "loyalty.walletAction.listenToMusic": "Слушать музыку",
-  "loyalty.walletAction.bookCar": "Заказать авто",
-  "loyalty.walletAction.bookFlight": "Забронировать рейс",
-  "loyalty.walletAction.bookStay": "Забронировать проживание",
   "loyalty.incidentStatus.ignored": "Игнорированные",
   "loyalty.segmentsSubtitle":
     "Автоматические RFM-сегменты и ежедневные действия на основе визитов, трат, баллов и дней рождения.",
