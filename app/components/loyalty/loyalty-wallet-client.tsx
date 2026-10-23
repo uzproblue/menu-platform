@@ -39,6 +39,7 @@ const PRESET_COLOR_HEX: Record<string, string> = {
 };
 
 type EditorTab = "brand" | "links" | "style";
+type LogoKind = "square" | "wide";
 
 type Draft = {
   enabled: boolean;
@@ -47,6 +48,7 @@ type Draft = {
   featuredActions: WalletFeaturedAction[];
   colorPreset: WalletPassRestaurantConfig["colorPreset"];
   color: string;
+  logoKind: LogoKind;
   logoURL: string;
   stripURL: string;
   iconURL: string;
@@ -57,6 +59,8 @@ type Draft = {
 };
 
 function restaurantToDraft(restaurant: WalletPassRestaurantConfig): Draft {
+  const wideLogoURL = restaurant.wideLogoURL ?? "";
+  const logoURL = restaurant.logoURL ?? "";
   return {
     enabled: restaurant.enabled,
     organizationName: restaurant.organizationName,
@@ -67,10 +71,11 @@ function restaurantToDraft(restaurant: WalletPassRestaurantConfig): Draft {
       restaurant.color?.trim() ||
       PRESET_COLOR_HEX[restaurant.colorPreset] ||
       PRESET_COLOR_HEX.dark,
-    logoURL: restaurant.logoURL ?? "",
+    logoKind: wideLogoURL.trim() ? "wide" : "square",
+    logoURL: wideLogoURL.trim() ? "" : logoURL,
     stripURL: restaurant.stripURL ?? "",
     iconURL: restaurant.iconURL ?? "",
-    wideLogoURL: restaurant.wideLogoURL ?? "",
+    wideLogoURL: wideLogoURL.trim() ? wideLogoURL : "",
     thumbnailURL: restaurant.thumbnailURL ?? "",
     backgroundURL: restaurant.backgroundURL ?? "",
     locations: restaurant.locations ?? [],
@@ -121,10 +126,12 @@ function draftToInput(draft: Draft): WalletPassRestaurantInput {
     }),
     colorPreset: draft.colorPreset,
     color: draft.color.trim() || null,
-    logoURL: draft.logoURL.trim() || null,
+    logoURL:
+      draft.logoKind === "square" ? draft.logoURL.trim() || null : null,
     stripURL: draft.stripURL.trim() || null,
     iconURL: draft.iconURL.trim() || null,
-    wideLogoURL: draft.wideLogoURL.trim() || null,
+    wideLogoURL:
+      draft.logoKind === "wide" ? draft.wideLogoURL.trim() || null : null,
     thumbnailURL: draft.thumbnailURL.trim() || null,
     backgroundURL: draft.backgroundURL.trim() || null,
     locations: draft.locations.slice(0, 10),
@@ -378,7 +385,8 @@ export function LoyaltyWalletClient() {
     barcodeAltText: effective.barcodeAltText,
     colorPreset: draft.colorPreset,
     color: draft.color,
-    logoURL: draft.logoURL,
+    logoURL: draft.logoKind === "square" ? draft.logoURL : "",
+    wideLogoURL: draft.logoKind === "wide" ? draft.wideLogoURL : "",
     stripURL: draft.stripURL,
     backgroundURL: draft.backgroundURL,
   };
@@ -706,18 +714,62 @@ export function LoyaltyWalletClient() {
                     {t("loyalty.walletColorHint")}
                   </span>
                 </label>
-                <ImageSlot
-                  label={t("loyalty.walletImageLogo")}
-                  hint={t("loyalty.walletImageLogoHint")}
-                  value={draft.logoURL}
-                  onChange={(logoURL) => setDraft({ ...draft, logoURL })}
-                />
-                <ImageSlot
-                  label={t("loyalty.walletImageWideLogo")}
-                  hint={t("loyalty.walletImageWideLogoHint")}
-                  value={draft.wideLogoURL}
-                  onChange={(wideLogoURL) => setDraft({ ...draft, wideLogoURL })}
-                />
+                <section className="space-y-2 border-t border-foreground/10 pt-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">
+                      {t("loyalty.walletLogoKind")}
+                    </h3>
+                    <p className="text-xs text-foreground/50">
+                      {t("loyalty.walletLogoKindHint")}
+                    </p>
+                  </div>
+                  <div className="inline-flex rounded-full border border-foreground/15 p-0.5">
+                    {(
+                      [
+                        {
+                          id: "square" as const,
+                          label: t("loyalty.walletLogoKindSquare"),
+                        },
+                        {
+                          id: "wide" as const,
+                          label: t("loyalty.walletLogoKindWide"),
+                        },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() =>
+                          setDraft({ ...draft, logoKind: opt.id })
+                        }
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${
+                          draft.logoKind === opt.id
+                            ? "bg-foreground text-background"
+                            : "text-foreground/55"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                {draft.logoKind === "square" ? (
+                  <ImageSlot
+                    label={t("loyalty.walletImageLogo")}
+                    hint={t("loyalty.walletImageLogoHint")}
+                    value={draft.logoURL}
+                    onChange={(logoURL) => setDraft({ ...draft, logoURL })}
+                  />
+                ) : (
+                  <ImageSlot
+                    label={t("loyalty.walletImageWideLogo")}
+                    hint={t("loyalty.walletImageWideLogoHint")}
+                    value={draft.wideLogoURL}
+                    onChange={(wideLogoURL) =>
+                      setDraft({ ...draft, wideLogoURL })
+                    }
+                  />
+                )}
                 <ImageSlot
                   label={t("loyalty.walletImageIcon")}
                   hint={t("loyalty.walletImageIconHint")}

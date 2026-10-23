@@ -435,6 +435,7 @@ export function LoyaltyWalletTemplateClient() {
               colorPreset: "dark",
               color: "#1a1a1a",
               logoURL: "",
+              wideLogoURL: "",
               stripURL: "",
               backgroundURL: "",
             }}

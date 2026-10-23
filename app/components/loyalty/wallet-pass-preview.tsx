@@ -22,6 +22,7 @@ export type WalletPassPreviewDraft = {
   colorPreset: string;
   color: string;
   logoURL: string;
+  wideLogoURL: string;
   stripURL: string;
   backgroundURL: string;
 };
@@ -40,6 +41,7 @@ export const FEATURED_ACTION_TYPES = [
   "place",
   "order",
   "membershipBenefits",
+  "viewOffersRewards",
 ] as const;
 
 function substitutePreview(value: string): string {
@@ -231,6 +233,8 @@ export function WalletPassPreview({ draft, platform }: Props) {
     PRESET_COLORS.dark;
   const logoText = draft.logoText.trim() || "Loyalty";
   const org = draft.organizationName.trim() || logoText;
+  const wideLogo = draft.wideLogoURL.trim();
+  const squareLogo = draft.logoURL.trim();
   const barcodeValue = "guest-demo";
   const underBarcode = barcodeCaption(
     draft.barcodeAltText,
@@ -251,21 +255,32 @@ export function WalletPassPreview({ draft, platform }: Props) {
                 : bg,
             }}
           >
-            <div className="flex flex-col items-center gap-2 pt-2">
-              {draft.logoURL ? (
-                // eslint-disable-next-line @next/next/no-img-element
+            {wideLogo ? (
+              <div className="flex justify-start pt-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={draft.logoURL}
+                  src={wideLogo}
                   alt=""
-                  className="size-14 rounded-full object-cover ring-2 ring-white/20"
+                  className="h-9 w-auto max-w-[200px] object-contain object-left"
                 />
-              ) : (
-                <div className="flex size-14 items-center justify-center rounded-full bg-white/15 text-lg font-bold text-white">
-                  {logoText.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-              <p className="text-xs text-white/80">{logoText}</p>
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                {squareLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={squareLogo}
+                    alt=""
+                    className="size-14 rounded-full object-cover ring-2 ring-white/20"
+                  />
+                ) : (
+                  <div className="flex size-14 items-center justify-center rounded-full bg-white/15 text-lg font-bold text-white">
+                    {logoText.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <p className="text-xs text-white/80">{logoText}</p>
+              </div>
+            )}
 
             <div className="mt-6 text-center">
               <p className="text-2xl font-semibold text-white">
@@ -319,6 +334,9 @@ export function WalletPassPreview({ draft, platform }: Props) {
     );
   }
 
+  const appleHeaderTitle = logoText || org;
+  const secondary = draft.secondaryFields[0];
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-[280px] overflow-hidden rounded-[2rem] border-[10px] border-zinc-200 bg-zinc-100 shadow-2xl">
@@ -326,48 +344,42 @@ export function WalletPassPreview({ draft, platform }: Props) {
         <div className="flex min-h-[520px] flex-col bg-zinc-100 px-3 pb-4 pt-10">
           <div
             className="overflow-hidden rounded-2xl shadow-lg"
-            style={{
-              background: draft.stripURL
-                ? `linear-gradient(180deg, rgba(0,0,0,.35), ${bg}), url(${draft.stripURL}) top/cover no-repeat`
-                : bg,
-            }}
+            style={{ background: bg }}
           >
-            <div className="flex items-center gap-2 px-3 pt-3">
-              {draft.logoURL ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={draft.logoURL}
-                  alt=""
-                  className="size-7 rounded-md object-cover"
-                />
-              ) : (
-                <div className="flex size-7 items-center justify-center rounded-md bg-white/15 text-[10px] font-bold text-white">
-                  {logoText.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-              <p className="truncate text-xs font-medium text-white">{logoText}</p>
+            <div className="flex items-start gap-2 px-3 pt-3">
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
+                {appleHeaderTitle}
+              </p>
               {draft.headerFields[0] ? (
-                <div className="ml-auto text-right">
-                  <p className="text-[9px] uppercase text-white/55">
+                <div className="shrink-0 text-right">
+                  <p className="text-[9px] uppercase tracking-wide text-white/55">
                     {draft.headerFields[0].label}
                   </p>
-                  <p className="text-xs font-semibold text-white">
+                  <p className="text-sm font-semibold text-white">
                     {substitutePreview(draft.headerFields[0].value)}
                   </p>
                 </div>
               ) : null}
             </div>
 
-            <div className="space-y-3 px-4 pb-3 pt-5">
-              {draft.primaryFields.slice(0, 2).map((field, i) => (
-                <FieldBlock key={`p-${i}`} field={field} />
-              ))}
-              {draft.secondaryFields.slice(0, 2).map((field, i) => (
-                <FieldBlock key={`s-${i}`} field={field} />
-              ))}
-            </div>
+            {wideLogo ? (
+              <div className="mt-3 w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={wideLogo}
+                  alt=""
+                  className="aspect-[3/1] w-full object-cover"
+                />
+              </div>
+            ) : null}
 
-            <div className="px-4 pb-4 pt-1">
+            {secondary ? (
+              <div className="px-4 pb-1 pt-4">
+                <FieldBlock field={secondary} />
+              </div>
+            ) : null}
+
+            <div className="px-4 pb-4 pt-3">
               <BarcodePlaceholder
                 value={barcodeValue}
                 format={draft.barcodeFormat}
@@ -377,38 +389,45 @@ export function WalletPassPreview({ draft, platform }: Props) {
                   {underBarcode}
                 </p>
               ) : null}
-              <p className="mt-2 text-center text-[10px] text-white/55">{org}</p>
             </div>
           </div>
 
           {draft.featuredActions.length > 0 ? (
             <div className="mt-3 grid grid-cols-2 gap-2">
-              {draft.featuredActions.map((action, index) => (
-                <div
-                  key={action.identifier}
-                  className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5"
-                >
+              {draft.featuredActions.map((action) => {
+                const isRewards =
+                  action.type === "membershipBenefits" ||
+                  action.type === "viewOffersRewards";
+                const isOrder = action.type === "order";
+                return (
                   <div
-                    className={`mb-2 flex size-8 items-center justify-center rounded-xl text-sm ${
-                      index === 0
-                        ? "bg-orange-100 text-orange-600"
-                        : "bg-violet-100 text-violet-600"
-                    }`}
+                    key={action.identifier}
+                    className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5"
                   >
-                    {index === 0 ? "🛒" : "★"}
+                    <div
+                      className={`mb-2 flex size-8 items-center justify-center rounded-xl text-sm ${
+                        isRewards
+                          ? "bg-violet-100 text-violet-600"
+                          : isOrder
+                            ? "bg-orange-100 text-orange-600"
+                            : "bg-zinc-100 text-zinc-600"
+                      }`}
+                    >
+                      {isRewards ? "★" : isOrder ? "🛒" : action.type === "call" ? "☎" : "📍"}
+                    </div>
+                    <p className="text-[11px] font-semibold leading-snug text-zinc-900">
+                      {actionLabel(action.type)}
+                    </p>
+                    <p className="mt-1 text-[10px] text-zinc-500">
+                      {action.type === "place"
+                        ? t("loyalty.walletOpenInMaps")
+                        : action.type === "call"
+                          ? t("loyalty.walletOpenCall")
+                          : t("loyalty.walletOpenLink")}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-semibold leading-snug text-zinc-900">
-                    {actionLabel(action.type)}
-                  </p>
-                  <p className="mt-1 text-[10px] text-zinc-500">
-                    {action.type === "place"
-                      ? t("loyalty.walletOpenInMaps")
-                      : action.type === "call"
-                        ? t("loyalty.walletOpenCall")
-                        : t("loyalty.walletOpenLink")}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : null}
         </div>

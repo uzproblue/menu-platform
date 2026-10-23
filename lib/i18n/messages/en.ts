@@ -1403,10 +1403,16 @@ export const enMessages: Messages = {
     "Shown under the barcode in Wallet. Max 128 characters.",
   "loyalty.walletColor": "Color",
   "loyalty.walletColorHint": "Background color of the pass.",
+  "loyalty.walletLogoKind": "Logo style",
+  "loyalty.walletLogoKindHint":
+    "Choose square logo or wide wordmark — only one is used on the pass.",
+  "loyalty.walletLogoKindSquare": "Logo",
+  "loyalty.walletLogoKindWide": "Wide logo",
   "loyalty.walletImageLogo": "Logo (160×160)",
   "loyalty.walletImageLogoHint": "Brand mark on the pass face (top-left).",
   "loyalty.walletImageWideLogo": "Wide Logo (1280×400)",
-  "loyalty.walletImageWideLogoHint": "Transparent PNG wordmark for Google Wallet.",
+  "loyalty.walletImageWideLogoHint":
+    "Transparent PNG wordmark. Google shows it top-left and hides the round logo and logo text.",
   "loyalty.walletImageIcon": "Icon (120×120)",
   "loyalty.walletImageIconHint": "Lock-screen notification icon.",
   "loyalty.walletImageThumbnail": "Thumbnail (180×180)",
@@ -1446,6 +1452,7 @@ export const enMessages: Messages = {
     "Google Wallet fills the screen with the pass; featured actions become tappable rows.",
   "loyalty.walletAction.order": "Order Delivery or Pickup",
   "loyalty.walletAction.membershipBenefits": "View Membership Benefits",
+  "loyalty.walletAction.viewOffersRewards": "View Offers and Rewards",
   "loyalty.walletAction.call": "Call",
   "loyalty.walletAction.place": "Go to Location",
   "loyalty.segmentsSubtitle":
