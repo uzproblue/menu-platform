@@ -6,3 +6,4 @@ export * from "./promotions";
 export * from "./segments";
 export * from "./operations";
 export * from "./wallet";
+export * from "./telegram";

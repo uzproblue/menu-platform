@@ -73,6 +73,11 @@ const loyaltyChildren: Array<{
     match: (p) => p.startsWith("/loyalty/wallet/template"),
     ownerOnly: true,
   },
+  {
+    href: "/loyalty/telegram",
+    labelKey: "nav.loyaltyTelegram",
+    match: (p) => p.startsWith("/loyalty/telegram"),
+  },
 ];
 
 function isLoyaltyGroupPath(pathname: string): boolean {
