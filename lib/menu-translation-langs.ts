@@ -8,6 +8,7 @@ export const LOCATION_TRANSLATION_OPTIONS = [
   "RU",
   "EN",
   "KG",
+  "CN",
 ] as const;
 
 /** Default selection for new locations / fallback when API returns none (subset of allowed codes). */
