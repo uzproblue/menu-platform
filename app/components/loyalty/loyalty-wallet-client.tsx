@@ -389,6 +389,8 @@ export function LoyaltyWalletClient() {
     wideLogoURL: draft.logoKind === "wide" ? draft.wideLogoURL : "",
     stripURL: draft.stripURL,
     backgroundURL: draft.backgroundURL,
+    iconURL: draft.iconURL,
+    thumbnailURL: draft.thumbnailURL,
   };
 
   return (

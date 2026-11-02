@@ -438,6 +438,8 @@ export function LoyaltyWalletTemplateClient() {
               wideLogoURL: "",
               stripURL: "",
               backgroundURL: "",
+              iconURL: "",
+              thumbnailURL: "",
             }}
           />
         </aside>

@@ -25,6 +25,8 @@ export type WalletPassPreviewDraft = {
   wideLogoURL: string;
   stripURL: string;
   backgroundURL: string;
+  iconURL: string;
+  thumbnailURL: string;
 };
 
 const PRESET_COLORS: Record<string, string> = {
@@ -220,6 +222,29 @@ type Props = {
   platform: PreviewPlatform;
 };
 
+function LockScreenIconChip({ iconURL }: { iconURL: string }) {
+  const { t } = useI18n();
+  if (!iconURL) return null;
+  return (
+    <div className="mt-3 flex w-full max-w-[280px] items-center gap-2.5 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-3 py-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={iconURL}
+        alt=""
+        className="size-9 shrink-0 rounded-lg object-cover ring-1 ring-foreground/10"
+      />
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-foreground/80">
+          {t("loyalty.walletImageIcon")}
+        </p>
+        <p className="truncate text-[10px] text-foreground/45">
+          {t("loyalty.walletImageIconHint")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function WalletPassPreview({ draft, platform }: Props) {
   const { t } = useI18n();
   const actionLabel = (type: string) => {
@@ -235,12 +260,19 @@ export function WalletPassPreview({ draft, platform }: Props) {
   const org = draft.organizationName.trim() || logoText;
   const wideLogo = draft.wideLogoURL.trim();
   const squareLogo = draft.logoURL.trim();
+  const strip = draft.stripURL.trim();
+  const background = draft.backgroundURL.trim();
+  const icon = draft.iconURL.trim();
+  const thumbnail = draft.thumbnailURL.trim();
   const barcodeValue = "guest-demo";
   const underBarcode = barcodeCaption(
     draft.barcodeAltText,
     platform,
     barcodeValue,
   );
+  const cardBackground = background
+    ? `linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.85)), url(${background}) center/cover`
+    : bg;
 
   if (platform === "google") {
     return (
@@ -248,13 +280,18 @@ export function WalletPassPreview({ draft, platform }: Props) {
         <div className="relative w-[280px] overflow-hidden rounded-[2rem] border-[10px] border-zinc-800 bg-zinc-950 shadow-2xl">
           <div className="absolute left-1/2 top-2 h-5 w-20 -translate-x-1/2 rounded-full bg-black" />
           <div
-            className="flex min-h-[520px] flex-col px-5 pb-6 pt-10"
-            style={{
-              background: draft.backgroundURL
-                ? `linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.85)), url(${draft.backgroundURL}) center/cover`
-                : bg,
-            }}
+            className="relative flex min-h-[520px] flex-col px-5 pb-6 pt-10"
+            style={{ background: cardBackground }}
           >
+            {thumbnail && !wideLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbnail}
+                alt=""
+                className="absolute right-4 top-10 size-11 rounded-lg object-cover ring-1 ring-white/25"
+              />
+            ) : null}
+
             {wideLogo ? (
               <div className="flex justify-start pt-1">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -290,6 +327,17 @@ export function WalletPassPreview({ draft, platform }: Props) {
                 {draft.primaryFields[0]?.label || "CARD"}
               </p>
             </div>
+
+            {strip ? (
+              <div className="mt-4 overflow-hidden rounded-xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={strip}
+                  alt=""
+                  className="aspect-[3/1] w-full object-cover"
+                />
+              </div>
+            ) : null}
 
             <div className="mt-6">
               <BarcodePlaceholder
@@ -327,6 +375,7 @@ export function WalletPassPreview({ draft, platform }: Props) {
             </div>
           </div>
         </div>
+        <LockScreenIconChip iconURL={icon} />
         <p className="mt-3 max-w-[280px] text-center text-xs text-foreground/50">
           {t("loyalty.walletPreviewGoogleHint")}
         </p>
@@ -334,7 +383,6 @@ export function WalletPassPreview({ draft, platform }: Props) {
     );
   }
 
-  const appleHeaderTitle = logoText || org;
   const secondary = draft.secondaryFields[0];
 
   return (
@@ -344,29 +392,60 @@ export function WalletPassPreview({ draft, platform }: Props) {
         <div className="flex min-h-[520px] flex-col bg-zinc-100 px-3 pb-4 pt-10">
           <div
             className="overflow-hidden rounded-2xl shadow-lg"
-            style={{ background: bg }}
+            style={{ background: cardBackground }}
           >
             <div className="flex items-start gap-2 px-3 pt-3">
-              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
-                {appleHeaderTitle}
-              </p>
-              {draft.headerFields[0] ? (
-                <div className="shrink-0 text-right">
-                  <p className="text-[9px] uppercase tracking-wide text-white/55">
-                    {draft.headerFields[0].label}
-                  </p>
-                  <p className="text-sm font-semibold text-white">
-                    {substitutePreview(draft.headerFields[0].value)}
-                  </p>
-                </div>
-              ) : null}
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {wideLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={wideLogo}
+                    alt=""
+                    className="h-7 w-auto max-w-[140px] object-contain object-left"
+                  />
+                ) : (
+                  <>
+                    {squareLogo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={squareLogo}
+                        alt=""
+                        className="size-7 shrink-0 rounded object-contain"
+                      />
+                    ) : null}
+                    <p className="min-w-0 truncate text-sm font-semibold text-white">
+                      {logoText || org}
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="flex shrink-0 items-start gap-2">
+                {draft.headerFields[0] ? (
+                  <div className="text-right">
+                    <p className="text-[9px] uppercase tracking-wide text-white/55">
+                      {draft.headerFields[0].label}
+                    </p>
+                    <p className="text-sm font-semibold text-white">
+                      {substitutePreview(draft.headerFields[0].value)}
+                    </p>
+                  </div>
+                ) : null}
+                {thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={thumbnail}
+                    alt=""
+                    className="size-10 rounded-md object-cover ring-1 ring-white/20"
+                  />
+                ) : null}
+              </div>
             </div>
 
-            {wideLogo ? (
+            {strip ? (
               <div className="mt-3 w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={wideLogo}
+                  src={strip}
                   alt=""
                   className="aspect-[3/1] w-full object-cover"
                 />
@@ -432,6 +511,7 @@ export function WalletPassPreview({ draft, platform }: Props) {
           ) : null}
         </div>
       </div>
+      <LockScreenIconChip iconURL={icon} />
       <p className="mt-3 max-w-[280px] text-center text-xs text-foreground/50">
         {t("loyalty.walletPreviewAppleHint")}
       </p>
