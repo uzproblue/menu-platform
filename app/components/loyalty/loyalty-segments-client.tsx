@@ -19,6 +19,7 @@ import type {
 } from "@/lib/loyalty-api/types";
 import { formatMinorCurrency } from "@/lib/currency-minor-units";
 import { useI18n } from "../i18n-provider";
+import { SegmentPromoPreviewModal } from "./segment-promo-preview-modal";
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
@@ -52,22 +53,43 @@ function formatRelativeUpdated(
   return rtf.format(-diffDay, "day");
 }
 
-function promotionHref(action: LoyaltySegmentAction): string {
-  const payload = action.ctaPayload ?? {};
-  const params = new URLSearchParams();
-  if (typeof payload.suggestedName === "string") {
-    params.set("name", payload.suggestedName);
-  }
-  if (typeof payload.suggestedType === "string") {
-    params.set("type", payload.suggestedType);
-  }
-  if (typeof payload.segmentKey === "string") {
-    params.set("segment", payload.segmentKey);
-  } else if (action.segmentKey) {
-    params.set("segment", action.segmentKey);
-  }
-  const qs = params.toString();
-  return `/loyalty/promotions/points/new${qs ? `?${qs}` : ""}`;
+function formatBirthday(iso: string | undefined, locale: string): string | null {
+  if (!iso?.trim()) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (!m) return iso;
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (!Number.isFinite(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+  }).format(date);
+}
+
+function draftPromoAction(
+  segmentKey: string,
+  title: string,
+  body: string,
+): LoyaltySegmentAction {
+  return {
+    id: `draft-${segmentKey}`,
+    restaurantId: "",
+    runDate: "",
+    segmentKey,
+    type: "create_promotion",
+    title,
+    body,
+    priority: 0,
+    ctaType: "create_promotion",
+    ctaPayload: {
+      segmentKey,
+      suggestedName: title,
+      suggestedType: "bonus_points",
+    },
+    status: "open",
+    source: "ui",
+    createdAt: null,
+    updatedAt: null,
+  };
 }
 
 function segmentLabel(
@@ -124,6 +146,9 @@ export function LoyaltySegmentsClient() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [contextVersion, setContextVersion] = useState(0);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
+  const [promoAction, setPromoAction] = useState<LoyaltySegmentAction | null>(
+    null,
+  );
 
   const load = useCallback(async (opts?: { quiet?: boolean }) => {
     if (!opts?.quiet) setLoading(true);
@@ -322,9 +347,21 @@ export function LoyaltySegmentsClient() {
   };
 
   const neverRun = !loading && !lastUpdated && primary.every((s) => s.memberCount === 0);
+  const showBirthdays = selectedKey === "birthday_this_week";
 
   return (
     <div className="space-y-6">
+      <SegmentPromoPreviewModal
+        open={Boolean(promoAction)}
+        action={promoAction}
+        onClose={() => setPromoAction(null)}
+        onContinue={() => {
+          if (promoAction && !promoAction.id.startsWith("draft-")) {
+            void patchAction(promoAction.id, "acted");
+          }
+          setPromoAction(null);
+        }}
+      />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-foreground/55">
@@ -442,13 +479,13 @@ export function LoyaltySegmentsClient() {
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center gap-2">
                           {primaryCta === "promo" ? (
-                            <Link
-                              href={promotionHref(action)}
-                              onClick={() => void patchAction(action.id, "acted")}
+                            <button
+                              type="button"
+                              onClick={() => setPromoAction(action)}
                               className="rounded-xl bg-foreground px-3 py-2 text-sm font-medium text-background"
                             >
                               {t("loyalty.segmentsCtaCreatePromo")}
-                            </Link>
+                            </button>
                           ) : (
                             <button
                               type="button"
@@ -601,12 +638,25 @@ export function LoyaltySegmentsClient() {
                         )}
                       </p>
                     </div>
-                    <Link
-                      href={`/loyalty/promotions/points/new?segment=${encodeURIComponent(selected.key)}`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPromoAction(
+                          draftPromoAction(
+                            selected.key,
+                            segmentLabel(t, selected.key, selected.labelEn),
+                            segmentDescription(
+                              t,
+                              selected.key,
+                              selected.descriptionEn,
+                            ),
+                          ),
+                        )
+                      }
                       className="rounded-xl border border-foreground/12 px-3 py-2 text-sm transition hover:bg-foreground/5"
                     >
                       {t("loyalty.segmentsCtaCreatePromo")}
-                    </Link>
+                    </button>
                   </div>
 
                   <dl className="mt-5 grid grid-cols-3 gap-3 border-y border-foreground/8 py-4">
@@ -668,27 +718,47 @@ export function LoyaltySegmentsClient() {
                       </p>
                     ) : (
                       <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/8">
-                        {members.map((g) => (
-                          <li
-                            key={g.id}
-                            className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate font-medium">{g.name}</p>
-                              <p className="truncate text-foreground/50">
-                                {g.phoneE164}
-                              </p>
-                            </div>
-                            <div className="shrink-0 text-right text-xs text-foreground/50">
-                              <p className="tabular-nums font-medium text-foreground/70">
-                                {g.balance}
-                              </p>
-                              <p className="tabular-nums">
-                                {formatMoney(g.lifetimeSpendMinor, "KZT", locale)}
-                              </p>
-                            </div>
-                          </li>
-                        ))}
+                        {members.map((g) => {
+                          const birthday = showBirthdays
+                            ? formatBirthday(g.dateOfBirth, locale)
+                            : null;
+                          return (
+                            <li
+                              key={g.id}
+                              className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate font-medium">{g.name}</p>
+                                <p className="truncate text-foreground/50">
+                                  {g.phoneE164}
+                                </p>
+                              </div>
+                              {showBirthdays ? (
+                                <div className="shrink-0 text-right text-xs">
+                                  <p className="text-foreground/45">
+                                    {t("loyalty.segmentBirthday")}
+                                  </p>
+                                  <p className="font-medium tabular-nums text-violet-700 dark:text-violet-300">
+                                    {birthday ?? t("loyalty.segmentBirthdayUnknown")}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="shrink-0 text-right text-xs text-foreground/50">
+                                  <p className="tabular-nums font-medium text-foreground/70">
+                                    {g.balance}
+                                  </p>
+                                  <p className="tabular-nums">
+                                    {formatMoney(
+                                      g.lifetimeSpendMinor,
+                                      "KZT",
+                                      locale,
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>

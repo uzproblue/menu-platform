@@ -16,6 +16,7 @@ export async function listSegmentsWithAuthServer(
     method: "GET",
     accessToken,
     restaurantId,
+    timeoutMs: 20_000,
   });
 }
 
@@ -79,5 +80,6 @@ export async function runSegmentationWithAuthServer(
     accessToken,
     restaurantId,
     body: {},
+    timeoutMs: 30_000,
   });
 }

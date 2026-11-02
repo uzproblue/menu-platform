@@ -35,31 +35,47 @@ export function PromotionFormClient({ promotionId }: Props) {
   const [active, setActive] = useState(true);
 
   useEffect(() => {
-    if (!promotionId) return;
-    void (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `/api/settings/loyalty/promotions/${encodeURIComponent(promotionId)}`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) {
-          throw new Error(await readErrorMessage(res, t("loyalty.errLoadPromotion")));
+    if (promotionId) {
+      void (async () => {
+        setLoading(true);
+        try {
+          const res = await fetch(
+            `/api/settings/loyalty/promotions/${encodeURIComponent(promotionId)}`,
+            { cache: "no-store" },
+          );
+          if (!res.ok) {
+            throw new Error(await readErrorMessage(res, t("loyalty.errLoadPromotion")));
+          }
+          const data = (await res.json()) as { promotion: LoyaltyPromotion };
+          const p = data.promotion;
+          setName(p.name);
+          setDescription(p.description ?? "");
+          setType(p.type as (typeof PROMOTION_TYPES)[number]);
+          setRulesJson(JSON.stringify(p.rules ?? {}, null, 2));
+          setPointsCost(p.pointsCost != null ? String(p.pointsCost) : "");
+          setActive(p.active);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : t("loyalty.errLoadPromotion"));
+        } finally {
+          setLoading(false);
         }
-        const data = (await res.json()) as { promotion: LoyaltyPromotion };
-        const p = data.promotion;
-        setName(p.name);
-        setDescription(p.description ?? "");
-        setType(p.type as (typeof PROMOTION_TYPES)[number]);
-        setRulesJson(JSON.stringify(p.rules ?? {}, null, 2));
-        setPointsCost(p.pointsCost != null ? String(p.pointsCost) : "");
-        setActive(p.active);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t("loyalty.errLoadPromotion"));
-      } finally {
-        setLoading(false);
-      }
-    })();
+      })();
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const qName = params.get("name")?.trim();
+    const qDescription = params.get("description")?.trim();
+    const qType = params.get("type")?.trim();
+    if (qName) setName(qName);
+    if (qDescription) setDescription(qDescription);
+    if (
+      qType &&
+      (PROMOTION_TYPES as readonly string[]).includes(qType)
+    ) {
+      setType(qType as (typeof PROMOTION_TYPES)[number]);
+    }
   }, [promotionId, t]);
 
   async function handleSubmit(e: React.FormEvent) {
