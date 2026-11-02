@@ -8,6 +8,9 @@ export type LoyaltyGuest = {
   status: string;
   marketingConsent: boolean;
   consentVersion: string;
+  isLegacy?: boolean;
+  walletInstalledAt?: string | null;
+  legacyConvertedAt?: string | null;
   lastVisitedAt: string | null;
   lifetimeSpendMinor: number;
   visitCount?: number;
@@ -123,6 +126,7 @@ export type LoyaltyPromotion = {
 export type GuestsListParams = {
   q?: string;
   status?: "active" | "blocked";
+  isLegacy?: boolean;
   lastVisitedFrom?: string;
   lastVisitedTo?: string;
   minSpend?: number;

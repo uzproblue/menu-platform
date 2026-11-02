@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import type { Location } from "@/lib/auth-api/types/locations";
 import type { GuestsListResponse, LoyaltyGuest, LoyaltyLedgerEntry } from "@/lib/loyalty-api/types";
 import { buildGuestsListQuery } from "@/lib/loyalty-api/guests-query";
 import { formatMinorCurrency, majorToMinor } from "@/lib/currency-minor-units";
@@ -16,6 +17,7 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
 }
 
 type StatusFilter = "" | "active" | "blocked";
+type MemberTab = "all" | "legacy";
 
 type AppliedFilters = {
   search: string;
@@ -36,6 +38,7 @@ const DEFAULT_FILTERS: AppliedFilters = {
 };
 
 const PAGE_SIZE_OPTIONS = [25, 50] as const;
+const BLAST_MAX = 500;
 
 function parseSpendInput(value: string, currency: string | null): number | undefined {
   const trimmed = value.trim();
@@ -74,6 +77,7 @@ export function LoyaltyMembersClient() {
   const [earnConfigured, setEarnConfigured] = useState(true);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
+  const [tab, setTab] = useState<MemberTab>("all");
 
   const [query, setQuery] = useState("");
   const [statusDraft, setStatusDraft] = useState<StatusFilter>("");
@@ -96,6 +100,22 @@ export function LoyaltyMembersClient() {
   const [mutating, setMutating] = useState(false);
   const mutationAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(() => new Set());
+  const [selectAllCap, setSelectAllCap] = useState(100);
+  const [selectingAll, setSelectingAll] = useState(false);
+
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [blastLocationId, setBlastLocationId] = useState("");
+  const [blastMessage, setBlastMessage] = useState("");
+  const [blastSending, setBlastSending] = useState(false);
+  const [blastError, setBlastError] = useState<string | null>(null);
+  const [blastResult, setBlastResult] = useState<{
+    targeted: number;
+    succeeded: number;
+    failed: number;
+  } | null>(null);
+
   const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
   const hasActiveFilters = useMemo(() => {
     return (
@@ -108,20 +128,27 @@ export function LoyaltyMembersClient() {
     );
   }, [applied]);
 
+  const listParams = useCallback(
+    (overrides?: { page?: number; limit?: number }) =>
+      buildGuestsListQuery({
+        q: applied.search || undefined,
+        status: applied.status || undefined,
+        isLegacy: tab === "legacy" ? true : undefined,
+        lastVisitedFrom: applied.lastVisitedFrom || undefined,
+        lastVisitedTo: applied.lastVisitedTo || undefined,
+        minSpend: parseSpendInput(applied.minSpend, currency),
+        maxSpend: parseSpendInput(applied.maxSpend, currency),
+        page: overrides?.page ?? page,
+        limit: overrides?.limit ?? limit,
+        sort: "createdAt",
+        order: "desc",
+      }),
+    [applied, currency, limit, page, tab],
+  );
+
   const loadGuests = useCallback(async () => {
     setListError(null);
-    const params = buildGuestsListQuery({
-      q: applied.search || undefined,
-      status: applied.status || undefined,
-      lastVisitedFrom: applied.lastVisitedFrom || undefined,
-      lastVisitedTo: applied.lastVisitedTo || undefined,
-      minSpend: parseSpendInput(applied.minSpend, currency),
-      maxSpend: parseSpendInput(applied.maxSpend, currency),
-      page,
-      limit,
-      sort: "createdAt",
-      order: "desc",
-    });
+    const params = listParams();
     const res = await fetch(`/api/settings/loyalty/guests${params}`, { cache: "no-store" });
     if (!res.ok) {
       throw new Error(await readErrorMessage(res, t("loyalty.errLoadMembers")));
@@ -131,7 +158,7 @@ export function LoyaltyMembersClient() {
     setTotal(typeof data.total === "number" ? data.total : 0);
     setCurrency(data.currency?.trim() || null);
     setEarnConfigured(data.earnConfigured !== false);
-  }, [applied, currency, limit, page, t]);
+  }, [listParams, t]);
 
   useEffect(() => {
     void (async () => {
@@ -147,6 +174,24 @@ export function LoyaltyMembersClient() {
   }, [loadGuests, t]);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings/locations", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { locations?: Location[] };
+        const locs = Array.isArray(data.locations) ? data.locations : [];
+        setLocations(locs);
+        setBlastLocationId((prev) => {
+          if (prev && locs.some((l) => l.id === prev)) return prev;
+          return locs[0]?.id ?? "";
+        });
+      } catch {
+        /* location picker optional until compose */
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     const onContextChanged = () => {
       setSelected(null);
       setTransactions([]);
@@ -156,6 +201,10 @@ export function LoyaltyMembersClient() {
       setMinSpendDraft("");
       setMaxSpendDraft("");
       setApplied((current) => ({ ...current, minSpend: "", maxSpend: "" }));
+      setCheckedIds(new Set());
+      setComposeOpen(false);
+      setBlastResult(null);
+      setBlastError(null);
       setPage(1);
     };
     window.addEventListener("restaurant-context-changed", onContextChanged);
@@ -165,6 +214,11 @@ export function LoyaltyMembersClient() {
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    setCheckedIds(new Set());
+    setBlastResult(null);
+  }, [tab, applied, page, limit]);
 
   function applyFilters(next: AppliedFilters) {
     setApplied(next);
@@ -192,6 +246,52 @@ export function LoyaltyMembersClient() {
     setMinSpendDraft("");
     setMaxSpendDraft("");
     applyFilters(DEFAULT_FILTERS);
+  }
+
+  function switchTab(next: MemberTab) {
+    setTab(next);
+    setPage(1);
+    setSelected(null);
+  }
+
+  function toggleChecked(guestId: string, checked: boolean) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(guestId);
+      else next.delete(guestId);
+      return next;
+    });
+  }
+
+  function togglePageChecked(checked: boolean) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      for (const g of guests) {
+        if (checked) next.add(g.id);
+        else next.delete(g.id);
+      }
+      return next;
+    });
+  }
+
+  async function selectAllMatching() {
+    const cap = Math.min(BLAST_MAX, Math.max(1, Math.floor(selectAllCap) || 1));
+    setSelectingAll(true);
+    setListError(null);
+    try {
+      const params = listParams({ page: 1, limit: cap });
+      const res = await fetch(`/api/settings/loyalty/guests${params}`, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, t("loyalty.errLoadMembers")));
+      }
+      const data = (await res.json()) as GuestsListResponse;
+      const ids = (data.guests ?? []).map((g) => g.id);
+      setCheckedIds(new Set(ids));
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : t("loyalty.errLoadMembers"));
+    } finally {
+      setSelectingAll(false);
+    }
   }
 
   async function openGuest(guest: LoyaltyGuest) {
@@ -266,14 +366,88 @@ export function LoyaltyMembersClient() {
     }
   }
 
+  async function sendWhatsappBlast() {
+    const guestIds = [...checkedIds];
+    if (guestIds.length === 0) return;
+    if (!blastLocationId) {
+      setBlastError(t("loyalty.whatsappPickLocation"));
+      return;
+    }
+    const message = blastMessage.trim();
+    if (!message) {
+      setBlastError(t("loyalty.whatsappMessageRequired"));
+      return;
+    }
+    setBlastSending(true);
+    setBlastError(null);
+    setBlastResult(null);
+    try {
+      const res = await fetch("/api/settings/loyalty/guests/whatsapp-blast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: blastLocationId,
+          message,
+          guestIds,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, t("loyalty.whatsappSendFailed")));
+      }
+      const data = (await res.json()) as {
+        targeted: number;
+        succeeded: number;
+        failed: number;
+      };
+      setBlastResult({
+        targeted: data.targeted,
+        succeeded: data.succeeded,
+        failed: data.failed,
+      });
+    } catch (e) {
+      setBlastError(e instanceof Error ? e.message : t("loyalty.whatsappSendFailed"));
+    } finally {
+      setBlastSending(false);
+    }
+  }
+
   function statusLabel(status: string): string {
     if (status === "active") return t("loyalty.statusActive");
     if (status === "blocked") return t("loyalty.statusBlocked");
     return status;
   }
 
+  const pageAllChecked =
+    guests.length > 0 && guests.every((g) => checkedIds.has(g.id));
+  const pageSomeChecked = guests.some((g) => checkedIds.has(g.id));
+
   return (
     <div className="space-y-4">
+      <div className="flex gap-1 border-b border-foreground/10">
+        <button
+          type="button"
+          onClick={() => switchTab("all")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "all"
+              ? "border-b-2 border-foreground text-foreground"
+              : "text-foreground/55 hover:text-foreground"
+          }`}
+        >
+          {t("loyalty.tabAll")}
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab("legacy")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "legacy"
+              ? "border-b-2 border-foreground text-foreground"
+              : "text-foreground/55 hover:text-foreground"
+          }`}
+        >
+          {t("loyalty.tabLegacy")}
+        </button>
+      </div>
+
       <form className="space-y-3" onSubmit={submitSearch}>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
@@ -405,18 +579,157 @@ export function LoyaltyMembersClient() {
         </label>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/[0.02] p-3 text-sm">
+        <span className="text-foreground/70">
+          {t("loyalty.selectedCount", { count: String(checkedIds.size) })}
+        </span>
+        <label className="flex items-center gap-1.5 text-foreground/70">
+          <span>{t("loyalty.selectAllCap")}</span>
+          <input
+            type="number"
+            min={1}
+            max={BLAST_MAX}
+            value={selectAllCap}
+            onChange={(e) => setSelectAllCap(Number(e.target.value) || 1)}
+            className="w-16 rounded-lg border border-foreground/15 bg-background px-2 py-1 text-sm text-foreground"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={selectingAll || total === 0}
+          onClick={() => void selectAllMatching()}
+          className="rounded-lg border border-foreground/15 px-3 py-1.5 font-medium hover:bg-foreground/5 disabled:opacity-40"
+        >
+          {selectingAll ? t("loyalty.selectingAll") : t("loyalty.selectAllMatching")}
+        </button>
+        <button
+          type="button"
+          disabled={checkedIds.size === 0}
+          onClick={() => {
+            setComposeOpen(true);
+            setBlastError(null);
+            setBlastResult(null);
+          }}
+          className="rounded-lg bg-foreground px-3 py-1.5 font-medium text-background disabled:opacity-40"
+        >
+          {t("loyalty.messageSelected")}
+        </button>
+        {checkedIds.size > 0 ? (
+          <button
+            type="button"
+            onClick={() => setCheckedIds(new Set())}
+            className="rounded-lg border border-foreground/15 px-3 py-1.5 hover:bg-foreground/5"
+          >
+            {t("loyalty.clearSelection")}
+          </button>
+        ) : null}
+      </div>
+
+      {composeOpen ? (
+        <div className="space-y-3 rounded-2xl border border-foreground/10 bg-background/60 p-4 ring-1 ring-foreground/5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold">{t("loyalty.whatsappComposeTitle")}</h2>
+              <p className="text-sm text-foreground/60">
+                {t("loyalty.whatsappComposeHint", { count: String(checkedIds.size) })}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="text-sm text-foreground/60 hover:text-foreground"
+              onClick={() => setComposeOpen(false)}
+            >
+              {t("common.close")}
+            </button>
+          </div>
+          <label className="flex flex-col gap-1 text-xs text-foreground/70">
+            {t("loyalty.whatsappLocation")}
+            <select
+              value={blastLocationId}
+              onChange={(e) => setBlastLocationId(e.target.value)}
+              className="rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground"
+            >
+              {locations.length === 0 ? (
+                <option value="">{t("loyalty.whatsappNoLocations")}</option>
+              ) : (
+                locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-foreground/70">
+            {t("loyalty.whatsappMessage")}
+            <textarea
+              value={blastMessage}
+              onChange={(e) => setBlastMessage(e.target.value)}
+              rows={4}
+              maxLength={4096}
+              className="rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground"
+              placeholder={t("loyalty.whatsappMessagePlaceholder")}
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={blastSending || checkedIds.size === 0 || !blastLocationId}
+              onClick={() => void sendWhatsappBlast()}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {blastSending ? t("loyalty.whatsappSending") : t("loyalty.whatsappSend")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setComposeOpen(false)}
+              className="rounded-lg border border-foreground/15 px-4 py-2 text-sm hover:bg-foreground/5"
+            >
+              {t("common.cancel")}
+            </button>
+          </div>
+          {blastError ? (
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+              {blastError}
+            </p>
+          ) : null}
+          {blastResult ? (
+            <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+              {t("loyalty.whatsappSendResult", {
+                targeted: String(blastResult.targeted),
+                succeeded: String(blastResult.succeeded),
+                failed: String(blastResult.failed),
+              })}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
       ) : guests.length === 0 ? (
         <p className="text-sm text-foreground/60">
-          {hasActiveFilters ? t("loyalty.noMembersMatch") : t("loyalty.noMembers")}
+          {hasActiveFilters || tab === "legacy"
+            ? t("loyalty.noMembersMatch")
+            : t("loyalty.noMembers")}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-foreground/10 bg-background/40 ring-1 ring-foreground/5">
-          <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-foreground/10 text-xs font-medium uppercase tracking-wider text-foreground/50">
-                <th className="px-4 py-3 pl-5" scope="col">
+                <th className="px-3 py-3 pl-4" scope="col">
+                  <input
+                    type="checkbox"
+                    checked={pageAllChecked}
+                    ref={(el) => {
+                      if (el) el.indeterminate = pageSomeChecked && !pageAllChecked;
+                    }}
+                    onChange={(e) => togglePageChecked(e.target.checked)}
+                    aria-label={t("loyalty.selectPage")}
+                  />
+                </th>
+                <th className="px-4 py-3" scope="col">
                   {t("common.name")}
                 </th>
                 <th className="px-4 py-3" scope="col">
@@ -443,7 +756,27 @@ export function LoyaltyMembersClient() {
                   className="cursor-pointer border-b border-foreground/5 last:border-0 transition-colors hover:bg-foreground/3"
                   onClick={() => void openGuest(g)}
                 >
-                  <td className="px-4 py-3 pl-5 font-medium">{g.name}</td>
+                  <td
+                    className="px-3 py-3 pl-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checkedIds.has(g.id)}
+                      onChange={(e) => toggleChecked(g.id, e.target.checked)}
+                      aria-label={t("loyalty.selectMember", { name: g.name })}
+                    />
+                  </td>
+                  <td className="px-4 py-3 font-medium">
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {g.name}
+                      {g.isLegacy ? (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                          {t("loyalty.legacyBadge")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-foreground/70">{g.phoneE164}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{g.balance}</td>
                   <td className="px-4 py-3 text-foreground/70">
@@ -496,7 +829,14 @@ export function LoyaltyMembersClient() {
         <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 ring-1 ring-foreground/5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">{selected.name}</h2>
+              <h2 className="inline-flex flex-wrap items-center gap-2 text-lg font-semibold">
+                {selected.name}
+                {selected.isLegacy ? (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                    {t("loyalty.legacyBadge")}
+                  </span>
+                ) : null}
+              </h2>
               <p className="text-sm text-foreground/60">{selected.phoneE164}</p>
               <div className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
                 <p>

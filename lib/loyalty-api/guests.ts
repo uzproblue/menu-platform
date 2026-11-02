@@ -56,3 +56,29 @@ export async function mutateGuestPointsWithAuthServer(
     body,
   });
 }
+
+export type WhatsappBlastResponse = {
+  ok: true;
+  targeted: number;
+  succeeded: number;
+  failed: number;
+  errors: Array<{ guestId: string; message: string }>;
+};
+
+export async function sendGuestsWhatsappBlastWithAuthServer(
+  accessToken: string,
+  restaurantId: string | undefined,
+  body: {
+    locationId: string;
+    message: string;
+    guestIds: string[];
+  },
+) {
+  return loyaltyApiJson<WhatsappBlastResponse>({
+    path: "/api/admin/guests/whatsapp-blast",
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body,
+  });
+}

@@ -35,9 +35,18 @@ export async function GET(req: Request) {
   const orderRaw = searchParams.get("order");
   const order = orderRaw === "asc" || orderRaw === "desc" ? orderRaw : undefined;
 
+  const isLegacyRaw = searchParams.get("isLegacy")?.trim().toLowerCase() ?? "";
+  const isLegacy =
+    isLegacyRaw === "true" || isLegacyRaw === "1"
+      ? true
+      : isLegacyRaw === "false" || isLegacyRaw === "0"
+        ? false
+        : undefined;
+
   const params: GuestsListParams = {
     q: searchParams.get("q") ?? undefined,
     status,
+    isLegacy,
     lastVisitedFrom: searchParams.get("lastVisitedFrom") ?? undefined,
     lastVisitedTo: searchParams.get("lastVisitedTo") ?? undefined,
     minSpend: parseOptionalInt(searchParams.get("minSpend")),

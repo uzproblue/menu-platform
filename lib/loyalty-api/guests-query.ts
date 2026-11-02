@@ -4,6 +4,9 @@ export function buildGuestsListQuery(params: GuestsListParams = {}): string {
   const searchParams = new URLSearchParams();
   if (params.q?.trim()) searchParams.set("q", params.q.trim());
   if (params.status) searchParams.set("status", params.status);
+  if (typeof params.isLegacy === "boolean") {
+    searchParams.set("isLegacy", params.isLegacy ? "true" : "false");
+  }
   if (params.lastVisitedFrom?.trim()) {
     searchParams.set("lastVisitedFrom", params.lastVisitedFrom.trim());
   }
