@@ -35,6 +35,8 @@ export type Location = {
   instagramUrl?: string;
   twoGisUrl?: string;
   ordersEnabled: boolean;
+  /** When true, menu-customer auto-opens loyalty enrollment after language selection. */
+  loyaltyPushEnabled?: boolean;
   /** Optional custom domain for delivery storefront routing via Cloudflare KV. */
   customDomain?: string | null;
   isDefault: boolean;
@@ -158,6 +160,7 @@ export type UpdateLocationDetailsInput = {
   instagramUrl?: string | null;
   twoGisUrl?: string | null;
   ordersEnabled?: boolean;
+  loyaltyPushEnabled?: boolean;
   customDomain?: string | null;
 };
 
@@ -186,6 +189,7 @@ export type UpdateLocationDetailsResponse = {
     instagramUrl?: string;
     twoGisUrl?: string;
     ordersEnabled: boolean;
+    loyaltyPushEnabled?: boolean;
     customDomain?: string | null;
     isDefault: boolean;
     isActive: boolean;

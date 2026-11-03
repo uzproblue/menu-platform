@@ -715,6 +715,9 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.ordersEnabled": "Включить оформление заказа",
   "restaurants.newWizard.ordersEnabledHint":
     "Если выключено, гости могут просматривать меню и добавлять в корзину, но кнопки оформления не будет.",
+  "restaurants.newWizard.loyaltyPushEnabled": "Активный push лояльности",
+  "restaurants.newWizard.loyaltyPushEnabledHint":
+    "Если включено, гости без входа видят окно регистрации в программе лояльности после выбора языка.",
   "restaurants.newWizard.logoUrlOrPath": "URL или путь к логотипу",
   "restaurants.newWizard.categoryCoverAlt": "Обложка категории «{name}»",
   "restaurants.newWizard.previewPlaceholderName": "Ваш ресторан",

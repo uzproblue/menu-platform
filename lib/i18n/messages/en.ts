@@ -711,6 +711,9 @@ export const enMessages: Messages = {
   "restaurants.newWizard.ordersEnabled": "Enable cart checkout",
   "restaurants.newWizard.ordersEnabledHint":
     "When off, guests can browse and add items to the cart but will not see a checkout button.",
+  "restaurants.newWizard.loyaltyPushEnabled": "Active loyalty push",
+  "restaurants.newWizard.loyaltyPushEnabledHint":
+    "When on, guests who are not signed in see the loyalty enrollment popup after choosing a language.",
   "restaurants.newWizard.logoUrlOrPath": "Logo URL or path",
   "restaurants.newWizard.categoryCoverAlt": "{name} category cover",
   "restaurants.newWizard.previewPlaceholderName": "Your restaurant",

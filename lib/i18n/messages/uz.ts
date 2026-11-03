@@ -707,6 +707,9 @@ export const uzMessages: Messages = {
   "restaurants.newWizard.ordersEnabled": "Savatdan buyurtma berishni yoqish",
   "restaurants.newWizard.ordersEnabledHint":
     "O'chirilgan bo'lsa, mehmonlar menyuni ko'radi va savatga qo'shadi, lekin buyurtma tugmasi ko'rinmaydi.",
+  "restaurants.newWizard.loyaltyPushEnabled": "Faol sodiqlik push",
+  "restaurants.newWizard.loyaltyPushEnabledHint":
+    "Yoqilganda, tizimga kirmagan mehmonlar til tanlangandan keyin sodiqlik dasturiga yozilish oynasini ko'radi.",
   "restaurants.newWizard.logoUrlOrPath": "Logo URL yoki yo'l",
   "restaurants.newWizard.categoryCoverAlt": "{name} kategoriyasi muqovasi",
   "restaurants.newWizard.previewPlaceholderName": "Restoraningiz",

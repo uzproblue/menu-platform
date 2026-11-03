@@ -109,6 +109,7 @@ export async function PATCH(
     instagramUrl?: string | null;
     twoGisUrl?: string | null;
     ordersEnabled?: boolean;
+    loyaltyPushEnabled?: boolean;
     customDomain?: string | null;
   } = {};
 
@@ -357,6 +358,18 @@ export async function PATCH(
     }
     payload.ordersEnabled = o.ordersEnabled;
   }
+  if ("loyaltyPushEnabled" in o) {
+    if (typeof o.loyaltyPushEnabled !== "boolean") {
+      return NextResponse.json(
+        {
+          error: "invalid_body",
+          message: "loyaltyPushEnabled must be a boolean",
+        },
+        { status: 400 },
+      );
+    }
+    payload.loyaltyPushEnabled = o.loyaltyPushEnabled;
+  }
   if ("customDomain" in o) {
     if (o.customDomain !== null && typeof o.customDomain !== "string") {
       return NextResponse.json(
@@ -384,13 +397,14 @@ export async function PATCH(
     payload.instagramUrl === undefined &&
     payload.twoGisUrl === undefined &&
     payload.ordersEnabled === undefined &&
+    payload.loyaltyPushEnabled === undefined &&
     payload.customDomain === undefined
   ) {
     return NextResponse.json(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, timezone, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, customDomain is required",
+          "at least one of name, currency, timezone, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, loyaltyPushEnabled, customDomain is required",
       },
       { status: 400 },
     );

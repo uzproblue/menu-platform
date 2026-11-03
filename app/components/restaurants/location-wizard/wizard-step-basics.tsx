@@ -66,6 +66,8 @@ type WizardStepBasicsProps = {
   setTwoGisUrl: (v: string) => void;
   ordersEnabled: boolean;
   setOrdersEnabled: (v: boolean) => void;
+  loyaltyPushEnabled: boolean;
+  setLoyaltyPushEnabled: (v: boolean) => void;
   customDomain?: string;
   setCustomDomain?: (v: string) => void;
   existingLocations?: Array<{ id: string; name: string; type?: "dine_in" | "delivery" }>;
@@ -138,6 +140,8 @@ export function WizardStepBasics({
   setTwoGisUrl,
   ordersEnabled,
   setOrdersEnabled,
+  loyaltyPushEnabled,
+  setLoyaltyPushEnabled,
   isLoadingLocationEdit,
   editLoadError,
   isSavingStep1,
@@ -422,6 +426,20 @@ export function WizardStepBasics({
                 </label>
                 <p className="mt-1 text-xs text-foreground/55">
                   {t("restaurants.newWizard.ordersEnabledHint")}
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={loyaltyPushEnabled}
+                    onChange={(e) => setLoyaltyPushEnabled(e.target.checked)}
+                    disabled={formDisabled}
+                  />
+                  {t("restaurants.newWizard.loyaltyPushEnabled")}
+                </label>
+                <p className="mt-1 text-xs text-foreground/55">
+                  {t("restaurants.newWizard.loyaltyPushEnabledHint")}
                 </p>
               </div>
             </>

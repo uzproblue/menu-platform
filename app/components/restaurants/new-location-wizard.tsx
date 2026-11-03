@@ -63,6 +63,7 @@ export function NewLocationWizard({
   const [instagramUrl, setInstagramUrl] = useState("");
   const [twoGisUrl, setTwoGisUrl] = useState("");
   const [ordersEnabled, setOrdersEnabled] = useState(false);
+  const [loyaltyPushEnabled, setLoyaltyPushEnabled] = useState(false);
   const [customDomain, setCustomDomain] = useState("");
   const [copyMenuFromLocationId, setCopyMenuFromLocationId] = useState<string>("catalog");
   const [existingLocations, setExistingLocations] = useState<
@@ -161,6 +162,7 @@ export function NewLocationWizard({
         setInstagramUrl(loc.instagramUrl ?? "");
         setTwoGisUrl(loc.twoGisUrl ?? "");
         setOrdersEnabled(loc.ordersEnabled ?? false);
+        setLoyaltyPushEnabled(loc.loyaltyPushEnabled ?? false);
         setLogoFile(null);
         setLogoPreviewUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -242,6 +244,7 @@ export function NewLocationWizard({
               instagramUrl: instagramUrl.trim() || null,
               twoGisUrl: twoGisUrl.trim() || null,
               ordersEnabled,
+              loyaltyPushEnabled,
               customDomain: customDomain.trim() || null,
             }),
           },
@@ -275,6 +278,7 @@ export function NewLocationWizard({
         setInstagramUrl(loc.instagramUrl ?? "");
         setTwoGisUrl(loc.twoGisUrl ?? "");
         setOrdersEnabled(loc.ordersEnabled ?? false);
+        setLoyaltyPushEnabled(loc.loyaltyPushEnabled ?? false);
         setLogoFile(null);
         setCoverFile(null);
         setLogoPreviewUrl((prev) => {
@@ -449,6 +453,8 @@ export function NewLocationWizard({
             setTwoGisUrl={setTwoGisUrl}
             ordersEnabled={ordersEnabled}
             setOrdersEnabled={setOrdersEnabled}
+            loyaltyPushEnabled={loyaltyPushEnabled}
+            setLoyaltyPushEnabled={setLoyaltyPushEnabled}
             isLoadingLocationEdit={isLoadingLocationEdit}
             editLoadError={editLoadError}
             isSavingStep1={isSavingStep1}
