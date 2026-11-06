@@ -534,9 +534,20 @@ export function GlobalMenuPageClient({
         "id" in raw &&
         typeof (raw as { id: unknown }).id === "string"
       ) {
-        const item = mapGlobalMenuItemApiToMenuItem(raw as CreatedMenuItemApi);
+        const mapped = mapGlobalMenuItemApiToMenuItem(raw as CreatedMenuItemApi);
         const categoryId =
           findCategoryIdForItem(data, itemId) ?? translationsTarget.categoryId;
+        const previous = findItem(data, categoryId, itemId);
+        // Keep fields the translations response may omit (e.g. older servers).
+        const item: MenuItem = {
+          ...mapped,
+          ...(mapped.gramm == null && previous?.gramm != null
+            ? { gramm: previous.gramm }
+            : null),
+          ...(mapped.videoId == null && previous?.videoId != null
+            ? { videoId: previous.videoId }
+            : null),
+        };
         appendMenuItemMutation({ kind: "upsert", categoryId, item });
         patchItem(categoryId, itemId, () => item);
       }
