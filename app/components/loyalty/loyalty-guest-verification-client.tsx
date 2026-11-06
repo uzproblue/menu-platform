@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import type { Location } from "@/lib/auth-api/types/locations";
 import type { RestaurantTelegramConfig } from "@/lib/loyalty-api/telegram";
 import type { WhatsappChannelView } from "@/lib/loyalty-api/whatsapp-channels";
 import { useI18n } from "../i18n-provider";
@@ -61,18 +60,13 @@ export function LoyaltyGuestVerificationClient() {
   const [saving, setSaving] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(true);
 
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [locationId, setLocationId] = useState("");
-  const [locationsLoading, setLocationsLoading] = useState(true);
   const [whatsappChannel, setWhatsappChannel] = useState<WhatsappChannelView | null>(null);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
-  const [whatsappLoading, setWhatsappLoading] = useState(false);
+  const [whatsappLoading, setWhatsappLoading] = useState(true);
   const [whatsappPending, setWhatsappPending] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const qrPoll = useRef(0);
-  const locationIdRef = useRef(locationId);
-  locationIdRef.current = locationId;
 
   const loadTelegram = useCallback(async () => {
     setTelegramLoading(true);
@@ -102,69 +96,35 @@ export function LoyaltyGuestVerificationClient() {
     }
   }, []);
 
-  const loadWhatsapp = useCallback(
-    async (selectedLocationId: string) => {
-      if (!selectedLocationId) {
-        setWhatsappChannel(null);
-        setWhatsappLoading(false);
-        return;
-      }
-      setWhatsappLoading(true);
-      try {
-        const res = await fetch(
-          `/api/settings/loyalty/whatsapp/connections?locationId=${encodeURIComponent(selectedLocationId)}`,
-          { cache: "no-store" },
-        );
-        const payload = (await res.json().catch(() => null)) as
-          | { channels?: WhatsappChannelView[]; message?: string }
-          | null;
-        if (!res.ok) {
-          setWhatsappError(payload?.message || t("loyalty.whatsappLinkLoadFailed"));
-          setWhatsappChannel(null);
-          return;
-        }
-        const channel =
-          payload?.channels?.find((item) => item.type === "whatsapp") ?? null;
-        setWhatsappChannel(channel);
-        setWhatsappError(null);
-      } catch {
-        setWhatsappError(t("loyalty.whatsappLinkNetworkError"));
-        setWhatsappChannel(null);
-      } finally {
-        setWhatsappLoading(false);
-      }
-    },
-    [t],
-  );
-
-  const loadLocations = useCallback(async () => {
-    setLocationsLoading(true);
+  const loadWhatsapp = useCallback(async () => {
+    setWhatsappLoading(true);
     try {
-      const res = await fetch("/api/settings/locations", { cache: "no-store" });
+      const res = await fetch("/api/settings/loyalty/whatsapp/connections", {
+        cache: "no-store",
+      });
+      const payload = (await res.json().catch(() => null)) as
+        | { channels?: WhatsappChannelView[]; message?: string }
+        | null;
       if (!res.ok) {
-        setLocations([]);
-        setLocationId("");
+        setWhatsappError(payload?.message || t("loyalty.whatsappLinkLoadFailed"));
+        setWhatsappChannel(null);
         return;
       }
-      const data = (await res.json()) as { locations?: Location[] };
-      const locs = Array.isArray(data.locations) ? data.locations : [];
-      setLocations(locs);
-      setLocationId((current) => {
-        if (current && locs.some((loc) => loc.id === current)) return current;
-        return locs[0]?.id ?? "";
-      });
+      const channel = payload?.channels?.find((item) => item.type === "whatsapp") ?? null;
+      setWhatsappChannel(channel);
+      setWhatsappError(null);
     } catch {
-      setLocations([]);
-      setLocationId("");
+      setWhatsappError(t("loyalty.whatsappLinkNetworkError"));
+      setWhatsappChannel(null);
     } finally {
-      setLocationsLoading(false);
+      setWhatsappLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadTelegram();
-    void loadLocations();
-  }, [loadTelegram, loadLocations]);
+    void loadWhatsapp();
+  }, [loadTelegram, loadWhatsapp]);
 
   useEffect(() => {
     const onContextChanged = () => {
@@ -173,19 +133,11 @@ export function LoyaltyGuestVerificationClient() {
       setQrDataUrl(null);
       setWhatsappPending(false);
       void loadTelegram();
-      void loadLocations();
+      void loadWhatsapp();
     };
     window.addEventListener("restaurant-context-changed", onContextChanged);
     return () => window.removeEventListener("restaurant-context-changed", onContextChanged);
-  }, [loadTelegram, loadLocations, stopQrPoll]);
-
-  useEffect(() => {
-    stopQrPoll();
-    setQrOpen(false);
-    setQrDataUrl(null);
-    setWhatsappPending(false);
-    void loadWhatsapp(locationId);
-  }, [locationId, loadWhatsapp, stopQrPoll]);
+  }, [loadTelegram, loadWhatsapp, stopQrPoll]);
 
   useEffect(() => () => stopQrPoll(), [stopQrPoll]);
 
@@ -236,18 +188,14 @@ export function LoyaltyGuestVerificationClient() {
   }
 
   const refreshQr = useCallback(async () => {
-    const selected = locationIdRef.current;
-    if (!selected) return;
-    const res = await fetch(
-      `/api/settings/loyalty/whatsapp/qr?locationId=${encodeURIComponent(selected)}`,
-    );
+    const res = await fetch("/api/settings/loyalty/whatsapp/qr");
     const payload = (await res.json().catch(() => null)) as QrPayload | null;
     if (payload?.status === "WORKING") {
       stopQrPoll();
       setQrOpen(false);
       setQrDataUrl(null);
       setWhatsappPending(false);
-      await loadWhatsapp(selected);
+      await loadWhatsapp();
       return;
     }
     if (payload?.qr) {
@@ -258,17 +206,13 @@ export function LoyaltyGuestVerificationClient() {
   }, [loadWhatsapp, stopQrPoll]);
 
   const startQrFlow = useCallback(async () => {
-    const selected = locationIdRef.current;
-    if (!selected) return;
     stopQrPoll();
     setQrOpen(true);
     setQrDataUrl(null);
     await refreshQr();
     qrPoll.current = window.setInterval(() => {
       void refreshQr();
-      void fetch(
-        `/api/settings/loyalty/whatsapp/status?locationId=${encodeURIComponent(selected)}`,
-      )
+      void fetch("/api/settings/loyalty/whatsapp/status")
         .then((res) => res.json() as Promise<SessionPayload>)
         .then((payload) => {
           if (payload.status === "WORKING") {
@@ -276,7 +220,7 @@ export function LoyaltyGuestVerificationClient() {
             setQrOpen(false);
             setQrDataUrl(null);
             setWhatsappPending(false);
-            void loadWhatsapp(selected);
+            void loadWhatsapp();
           }
         })
         .catch(() => undefined);
@@ -284,7 +228,6 @@ export function LoyaltyGuestVerificationClient() {
   }, [loadWhatsapp, refreshQr, stopQrPoll]);
 
   async function connectWhatsapp() {
-    if (!locationId) return;
     setWhatsappPending(true);
     setWhatsappError(null);
     try {
@@ -292,11 +235,7 @@ export function LoyaltyGuestVerificationClient() {
         whatsappChannel && needsReauth(whatsappChannel)
           ? `/api/settings/loyalty/whatsapp/connections/${encodeURIComponent(whatsappChannel.id)}/reauth`
           : "/api/settings/loyalty/whatsapp/session";
-      const start = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locationId }),
-      });
+      const start = await fetch(url, { method: "POST" });
       const payload = (await start.json().catch(() => null)) as SessionPayload | null;
       if (!start.ok) {
         setWhatsappError(payload?.message || t("loyalty.whatsappLinkLoadFailed"));
@@ -304,7 +243,7 @@ export function LoyaltyGuestVerificationClient() {
         return;
       }
       if (payload?.status === "WORKING") {
-        await loadWhatsapp(locationId);
+        await loadWhatsapp();
         setWhatsappPending(false);
         return;
       }
@@ -317,7 +256,7 @@ export function LoyaltyGuestVerificationClient() {
   }
 
   async function disconnectWhatsapp() {
-    if (!locationId || !whatsappChannel) return;
+    if (!whatsappChannel) return;
     setWhatsappPending(true);
     setWhatsappError(null);
     stopQrPoll();
@@ -325,14 +264,14 @@ export function LoyaltyGuestVerificationClient() {
     setQrDataUrl(null);
     try {
       const res = await fetch(
-        `/api/settings/loyalty/whatsapp/connections/${encodeURIComponent(whatsappChannel.id)}?locationId=${encodeURIComponent(locationId)}`,
+        `/api/settings/loyalty/whatsapp/connections/${encodeURIComponent(whatsappChannel.id)}`,
         { method: "DELETE" },
       );
       if (!res.ok) {
         setWhatsappError(await readErrorMessage(res, t("loyalty.whatsappLinkLoadFailed")));
         return;
       }
-      await loadWhatsapp(locationId);
+      await loadWhatsapp();
     } catch {
       setWhatsappError(t("loyalty.whatsappLinkNetworkError"));
     } finally {
@@ -345,7 +284,7 @@ export function LoyaltyGuestVerificationClient() {
     setQrOpen(false);
     setQrDataUrl(null);
     setWhatsappPending(false);
-    void loadWhatsapp(locationId);
+    void loadWhatsapp();
   }
 
   const connectLabel = whatsappPending
@@ -475,117 +414,91 @@ export function LoyaltyGuestVerificationClient() {
           </p>
         </header>
 
-        {locationsLoading ? (
-          <p className="mt-6 text-sm text-foreground/60">{t("loyalty.loading")}</p>
-        ) : locations.length === 0 ? (
-          <p className="mt-6 text-sm text-foreground/60">
-            {t("loyalty.whatsappLinkNoLocations")}
-          </p>
-        ) : (
-          <div className="mt-6 max-w-xl space-y-4">
-            <label className="block text-sm">
-              <span className="block text-foreground/60">
-                {t("loyalty.whatsappLinkLocation")}
-              </span>
-              <select
-                className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2"
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-                disabled={whatsappPending || qrOpen}
+        <div className="mt-6 max-w-xl space-y-4">
+          {whatsappLoading && !qrOpen ? (
+            <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
+          ) : (
+            <>
+              <p
+                className="text-sm font-medium"
+                data-status={whatsappChannel?.status ?? "disconnected"}
               >
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {whatsappStatusLabel(whatsappChannel ?? undefined, t)}
+                {whatsappChannel?.displayName
+                  ? ` · ${whatsappChannel.displayName}`
+                  : null}
+              </p>
 
-            {whatsappLoading && !qrOpen ? (
-              <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
-            ) : (
-              <>
-                <p
-                  className="text-sm font-medium"
-                  data-status={whatsappChannel?.status ?? "disconnected"}
-                >
-                  {whatsappStatusLabel(whatsappChannel ?? undefined, t)}
-                  {whatsappChannel?.displayName
-                    ? ` · ${whatsappChannel.displayName}`
-                    : null}
+              {whatsappError ? (
+                <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
+                  {whatsappError}
                 </p>
+              ) : null}
 
-                {whatsappError ? (
-                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
-                    {whatsappError}
-                  </p>
-                ) : null}
-
-                {qrOpen ? (
-                  <div className="space-y-3 rounded-xl border border-foreground/10 bg-background/80 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold">
-                          {t("loyalty.whatsappLinkQrTitle")}
-                        </h3>
-                        <p className="mt-1 text-sm text-foreground/60">
-                          {t("loyalty.whatsappLinkQrBody")}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="shrink-0 rounded-lg border border-foreground/15 px-3 py-1.5 text-sm"
-                        onClick={cancelQr}
-                      >
-                        {t("loyalty.whatsappLinkQrCancel")}
-                      </button>
-                    </div>
-                    <div className="flex flex-col items-center gap-2 py-2">
-                      {qrDataUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={qrDataUrl}
-                          alt={t("loyalty.whatsappLinkQrAlt")}
-                          width={280}
-                          height={280}
-                          className="rounded-lg bg-white p-2"
-                        />
-                      ) : (
-                        <p className="text-sm text-foreground/60">
-                          {t("loyalty.whatsappLinkQrWaiting")}
-                        </p>
-                      )}
-                      <p className="text-sm text-foreground/60">
-                        {t("loyalty.whatsappLinkQrHint")}
+              {qrOpen ? (
+                <div className="space-y-3 rounded-xl border border-foreground/10 bg-background/80 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold">
+                        {t("loyalty.whatsappLinkQrTitle")}
+                      </h3>
+                      <p className="mt-1 text-sm text-foreground/60">
+                        {t("loyalty.whatsappLinkQrBody")}
                       </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      disabled={whatsappPending || !locationId}
-                      onClick={() => void connectWhatsapp()}
-                      className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
+                      className="shrink-0 rounded-lg border border-foreground/15 px-3 py-1.5 text-sm"
+                      onClick={cancelQr}
                     >
-                      {connectLabel}
+                      {t("loyalty.whatsappLinkQrCancel")}
                     </button>
-                    {whatsappChannel && whatsappChannel.status !== "disconnected" ? (
-                      <button
-                        type="button"
-                        disabled={whatsappPending}
-                        onClick={() => void disconnectWhatsapp()}
-                        className="rounded-lg border border-foreground/15 px-4 py-2 text-sm disabled:opacity-60"
-                      >
-                        {t("loyalty.whatsappLinkDisconnect")}
-                      </button>
-                    ) : null}
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    {qrDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={qrDataUrl}
+                        alt={t("loyalty.whatsappLinkQrAlt")}
+                        width={280}
+                        height={280}
+                        className="rounded-lg bg-white p-2"
+                      />
+                    ) : (
+                      <p className="text-sm text-foreground/60">
+                        {t("loyalty.whatsappLinkQrWaiting")}
+                      </p>
+                    )}
+                    <p className="text-sm text-foreground/60">
+                      {t("loyalty.whatsappLinkQrHint")}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={whatsappPending}
+                    onClick={() => void connectWhatsapp()}
+                    className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
+                  >
+                    {connectLabel}
+                  </button>
+                  {whatsappChannel && whatsappChannel.status !== "disconnected" ? (
+                    <button
+                      type="button"
+                      disabled={whatsappPending}
+                      onClick={() => void disconnectWhatsapp()}
+                      className="rounded-lg border border-foreground/15 px-4 py-2 text-sm disabled:opacity-60"
+                    >
+                      {t("loyalty.whatsappLinkDisconnect")}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </section>
     </div>
   );

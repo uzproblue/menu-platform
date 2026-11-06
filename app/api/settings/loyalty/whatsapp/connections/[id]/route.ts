@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireWhatsappLocationAccess } from "@/lib/loyalty-api/whatsapp-guard";
+import { requireWhatsappRestaurantAccess } from "@/lib/loyalty-api/whatsapp-guard";
 import { isSafeId, proxyGateway } from "@/lib/meta-gateway";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function DELETE(req: Request, ctx: Ctx) {
-  const locationId = new URL(req.url).searchParams.get("locationId");
-  const auth = await requireWhatsappLocationAccess(locationId);
+export async function DELETE(_req: Request, ctx: Ctx) {
+  const auth = await requireWhatsappRestaurantAccess();
   if ("response" in auth) return auth.response;
 
   const { id } = await ctx.params;

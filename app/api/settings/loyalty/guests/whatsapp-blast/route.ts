@@ -44,12 +44,6 @@ export async function POST(req: Request) {
       ]
     : [];
 
-  if (!locationId) {
-    return NextResponse.json(
-      { error: "validation_error", message: "locationId is required" },
-      { status: 400 },
-    );
-  }
   if (!message || message.length > MAX_MESSAGE) {
     return NextResponse.json(
       {
@@ -70,7 +64,7 @@ export async function POST(req: Request) {
   }
 
   const result = await sendGuestsWhatsappBlastWithAuthServer(token, access.restaurantId, {
-    locationId,
+    ...(locationId ? { locationId } : {}),
     message,
     guestIds,
   });

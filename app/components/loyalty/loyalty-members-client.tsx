@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import type { Location } from "@/lib/auth-api/types/locations";
 import type { GuestsListResponse, LoyaltyGuest, LoyaltyLedgerEntry } from "@/lib/loyalty-api/types";
 import { buildGuestsListQuery } from "@/lib/loyalty-api/guests-query";
 import { formatMinorCurrency, majorToMinor } from "@/lib/currency-minor-units";
@@ -104,9 +103,7 @@ export function LoyaltyMembersClient() {
   const [selectAllCap, setSelectAllCap] = useState(100);
   const [selectingAll, setSelectingAll] = useState(false);
 
-  const [locations, setLocations] = useState<Location[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [blastLocationId, setBlastLocationId] = useState("");
   const [blastMessage, setBlastMessage] = useState("");
   const [blastSending, setBlastSending] = useState(false);
   const [blastError, setBlastError] = useState<string | null>(null);
@@ -172,24 +169,6 @@ export function LoyaltyMembersClient() {
       }
     })();
   }, [loadGuests, t]);
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/settings/locations", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { locations?: Location[] };
-        const locs = Array.isArray(data.locations) ? data.locations : [];
-        setLocations(locs);
-        setBlastLocationId((prev) => {
-          if (prev && locs.some((l) => l.id === prev)) return prev;
-          return locs[0]?.id ?? "";
-        });
-      } catch {
-        /* location picker optional until compose */
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     const onContextChanged = () => {
@@ -369,10 +348,6 @@ export function LoyaltyMembersClient() {
   async function sendWhatsappBlast() {
     const guestIds = [...checkedIds];
     if (guestIds.length === 0) return;
-    if (!blastLocationId) {
-      setBlastError(t("loyalty.whatsappPickLocation"));
-      return;
-    }
     const message = blastMessage.trim();
     if (!message) {
       setBlastError(t("loyalty.whatsappMessageRequired"));
@@ -386,7 +361,6 @@ export function LoyaltyMembersClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          locationId: blastLocationId,
           message,
           guestIds,
         }),
@@ -643,24 +617,6 @@ export function LoyaltyMembersClient() {
             </button>
           </div>
           <label className="flex flex-col gap-1 text-xs text-foreground/70">
-            {t("loyalty.whatsappLocation")}
-            <select
-              value={blastLocationId}
-              onChange={(e) => setBlastLocationId(e.target.value)}
-              className="rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground"
-            >
-              {locations.length === 0 ? (
-                <option value="">{t("loyalty.whatsappNoLocations")}</option>
-              ) : (
-                locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-foreground/70">
             {t("loyalty.whatsappMessage")}
             <textarea
               value={blastMessage}
@@ -674,7 +630,7 @@ export function LoyaltyMembersClient() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={blastSending || checkedIds.size === 0 || !blastLocationId}
+              disabled={blastSending || checkedIds.size === 0}
               onClick={() => void sendWhatsappBlast()}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >

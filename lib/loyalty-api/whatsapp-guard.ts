@@ -7,32 +7,21 @@ import { requireLoyaltyRestaurantAccess } from "@/lib/loyalty-api/restaurant-acc
 export type WhatsappRouteAuth = {
   token: string;
   restaurantId: string;
+  /** Any location of the restaurant — required to mint the gateway JWT. */
   locationId: string;
 };
 
-function readLocationId(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length ? trimmed : null;
-}
-
-export async function requireWhatsappLocationAccess(
-  locationIdRaw: unknown,
-): Promise<WhatsappRouteAuth | { response: NextResponse }> {
+/**
+ * Restaurant-scoped WhatsApp access. Picks the first location of the selected
+ * restaurant so menu-server can authorize the gateway token mint.
+ */
+export async function requireWhatsappRestaurantAccess(): Promise<
+  WhatsappRouteAuth | { response: NextResponse }
+> {
   const session = await getServerSession(authOptions);
   const token = session?.accessToken;
   if (!token) {
     return { response: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
-  }
-
-  const locationId = readLocationId(locationIdRaw);
-  if (!locationId) {
-    return {
-      response: NextResponse.json(
-        { error: "invalid_body", message: "locationId is required" },
-        { status: 400 },
-      ),
-    };
   }
 
   const access = await requireLoyaltyRestaurantAccess(token);
@@ -55,12 +44,15 @@ export async function requireWhatsappLocationAccess(
     };
   }
 
-  const belongs = locations.data.locations.some((loc) => loc.id === locationId);
-  if (!belongs) {
+  const locationId = locations.data.locations[0]?.id?.trim() ?? "";
+  if (!locationId) {
     return {
       response: NextResponse.json(
-        { error: "forbidden", message: "Location is not in the selected restaurant." },
-        { status: 403 },
+        {
+          error: "no_locations",
+          message: "Add a location before linking WhatsApp for this restaurant.",
+        },
+        { status: 400 },
       ),
     };
   }

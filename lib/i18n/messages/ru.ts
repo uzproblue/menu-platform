@@ -1254,7 +1254,7 @@ export const ruMessages: Messages = {
   "loyalty.selectMember": "Выбрать {name}",
   "loyalty.whatsappComposeTitle": "Сообщение WhatsApp",
   "loyalty.whatsappComposeHint":
-    "Отправить {count} выбранным участникам с WhatsApp-сессии локации.",
+    "Отправить {count} выбранным участникам через WhatsApp-сессию ресторана.",
   "loyalty.whatsappLocation": "Отправить от локации",
   "loyalty.whatsappNoLocations": "Нет локаций",
   "loyalty.whatsappMessage": "Сообщение",
@@ -1380,7 +1380,7 @@ export const ruMessages: Messages = {
   "loyalty.earnSaveFailed": "Не удалось сохранить правило начисления.",
   "loyalty.guestVerificationTitle": "Подтверждение гостей",
   "loyalty.guestVerificationSubtitle":
-    "Подключите Telegram и WhatsApp, чтобы гости подтверждали телефон, а команда писала им из тех же связанных сессий.",
+    "Подключите Telegram и WhatsApp на весь ресторан, чтобы гости подтверждали телефон, а команда писала им из тех же связанных сессий.",
   "loyalty.telegramTitle": "Telegram",
   "loyalty.telegramSubtitle":
     "Подключите бота BotFather для ресторана, чтобы гости подтверждали телефон через Telegram.",
@@ -1400,9 +1400,8 @@ export const ruMessages: Messages = {
   "loyalty.telegramWebhookDisconnected": "Webhook Telegram отключён.",
   "loyalty.whatsappLinkTitle": "WhatsApp",
   "loyalty.whatsappLinkSubtitle":
-    "Привяжите ту же сессию WhatsApp, что использует Hostess для этой локации. Отсканируйте QR в связанных устройствах WhatsApp.",
-  "loyalty.whatsappLinkLocation": "Локация",
-  "loyalty.whatsappLinkNoLocations": "Нет локаций у этого ресторана.",
+    "Одна привязка WhatsApp на весь ресторан (все локации). Та же сессия, что у Hostess. Отсканируйте QR в связанных устройствах WhatsApp.",
+  "loyalty.whatsappLinkNoLocations": "Добавьте локацию, прежде чем привязывать WhatsApp.",
   "loyalty.whatsappLinkStatusDisconnected": "Отключено",
   "loyalty.whatsappLinkStatusActive": "Подключено",
   "loyalty.whatsappLinkStatusNeedsReauth": "Нужно переподключить",

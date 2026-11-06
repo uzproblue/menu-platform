@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireWhatsappLocationAccess } from "@/lib/loyalty-api/whatsapp-guard";
+import { requireWhatsappRestaurantAccess } from "@/lib/loyalty-api/whatsapp-guard";
 import { isSafeId, proxyGateway } from "@/lib/meta-gateway";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function POST(req: Request, ctx: Ctx) {
-  const body = (await req.json().catch(() => null)) as { locationId?: unknown } | null;
-  const auth = await requireWhatsappLocationAccess(body?.locationId);
+export async function POST(_req: Request, ctx: Ctx) {
+  const auth = await requireWhatsappRestaurantAccess();
   if ("response" in auth) return auth.response;
 
   const { id } = await ctx.params;

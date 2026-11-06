@@ -69,9 +69,10 @@ export async function sendGuestsWhatsappBlastWithAuthServer(
   accessToken: string,
   restaurantId: string | undefined,
   body: {
-    locationId: string;
     message: string;
     guestIds: string[];
+    /** Optional legacy loc-* fallback; restaurant session is preferred. */
+    locationId?: string;
   },
 ) {
   return loyaltyApiJson<WhatsappBlastResponse>({

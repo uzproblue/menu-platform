@@ -1229,7 +1229,7 @@ export const enMessages: Messages = {
   "loyalty.selectPage": "Select page",
   "loyalty.selectMember": "Select {name}",
   "loyalty.whatsappComposeTitle": "WhatsApp message",
-  "loyalty.whatsappComposeHint": "Send to {count} selected members from a location WhatsApp session.",
+  "loyalty.whatsappComposeHint": "Send to {count} selected members via the restaurant WhatsApp session.",
   "loyalty.whatsappLocation": "Send from location",
   "loyalty.whatsappNoLocations": "No locations",
   "loyalty.whatsappMessage": "Message",
@@ -1356,7 +1356,7 @@ export const enMessages: Messages = {
   "loyalty.earnSaveFailed": "Could not save the earn rule.",
   "loyalty.guestVerificationTitle": "Guest verification",
   "loyalty.guestVerificationSubtitle":
-    "Connect Telegram and WhatsApp so guests can verify their phone and your team can message them from the same linked sessions.",
+    "Connect Telegram and a restaurant-wide WhatsApp so guests can verify their phone and your team can message them from the same linked sessions.",
   "loyalty.telegramTitle": "Telegram",
   "loyalty.telegramSubtitle":
     "Connect a BotFather bot for this restaurant so guests can verify their phone with Telegram share-number.",
@@ -1376,9 +1376,8 @@ export const enMessages: Messages = {
   "loyalty.telegramWebhookDisconnected": "Telegram webhook disconnected.",
   "loyalty.whatsappLinkTitle": "WhatsApp",
   "loyalty.whatsappLinkSubtitle":
-    "Link the same WhatsApp session used by Hostess for this location. Scan the QR code in WhatsApp Linked devices.",
-  "loyalty.whatsappLinkLocation": "Location",
-  "loyalty.whatsappLinkNoLocations": "No locations for this restaurant.",
+    "One WhatsApp link for the whole restaurant (all locations). Same session as Hostess. Scan the QR in WhatsApp Linked devices.",
+  "loyalty.whatsappLinkNoLocations": "Add a location before linking WhatsApp.",
   "loyalty.whatsappLinkStatusDisconnected": "Disconnected",
   "loyalty.whatsappLinkStatusActive": "Connected",
   "loyalty.whatsappLinkStatusNeedsReauth": "Needs reconnect",

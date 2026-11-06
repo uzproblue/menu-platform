@@ -1230,7 +1230,7 @@ export const uzMessages: Messages = {
   "loyalty.selectMember": "{name} ni tanlash",
   "loyalty.whatsappComposeTitle": "WhatsApp xabari",
   "loyalty.whatsappComposeHint":
-    "{count} tanlangan a'zoga lokatsiya WhatsApp sessiyasidan yuborish.",
+    "{count} tanlangan a'zoga restoran WhatsApp sessiyasi orqali yuborish.",
   "loyalty.whatsappLocation": "Lokatsiyadan yuborish",
   "loyalty.whatsappNoLocations": "Lokatsiyalar yo‘q",
   "loyalty.whatsappMessage": "Xabar",
@@ -1356,7 +1356,7 @@ export const uzMessages: Messages = {
   "loyalty.earnSaveFailed": "Qoidani saqlab bo‘lmadi.",
   "loyalty.guestVerificationTitle": "Mehmon tasdiqlash",
   "loyalty.guestVerificationSubtitle":
-    "Telegram va WhatsAppni ulang — mehmonlar telefonni tasdiqlashi va jamoa bir xil sessiyalardan yozishi mumkin.",
+    "Telegram va butun restoran uchun WhatsAppni ulang — mehmonlar telefonni tasdiqlashi va jamoa bir xil sessiyalardan yozishi mumkin.",
   "loyalty.telegramTitle": "Telegram",
   "loyalty.telegramSubtitle":
     "Restoran uchun BotFather botini ulang — mehmonlar Telegram orqali telefonni tasdiqlashi mumkin.",
@@ -1376,9 +1376,8 @@ export const uzMessages: Messages = {
   "loyalty.telegramWebhookDisconnected": "Telegram webhook o‘chirildi.",
   "loyalty.whatsappLinkTitle": "WhatsApp",
   "loyalty.whatsappLinkSubtitle":
-    "Hostess ishlatadigan xuddi shu WhatsApp sessiyasini shu lokatsiya uchun ulang. QR kodni WhatsApp bog‘langan qurilmalarida skanerlang.",
-  "loyalty.whatsappLinkLocation": "Lokatsiya",
-  "loyalty.whatsappLinkNoLocations": "Bu restoranda lokatsiya yo‘q.",
+    "Butun restoran (barcha lokatsiyalar) uchun bitta WhatsApp ulanishi. Hostess bilan bir xil sessiya. QR kodni WhatsApp bog‘langan qurilmalarida skanerlang.",
+  "loyalty.whatsappLinkNoLocations": "WhatsAppni ulashdan oldin lokatsiya qo‘shing.",
   "loyalty.whatsappLinkStatusDisconnected": "Uzilgan",
   "loyalty.whatsappLinkStatusActive": "Ulangan",
   "loyalty.whatsappLinkStatusNeedsReauth": "Qayta ulash kerak",
