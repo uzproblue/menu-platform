@@ -8,5 +8,8 @@ declare namespace Cloudflare {
     BUNNY_STREAM_LIBRARY_ID: string;
     BUNNY_STREAM_API_KEY: string;
     NEXT_PUBLIC_BUNNY_STREAM_LIBRARY_ID: string;
+    /** Local next dev / optional HTTP fallback when service binding is unavailable. */
+    META_GATEWAY_BASE_URL?: string;
+    META_GATEWAY: Fetcher;
   }
 }

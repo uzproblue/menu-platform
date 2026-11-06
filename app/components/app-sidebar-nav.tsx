@@ -74,9 +74,10 @@ const loyaltyChildren: Array<{
     ownerOnly: true,
   },
   {
-    href: "/loyalty/telegram",
-    labelKey: "nav.loyaltyTelegram",
-    match: (p) => p.startsWith("/loyalty/telegram"),
+    href: "/loyalty/guest-verification",
+    labelKey: "nav.loyaltyGuestVerification",
+    match: (p) =>
+      p.startsWith("/loyalty/guest-verification") || p.startsWith("/loyalty/telegram"),
   },
 ];
 

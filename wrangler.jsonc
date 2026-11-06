@@ -25,6 +25,10 @@
 		{
 			"binding": "MENU_LOYALTY",
 			"service": "menu-loyalty-worker"
+		},
+		{
+			"binding": "META_GATEWAY",
+			"service": "meta-gateway"
 		}
 	],
 	"analytics_engine_datasets": [
