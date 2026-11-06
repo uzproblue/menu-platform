@@ -269,8 +269,8 @@ export function LoyaltyGuestVerificationClient() {
       void fetch(
         `/api/settings/loyalty/whatsapp/status?locationId=${encodeURIComponent(selected)}`,
       )
-        .then((res) => res.json())
-        .then((payload: SessionPayload) => {
+        .then((res) => res.json() as Promise<SessionPayload>)
+        .then((payload) => {
           if (payload.status === "WORKING") {
             stopQrPoll();
             setQrOpen(false);
