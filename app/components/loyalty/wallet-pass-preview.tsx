@@ -307,14 +307,18 @@ export function WalletPassPreview({ draft, platform }: Props) {
               </div>
             )}
 
-            <div className="mt-6 text-center">
-              <p className="text-2xl font-semibold text-white">
-                {substitutePreview(draft.primaryFields[0]?.value || "Loyalty Card")}
-              </p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/55">
-                {draft.primaryFields[0]?.label || "CARD"}
-              </p>
-            </div>
+            {draft.primaryFields[0] ? (
+              <div className="mt-6 text-center">
+                <p className="text-2xl font-semibold text-white">
+                  {substitutePreview(draft.primaryFields[0].value)}
+                </p>
+                {draft.primaryFields[0].label?.trim() ? (
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/55">
+                    {draft.primaryFields[0].label}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {strip ? (
               <div className="mt-4 overflow-hidden rounded-xl">

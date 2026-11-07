@@ -30,6 +30,8 @@ type EditorTab = "content" | "barcode";
 
 type Draft = {
   description: string;
+  /** Carried through unchanged; no longer derived from primaryFields[0]. */
+  programTitle: string;
   primaryFields: WalletPassField[];
   secondaryFields: WalletPassField[];
   headerFields: WalletPassField[];
@@ -43,10 +45,9 @@ type Draft = {
 function templateToDraft(template: WalletPassSystemTemplate): Draft {
   return {
     description: template.description ?? "",
-    primaryFields:
-      template.primaryFields?.length > 0
-        ? template.primaryFields
-        : [{ label: "CARD", value: template.programTitle || "Loyalty Card" }],
+    programTitle: template.programTitle || "Loyalty Card",
+    // Primary fields are optional; an empty list stays empty.
+    primaryFields: template.primaryFields ?? [],
     secondaryFields:
       template.secondaryFields?.length > 0
         ? template.secondaryFields
@@ -66,7 +67,7 @@ function templateToDraft(template: WalletPassSystemTemplate): Draft {
 function draftToInput(draft: Draft): WalletPassSystemTemplateInput {
   return {
     description: draft.description.trim(),
-    programTitle: draft.primaryFields[0]?.value?.trim() || "Loyalty Card",
+    programTitle: draft.programTitle.trim() || "Loyalty Card",
     pointsLabel: draft.headerFields[0]?.label?.trim() || "POINTS",
     memberNameLabel: draft.secondaryFields[0]?.label?.trim() || "MEMBER",
     primaryFields: draft.primaryFields,
