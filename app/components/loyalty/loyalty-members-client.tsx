@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import type { GuestsListResponse, LoyaltyGuest, LoyaltyLedgerEntry } from "@/lib/loyalty-api/types";
+import type {
+  GuestDetailResponse,
+  GuestsListResponse,
+  GuestsListSort,
+  LoyaltyGuest,
+  LoyaltyGuestOrder,
+  LoyaltyLedgerEntry,
+} from "@/lib/loyalty-api/types";
 import { buildGuestsListQuery } from "@/lib/loyalty-api/guests-query";
 import { formatMinorCurrency, majorToMinor } from "@/lib/currency-minor-units";
 import { useI18n } from "../i18n-provider";
@@ -17,6 +24,10 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
 
 type StatusFilter = "" | "active" | "blocked";
 type MemberTab = "all" | "legacy";
+type VerifiedFilter = "" | "whatsapp" | "telegram" | "any" | "none";
+type TriFilter = "" | "true" | "false";
+type WalletPlatformFilter = "" | "apple" | "google";
+type SortOrder = "asc" | "desc";
 
 type AppliedFilters = {
   search: string;
@@ -25,6 +36,15 @@ type AppliedFilters = {
   lastVisitedTo: string;
   minSpend: string;
   maxSpend: string;
+  minVisits: string;
+  maxVisits: string;
+  minBalance: string;
+  maxBalance: string;
+  verified: VerifiedFilter;
+  hasWallet: TriFilter;
+  walletPlatform: WalletPlatformFilter;
+  iikoMatched: TriFilter;
+  marketingConsent: TriFilter;
 };
 
 const DEFAULT_FILTERS: AppliedFilters = {
@@ -34,6 +54,15 @@ const DEFAULT_FILTERS: AppliedFilters = {
   lastVisitedTo: "",
   minSpend: "",
   maxSpend: "",
+  minVisits: "",
+  maxVisits: "",
+  minBalance: "",
+  maxBalance: "",
+  verified: "",
+  hasWallet: "",
+  walletPlatform: "",
+  iikoMatched: "",
+  marketingConsent: "",
 };
 
 const PAGE_SIZE_OPTIONS = [25, 50] as const;
@@ -47,7 +76,21 @@ function parseSpendInput(value: string, currency: string | null): number | undef
   return majorToMinor(n, currency);
 }
 
-function formatVisitDate(value: string | null, neverLabel: string, locale: string): string {
+function parseNonNegIntInput(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return Math.floor(n);
+}
+
+function parseTriBool(value: TriFilter): boolean | undefined {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
+function formatVisitDate(value: string | null | undefined, neverLabel: string, locale: string): string {
   if (!value) return neverLabel;
   const ms = Date.parse(value);
   if (!Number.isFinite(ms)) return neverLabel;
@@ -68,6 +111,38 @@ function statusBadgeClass(status: string): string {
   return "bg-foreground/10 text-foreground/70";
 }
 
+function SortHeader({
+  label,
+  field,
+  sort,
+  order,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  field: GuestsListSort;
+  sort: GuestsListSort;
+  order: SortOrder;
+  onSort: (field: GuestsListSort) => void;
+  className?: string;
+}) {
+  const active = sort === field;
+  return (
+    <th className={`px-3 py-3 ${className}`} scope="col">
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-foreground"
+      >
+        {label}
+        <span className="text-[10px] opacity-70" aria-hidden>
+          {active ? (order === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export function LoyaltyMembersClient() {
   const { t, locale } = useI18n();
   const [guests, setGuests] = useState<LoyaltyGuest[]>([]);
@@ -77,6 +152,8 @@ export function LoyaltyMembersClient() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
   const [tab, setTab] = useState<MemberTab>("all");
+  const [sort, setSort] = useState<GuestsListSort>("createdAt");
+  const [order, setOrder] = useState<SortOrder>("desc");
 
   const [query, setQuery] = useState("");
   const [statusDraft, setStatusDraft] = useState<StatusFilter>("");
@@ -84,6 +161,16 @@ export function LoyaltyMembersClient() {
   const [lastVisitedToDraft, setLastVisitedToDraft] = useState("");
   const [minSpendDraft, setMinSpendDraft] = useState("");
   const [maxSpendDraft, setMaxSpendDraft] = useState("");
+  const [minVisitsDraft, setMinVisitsDraft] = useState("");
+  const [maxVisitsDraft, setMaxVisitsDraft] = useState("");
+  const [minBalanceDraft, setMinBalanceDraft] = useState("");
+  const [maxBalanceDraft, setMaxBalanceDraft] = useState("");
+  const [verifiedDraft, setVerifiedDraft] = useState<VerifiedFilter>("");
+  const [hasWalletDraft, setHasWalletDraft] = useState<TriFilter>("");
+  const [walletPlatformDraft, setWalletPlatformDraft] =
+    useState<WalletPlatformFilter>("");
+  const [iikoMatchedDraft, setIikoMatchedDraft] = useState<TriFilter>("");
+  const [marketingDraft, setMarketingDraft] = useState<TriFilter>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [applied, setApplied] = useState<AppliedFilters>(DEFAULT_FILTERS);
 
@@ -93,6 +180,8 @@ export function LoyaltyMembersClient() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [selected, setSelected] = useState<LoyaltyGuest | null>(null);
   const [transactions, setTransactions] = useState<LoyaltyLedgerEntry[]>([]);
+  const [orders, setOrders] = useState<LoyaltyGuestOrder[]>([]);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [pointsInput, setPointsInput] = useState("10");
   const [noteInput, setNoteInput] = useState("");
@@ -115,14 +204,10 @@ export function LoyaltyMembersClient() {
 
   const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
   const hasActiveFilters = useMemo(() => {
-    return (
-      applied.search.trim() !== "" ||
-      applied.status !== "" ||
-      applied.lastVisitedFrom !== "" ||
-      applied.lastVisitedTo !== "" ||
-      applied.minSpend.trim() !== "" ||
-      applied.maxSpend.trim() !== ""
-    );
+    return Object.entries(applied).some(([key, value]) => {
+      if (key === "status" || key === "search") return String(value).trim() !== "";
+      return String(value).trim() !== "";
+    });
   }, [applied]);
 
   const listParams = useCallback(
@@ -135,12 +220,21 @@ export function LoyaltyMembersClient() {
         lastVisitedTo: applied.lastVisitedTo || undefined,
         minSpend: parseSpendInput(applied.minSpend, currency),
         maxSpend: parseSpendInput(applied.maxSpend, currency),
+        minVisits: parseNonNegIntInput(applied.minVisits),
+        maxVisits: parseNonNegIntInput(applied.maxVisits),
+        minBalance: parseNonNegIntInput(applied.minBalance),
+        maxBalance: parseNonNegIntInput(applied.maxBalance),
+        verified: applied.verified || undefined,
+        hasWallet: parseTriBool(applied.hasWallet),
+        walletPlatform: applied.walletPlatform || undefined,
+        iikoMatched: parseTriBool(applied.iikoMatched),
+        marketingConsent: parseTriBool(applied.marketingConsent),
         page: overrides?.page ?? page,
         limit: overrides?.limit ?? limit,
-        sort: "createdAt",
-        order: "desc",
+        sort,
+        order,
       }),
-    [applied, currency, limit, page, tab],
+    [applied, currency, limit, order, page, sort, tab],
   );
 
   const loadGuests = useCallback(async () => {
@@ -174,12 +268,26 @@ export function LoyaltyMembersClient() {
     const onContextChanged = () => {
       setSelected(null);
       setTransactions([]);
+      setOrders([]);
       setDetailError(null);
       setMutationError(null);
       mutationAttempt.current = null;
+      setApplied(DEFAULT_FILTERS);
+      setQuery("");
+      setStatusDraft("");
+      setLastVisitedFromDraft("");
+      setLastVisitedToDraft("");
       setMinSpendDraft("");
       setMaxSpendDraft("");
-      setApplied((current) => ({ ...current, minSpend: "", maxSpend: "" }));
+      setMinVisitsDraft("");
+      setMaxVisitsDraft("");
+      setMinBalanceDraft("");
+      setMaxBalanceDraft("");
+      setVerifiedDraft("");
+      setHasWalletDraft("");
+      setWalletPlatformDraft("");
+      setIikoMatchedDraft("");
+      setMarketingDraft("");
       setCheckedIds(new Set());
       setComposeOpen(false);
       setBlastResult(null);
@@ -197,7 +305,7 @@ export function LoyaltyMembersClient() {
   useEffect(() => {
     setCheckedIds(new Set());
     setBlastResult(null);
-  }, [tab, applied, page, limit]);
+  }, [tab, applied, page, limit, sort, order]);
 
   function applyFilters(next: AppliedFilters) {
     setApplied(next);
@@ -207,13 +315,21 @@ export function LoyaltyMembersClient() {
   function submitSearch(e: FormEvent) {
     e.preventDefault();
     applyFilters({
-      ...applied,
       search: query,
       status: statusDraft,
       lastVisitedFrom: lastVisitedFromDraft,
       lastVisitedTo: lastVisitedToDraft,
       minSpend: minSpendDraft,
       maxSpend: maxSpendDraft,
+      minVisits: minVisitsDraft,
+      maxVisits: maxVisitsDraft,
+      minBalance: minBalanceDraft,
+      maxBalance: maxBalanceDraft,
+      verified: verifiedDraft,
+      hasWallet: hasWalletDraft,
+      walletPlatform: walletPlatformDraft,
+      iikoMatched: iikoMatchedDraft,
+      marketingConsent: marketingDraft,
     });
   }
 
@@ -224,6 +340,15 @@ export function LoyaltyMembersClient() {
     setLastVisitedToDraft("");
     setMinSpendDraft("");
     setMaxSpendDraft("");
+    setMinVisitsDraft("");
+    setMaxVisitsDraft("");
+    setMinBalanceDraft("");
+    setMaxBalanceDraft("");
+    setVerifiedDraft("");
+    setHasWalletDraft("");
+    setWalletPlatformDraft("");
+    setIikoMatchedDraft("");
+    setMarketingDraft("");
     applyFilters(DEFAULT_FILTERS);
   }
 
@@ -231,6 +356,16 @@ export function LoyaltyMembersClient() {
     setTab(next);
     setPage(1);
     setSelected(null);
+  }
+
+  function onSort(field: GuestsListSort) {
+    if (sort === field) {
+      setOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSort(field);
+      setOrder(field === "name" || field === "phoneE164" ? "asc" : "desc");
+    }
+    setPage(1);
   }
 
   function toggleChecked(guestId: string, checked: boolean) {
@@ -264,8 +399,7 @@ export function LoyaltyMembersClient() {
         throw new Error(await readErrorMessage(res, t("loyalty.errLoadMembers")));
       }
       const data = (await res.json()) as GuestsListResponse;
-      const ids = (data.guests ?? []).map((g) => g.id);
-      setCheckedIds(new Set(ids));
+      setCheckedIds(new Set((data.guests ?? []).map((g) => g.id)));
     } catch (e) {
       setListError(e instanceof Error ? e.message : t("loyalty.errLoadMembers"));
     } finally {
@@ -280,6 +414,8 @@ export function LoyaltyMembersClient() {
     mutationAttempt.current = null;
     setDetailLoading(true);
     setTransactions([]);
+    setOrders([]);
+    setExpandedOrderId(null);
     try {
       const res = await fetch(`/api/settings/loyalty/guests/${encodeURIComponent(guest.id)}`, {
         cache: "no-store",
@@ -287,12 +423,10 @@ export function LoyaltyMembersClient() {
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, t("loyalty.errLoadMember")));
       }
-      const data = (await res.json()) as {
-        guest: LoyaltyGuest;
-        recentTransactions: LoyaltyLedgerEntry[];
-      };
+      const data = (await res.json()) as GuestDetailResponse;
       setSelected(data.guest);
-      setTransactions(data.recentTransactions);
+      setTransactions(data.recentTransactions ?? []);
+      setOrders(data.orders ?? []);
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : t("loyalty.errLoadMember"));
     } finally {
@@ -360,10 +494,7 @@ export function LoyaltyMembersClient() {
       const res = await fetch("/api/settings/loyalty/guests/whatsapp-blast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          guestIds,
-        }),
+        body: JSON.stringify({ message, guestIds }),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, t("loyalty.whatsappSendFailed")));
@@ -389,6 +520,20 @@ export function LoyaltyMembersClient() {
     if (status === "active") return t("loyalty.statusActive");
     if (status === "blocked") return t("loyalty.statusBlocked");
     return status;
+  }
+
+  function walletLabel(guest: LoyaltyGuest): string {
+    if (!guest.walletInstalledAt) return t("loyalty.walletNone");
+    if (guest.walletPlatform === "apple") return t("loyalty.walletApple");
+    if (guest.walletPlatform === "google") return t("loyalty.walletGoogle");
+    return t("loyalty.walletUnknown");
+  }
+
+  function verifyBadges(guest: LoyaltyGuest) {
+    const badges: string[] = [];
+    if (guest.whatsappVerifiedAt) badges.push(t("loyalty.verifyWhatsapp"));
+    if (guest.telegramVerifiedAt) badges.push(t("loyalty.verifyTelegram"));
+    return badges.length > 0 ? badges.join(" · ") : t("loyalty.verifyNone");
   }
 
   const pageAllChecked =
@@ -481,7 +626,6 @@ export function LoyaltyMembersClient() {
               <input
                 type="number"
                 min={0}
-                inputMode="numeric"
                 value={minSpendDraft}
                 onChange={(e) => setMinSpendDraft(e.target.value)}
                 className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
@@ -492,11 +636,114 @@ export function LoyaltyMembersClient() {
               <input
                 type="number"
                 min={0}
-                inputMode="numeric"
                 value={maxSpendDraft}
                 onChange={(e) => setMaxSpendDraft(e.target.value)}
                 className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
               />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.minVisits")}
+              <input
+                type="number"
+                min={0}
+                value={minVisitsDraft}
+                onChange={(e) => setMinVisitsDraft(e.target.value)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.maxVisits")}
+              <input
+                type="number"
+                min={0}
+                value={maxVisitsDraft}
+                onChange={(e) => setMaxVisitsDraft(e.target.value)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.minBalance")}
+              <input
+                type="number"
+                min={0}
+                value={minBalanceDraft}
+                onChange={(e) => setMinBalanceDraft(e.target.value)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.maxBalance")}
+              <input
+                type="number"
+                min={0}
+                value={maxBalanceDraft}
+                onChange={(e) => setMaxBalanceDraft(e.target.value)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.verifiedFilter")}
+              <select
+                value={verifiedDraft}
+                onChange={(e) => setVerifiedDraft(e.target.value as VerifiedFilter)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="">{t("loyalty.filterAny")}</option>
+                <option value="whatsapp">{t("loyalty.verifyWhatsapp")}</option>
+                <option value="telegram">{t("loyalty.verifyTelegram")}</option>
+                <option value="any">{t("loyalty.verifyAny")}</option>
+                <option value="none">{t("loyalty.verifyNone")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.hasWalletFilter")}
+              <select
+                value={hasWalletDraft}
+                onChange={(e) => setHasWalletDraft(e.target.value as TriFilter)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="">{t("loyalty.filterAny")}</option>
+                <option value="true">{t("loyalty.filterYes")}</option>
+                <option value="false">{t("loyalty.filterNo")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.walletPlatformFilter")}
+              <select
+                value={walletPlatformDraft}
+                onChange={(e) =>
+                  setWalletPlatformDraft(e.target.value as WalletPlatformFilter)
+                }
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="">{t("loyalty.filterAny")}</option>
+                <option value="apple">{t("loyalty.walletApple")}</option>
+                <option value="google">{t("loyalty.walletGoogle")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.iikoMatchedFilter")}
+              <select
+                value={iikoMatchedDraft}
+                onChange={(e) => setIikoMatchedDraft(e.target.value as TriFilter)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="">{t("loyalty.filterAny")}</option>
+                <option value="true">{t("loyalty.filterYes")}</option>
+                <option value="false">{t("loyalty.filterNo")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.marketingFilter")}
+              <select
+                value={marketingDraft}
+                onChange={(e) => setMarketingDraft(e.target.value as TriFilter)}
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="">{t("loyalty.filterAny")}</option>
+                <option value="true">{t("loyalty.filterYes")}</option>
+                <option value="false">{t("loyalty.filterNo")}</option>
+              </select>
             </label>
             <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4">
               <button
@@ -671,7 +918,7 @@ export function LoyaltyMembersClient() {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-foreground/10 bg-background/40 ring-1 ring-foreground/5">
-          <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[96rem] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-foreground/10 text-xs font-medium uppercase tracking-wider text-foreground/50">
                 <th className="px-3 py-3 pl-4" scope="col">
@@ -685,24 +932,104 @@ export function LoyaltyMembersClient() {
                     aria-label={t("loyalty.selectPage")}
                   />
                 </th>
-                <th className="px-4 py-3" scope="col">
-                  {t("common.name")}
+                <SortHeader
+                  label={t("common.name")}
+                  field="name"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
+                <SortHeader
+                  label={t("loyalty.phone")}
+                  field="phoneE164"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
+                <th className="px-3 py-3" scope="col">
+                  {t("loyalty.verified")}
                 </th>
-                <th className="px-4 py-3" scope="col">
-                  {t("loyalty.phone")}
+                <SortHeader
+                  label={t("loyalty.walletCol")}
+                  field="walletPlatform"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
+                <SortHeader
+                  label={t("loyalty.balance")}
+                  field="balance"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                  className="text-right tabular-nums"
+                />
+                <SortHeader
+                  label={t("loyalty.visits")}
+                  field="visitCount"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                  className="text-right tabular-nums"
+                />
+                <SortHeader
+                  label={t("loyalty.visits90d")}
+                  field="visits90d"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                  className="text-right tabular-nums"
+                />
+                <SortHeader
+                  label={t("loyalty.ordersValue")}
+                  field="lifetimeSpendMinor"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                  className="text-right tabular-nums"
+                />
+                <SortHeader
+                  label={t("loyalty.spend90d")}
+                  field="spend90d"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                  className="text-right tabular-nums"
+                />
+                <SortHeader
+                  label={t("loyalty.lastVisited")}
+                  field="lastVisitedAt"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
+                <SortHeader
+                  label={t("loyalty.firstOrder")}
+                  field="iikoFirstOrderAt"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
+                <th className="px-3 py-3" scope="col">
+                  {t("loyalty.email")}
                 </th>
-                <th className="px-4 py-3 text-right tabular-nums" scope="col">
-                  {t("loyalty.balance")}
-                </th>
-                <th className="px-4 py-3" scope="col">
-                  {t("loyalty.lastVisited")}
-                </th>
-                <th className="px-4 py-3 text-right tabular-nums" scope="col">
-                  {t("loyalty.ordersValue")}
-                </th>
-                <th className="px-4 py-3 pr-5" scope="col">
+                <SortHeader
+                  label={t("loyalty.iikoSynced")}
+                  field="iikoPulledAt"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
+                <th className="px-3 py-3" scope="col">
                   {t("common.status")}
                 </th>
+                <SortHeader
+                  label={t("loyalty.created")}
+                  field="createdAt"
+                  sort={sort}
+                  order={order}
+                  onSort={onSort}
+                />
               </tr>
             </thead>
             <tbody>
@@ -712,10 +1039,7 @@ export function LoyaltyMembersClient() {
                   className="cursor-pointer border-b border-foreground/5 last:border-0 transition-colors hover:bg-foreground/3"
                   onClick={() => void openGuest(g)}
                 >
-                  <td
-                    className="px-3 py-3 pl-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <td className="px-3 py-3 pl-4" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={checkedIds.has(g.id)}
@@ -723,7 +1047,7 @@ export function LoyaltyMembersClient() {
                       aria-label={t("loyalty.selectMember", { name: g.name })}
                     />
                   </td>
-                  <td className="px-4 py-3 font-medium">
+                  <td className="px-3 py-3 font-medium">
                     <span className="inline-flex flex-wrap items-center gap-2">
                       {g.name}
                       {g.isLegacy ? (
@@ -733,20 +1057,39 @@ export function LoyaltyMembersClient() {
                       ) : null}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-foreground/70">{g.phoneE164}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{g.balance}</td>
-                  <td className="px-4 py-3 text-foreground/70">
-                    {formatVisitDate(g.lastVisitedAt, t("loyalty.neverVisited"), locale)}
+                  <td className="px-3 py-3 font-mono text-xs text-foreground/70">
+                    {g.phoneE164}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-foreground/80">
+                  <td className="px-3 py-3 text-xs text-foreground/70">{verifyBadges(g)}</td>
+                  <td className="px-3 py-3 text-xs text-foreground/70">{walletLabel(g)}</td>
+                  <td className="px-3 py-3 text-right tabular-nums">{g.balance}</td>
+                  <td className="px-3 py-3 text-right tabular-nums">{g.visitCount ?? 0}</td>
+                  <td className="px-3 py-3 text-right tabular-nums">{g.visits90d ?? 0}</td>
+                  <td className="px-3 py-3 text-right tabular-nums text-foreground/80">
                     {formatMinorCurrency(g.lifetimeSpendMinor ?? 0, currency, locale)}
                   </td>
-                  <td className="px-4 py-3 pr-5">
+                  <td className="px-3 py-3 text-right tabular-nums text-foreground/80">
+                    {formatMinorCurrency(g.spend90d ?? 0, currency, locale)}
+                  </td>
+                  <td className="px-3 py-3 text-foreground/70">
+                    {formatVisitDate(g.lastVisitedAt, t("loyalty.neverVisited"), locale)}
+                  </td>
+                  <td className="px-3 py-3 text-foreground/70">
+                    {formatVisitDate(g.iikoFirstOrderAt, t("loyalty.neverVisited"), locale)}
+                  </td>
+                  <td className="px-3 py-3 text-xs text-foreground/70">{g.email || "—"}</td>
+                  <td className="px-3 py-3 text-foreground/70">
+                    {formatVisitDate(g.iikoPulledAt, "—", locale)}
+                  </td>
+                  <td className="px-3 py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(g.status)}`}
                     >
                       {statusLabel(g.status)}
                     </span>
+                  </td>
+                  <td className="px-3 py-3 text-foreground/70">
+                    {formatVisitDate(g.createdAt, "—", locale)}
                   </td>
                 </tr>
               ))}
@@ -794,7 +1137,7 @@ export function LoyaltyMembersClient() {
                 ) : null}
               </h2>
               <p className="text-sm text-foreground/60">{selected.phoneE164}</p>
-              <div className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+              <div className="mt-3 grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
                 <p>
                   {t("loyalty.balance")}: <strong>{selected.balance}</strong>
                 </p>
@@ -807,9 +1150,34 @@ export function LoyaltyMembersClient() {
                   </span>
                 </p>
                 <p>
+                  {t("loyalty.verified")}: <strong>{verifyBadges(selected)}</strong>
+                </p>
+                <p>
+                  {t("loyalty.walletCol")}: <strong>{walletLabel(selected)}</strong>
+                </p>
+                <p>
+                  {t("loyalty.email")}: <strong>{selected.email || "—"}</strong>
+                </p>
+                <p>
                   {t("loyalty.lastVisited")}:{" "}
                   <strong>
                     {formatVisitDate(selected.lastVisitedAt, t("loyalty.neverVisited"), locale)}
+                  </strong>
+                </p>
+                <p>
+                  {t("loyalty.firstOrder")}:{" "}
+                  <strong>
+                    {formatVisitDate(
+                      selected.iikoFirstOrderAt,
+                      t("loyalty.neverVisited"),
+                      locale,
+                    )}
+                  </strong>
+                </p>
+                <p>
+                  {t("loyalty.registered")}:{" "}
+                  <strong>
+                    {formatVisitDate(selected.iikoWhenRegisteredAt, "—", locale)}
                   </strong>
                 </p>
                 <p>
@@ -817,6 +1185,9 @@ export function LoyaltyMembersClient() {
                   <strong>
                     {formatMinorCurrency(selected.lifetimeSpendMinor ?? 0, currency, locale)}
                   </strong>
+                </p>
+                <p>
+                  {t("loyalty.visits")}: <strong>{selected.visitCount ?? 0}</strong>
                 </p>
               </div>
             </div>
@@ -858,7 +1229,7 @@ export function LoyaltyMembersClient() {
               type="button"
               disabled={mutating}
               onClick={() => void mutatePoints("earn")}
-              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+              className="rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background disabled:opacity-50"
             >
               {t("loyalty.earn")}
             </button>
@@ -866,7 +1237,7 @@ export function LoyaltyMembersClient() {
               type="button"
               disabled={mutating}
               onClick={() => void mutatePoints("redeem")}
-              className="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+              className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm disabled:opacity-50"
             >
               {t("loyalty.redeem")}
             </button>
@@ -874,36 +1245,98 @@ export function LoyaltyMembersClient() {
               type="button"
               disabled={mutating}
               onClick={() => void mutatePoints("adjust")}
-              className="rounded-lg bg-foreground/80 px-3 py-2 text-sm text-background disabled:opacity-50"
+              className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm disabled:opacity-50"
             >
               {t("loyalty.adjust")}
             </button>
           </div>
-
           {mutationError ? (
-            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+            <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
               {mutationError}
             </p>
           ) : null}
 
-          <div className="mt-4">
-            <h3 className="text-sm font-medium">{t("loyalty.recentTransactions")}</h3>
+          <div className="mt-6 space-y-2">
+            <h3 className="text-sm font-semibold">{t("loyalty.ordersTitle")}</h3>
             {detailLoading ? (
-              <p className="mt-2 text-sm text-foreground/60">{t("loyalty.loading")}</p>
-            ) : transactions.length === 0 ? (
-              <p className="mt-2 text-sm text-foreground/60">{t("loyalty.noTransactions")}</p>
+              <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
+            ) : orders.length === 0 ? (
+              <p className="text-sm text-foreground/60">{t("loyalty.noOrders")}</p>
             ) : (
-              <ul className="mt-2 space-y-1 text-sm">
+              <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/10">
+                {orders.map((order) => {
+                  const open = expandedOrderId === order.id;
+                  return (
+                    <li key={order.id} className="bg-background/40">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                        onClick={() =>
+                          setExpandedOrderId((id) => (id === order.id ? null : order.id))
+                        }
+                      >
+                        <span>
+                          {formatVisitDate(order.occurredAt, "—", locale)} ·{" "}
+                          {formatMinorCurrency(order.amountMinor, order.currency || currency, locale)}{" "}
+                          · {order.pointsEarned} pts
+                        </span>
+                        <span className="text-xs text-foreground/50">
+                          {open ? "−" : "+"} {order.items.length} {t("loyalty.items")}
+                        </span>
+                      </button>
+                      {open ? (
+                        <ul className="space-y-1 border-t border-foreground/8 bg-foreground/[0.02] px-3 py-2 text-xs text-foreground/75">
+                          {order.items.length === 0 ? (
+                            <li>{t("loyalty.noOrderItems")}</li>
+                          ) : (
+                            order.items.map((item) => (
+                              <li key={item.id} className="flex justify-between gap-2">
+                                <span>
+                                  {item.productName || item.productId} × {item.quantity}
+                                  <span className="ml-2 text-foreground/45">
+                                    {item.attribution === "attributed"
+                                      ? t("loyalty.itemAttributed")
+                                      : t("loyalty.itemShared")}
+                                  </span>
+                                </span>
+                                <span className="tabular-nums">
+                                  {formatMinorCurrency(
+                                    item.lineTotalMinor,
+                                    order.currency || currency,
+                                    locale,
+                                  )}
+                                </span>
+                              </li>
+                            ))
+                          )}
+                        </ul>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-6 space-y-2">
+            <h3 className="text-sm font-semibold">{t("loyalty.recentTransactions")}</h3>
+            {detailLoading ? (
+              <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
+            ) : transactions.length === 0 ? (
+              <p className="text-sm text-foreground/60">{t("loyalty.noTransactions")}</p>
+            ) : (
+              <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/10">
                 {transactions.map((tx) => (
                   <li
                     key={tx.id}
-                    className="flex justify-between gap-4 border-b border-foreground/5 py-1"
+                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
                   >
                     <span>
-                      {tx.kind} {tx.points > 0 ? `+${tx.points}` : tx.points}
-                      {tx.note ? ` — ${tx.note}` : ""}
+                      {tx.kind} · {tx.note || "—"}
                     </span>
-                    <span className="shrink-0 text-foreground/50">{tx.createdAt ?? ""}</span>
+                    <span className="tabular-nums font-medium">
+                      {tx.points > 0 ? `+${tx.points}` : tx.points}
+                    </span>
                   </li>
                 ))}
               </ul>

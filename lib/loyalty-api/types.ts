@@ -3,14 +3,22 @@ export type LoyaltyGuest = {
   restaurantId: string;
   phoneE164: string;
   name: string;
-  dateOfBirth?: string;
+  dateOfBirth?: string | null;
+  email?: string | null;
   balance: number;
   status: string;
   marketingConsent: boolean;
   consentVersion: string;
   isLegacy?: boolean;
   walletInstalledAt?: string | null;
+  walletPlatform?: "apple" | "google" | string | null;
   legacyConvertedAt?: string | null;
+  whatsappVerifiedAt?: string | null;
+  telegramVerifiedAt?: string | null;
+  iikoCustomerId?: string | null;
+  iikoPulledAt?: string | null;
+  iikoWhenRegisteredAt?: string | null;
+  iikoFirstOrderAt?: string | null;
   lastVisitedAt: string | null;
   lifetimeSpendMinor: number;
   visitCount?: number;
@@ -108,6 +116,30 @@ export type LoyaltyLedgerEntry = {
   createdAt: string | null;
 };
 
+export type LoyaltyGuestOrderItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPriceMinor: number;
+  lineTotalMinor: number;
+  positionId: string | null;
+  attribution: "attributed" | "shared" | string;
+  modifiers: unknown[];
+};
+
+export type LoyaltyGuestOrder = {
+  id: string;
+  externalOrderId: string;
+  occurredAt: string | null;
+  amountMinor: number;
+  currency: string;
+  pointsEarned: number;
+  source: string;
+  locationId: string | null;
+  items: LoyaltyGuestOrderItem[];
+};
+
 export type LoyaltyPromotion = {
   id: string;
   restaurantId: string;
@@ -123,6 +155,23 @@ export type LoyaltyPromotion = {
   updatedAt: string | null;
 };
 
+export type GuestsListSort =
+  | "createdAt"
+  | "lastVisitedAt"
+  | "lifetimeSpendMinor"
+  | "balance"
+  | "name"
+  | "visitCount"
+  | "visits90d"
+  | "spend90d"
+  | "phoneE164"
+  | "whatsappVerifiedAt"
+  | "telegramVerifiedAt"
+  | "iikoPulledAt"
+  | "iikoFirstOrderAt"
+  | "walletInstalledAt"
+  | "walletPlatform";
+
 export type GuestsListParams = {
   q?: string;
   status?: "active" | "blocked";
@@ -131,9 +180,18 @@ export type GuestsListParams = {
   lastVisitedTo?: string;
   minSpend?: number;
   maxSpend?: number;
+  minVisits?: number;
+  maxVisits?: number;
+  minBalance?: number;
+  maxBalance?: number;
+  verified?: "whatsapp" | "telegram" | "any" | "none";
+  hasWallet?: boolean;
+  walletPlatform?: "apple" | "google";
+  iikoMatched?: boolean;
+  marketingConsent?: boolean;
   page?: number;
   limit?: number;
-  sort?: "createdAt" | "lastVisitedAt" | "lifetimeSpendMinor" | "balance" | "name";
+  sort?: GuestsListSort;
   order?: "asc" | "desc";
 };
 
@@ -150,6 +208,7 @@ export type GuestsListResponse = {
 export type GuestDetailResponse = {
   guest: LoyaltyGuest;
   recentTransactions: LoyaltyLedgerEntry[];
+  orders?: LoyaltyGuestOrder[];
 };
 export type PromotionsListResponse = { promotions: LoyaltyPromotion[] };
 export type PromotionResponse = { promotion: LoyaltyPromotion };

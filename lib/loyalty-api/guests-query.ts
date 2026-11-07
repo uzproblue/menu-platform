@@ -19,6 +19,34 @@ export function buildGuestsListQuery(params: GuestsListParams = {}): string {
   if (typeof params.maxSpend === "number" && Number.isFinite(params.maxSpend)) {
     searchParams.set("maxSpend", String(Math.floor(params.maxSpend)));
   }
+  if (typeof params.minVisits === "number" && Number.isFinite(params.minVisits)) {
+    searchParams.set("minVisits", String(Math.floor(params.minVisits)));
+  }
+  if (typeof params.maxVisits === "number" && Number.isFinite(params.maxVisits)) {
+    searchParams.set("maxVisits", String(Math.floor(params.maxVisits)));
+  }
+  if (typeof params.minBalance === "number" && Number.isFinite(params.minBalance)) {
+    searchParams.set("minBalance", String(Math.floor(params.minBalance)));
+  }
+  if (typeof params.maxBalance === "number" && Number.isFinite(params.maxBalance)) {
+    searchParams.set("maxBalance", String(Math.floor(params.maxBalance)));
+  }
+  if (params.verified) searchParams.set("verified", params.verified);
+  if (typeof params.hasWallet === "boolean") {
+    searchParams.set("hasWallet", params.hasWallet ? "true" : "false");
+  }
+  if (params.walletPlatform) {
+    searchParams.set("walletPlatform", params.walletPlatform);
+  }
+  if (typeof params.iikoMatched === "boolean") {
+    searchParams.set("iikoMatched", params.iikoMatched ? "true" : "false");
+  }
+  if (typeof params.marketingConsent === "boolean") {
+    searchParams.set(
+      "marketingConsent",
+      params.marketingConsent ? "true" : "false",
+    );
+  }
   if (typeof params.page === "number" && Number.isFinite(params.page)) {
     searchParams.set("page", String(Math.max(1, Math.floor(params.page))));
   }
