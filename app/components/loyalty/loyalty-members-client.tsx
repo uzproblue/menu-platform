@@ -307,6 +307,29 @@ export function LoyaltyMembersClient() {
     setBlastResult(null);
   }, [tab, applied, page, limit, sort, order]);
 
+  const closeMember = useCallback(() => {
+    setSelected(null);
+    setTransactions([]);
+    setOrders([]);
+    setExpandedOrderId(null);
+    setDetailError(null);
+    setMutationError(null);
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") closeMember();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [selected, closeMember]);
+
   function applyFilters(next: AppliedFilters) {
     setApplied(next);
     setPage(1);
@@ -1125,19 +1148,43 @@ export function LoyaltyMembersClient() {
       ) : null}
 
       {selected ? (
-        <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 ring-1 ring-foreground/5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="inline-flex flex-wrap items-center gap-2 text-lg font-semibold">
-                {selected.name}
-                {selected.isLegacy ? (
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
-                    {t("loyalty.legacyBadge")}
-                  </span>
-                ) : null}
-              </h2>
-              <p className="text-sm text-foreground/60">{selected.phoneE164}</p>
-              <div className="mt-3 grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="loyalty-member-modal-title"
+          onClick={closeMember}
+        >
+          <div
+            className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-foreground/10 bg-background shadow-xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <h2
+                  id="loyalty-member-modal-title"
+                  className="inline-flex flex-wrap items-center gap-2 text-lg font-semibold tracking-tight"
+                >
+                  {selected.name}
+                  {selected.isLegacy ? (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                      {t("loyalty.legacyBadge")}
+                    </span>
+                  ) : null}
+                </h2>
+                <p className="mt-0.5 text-sm text-foreground/60">{selected.phoneE164}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-sm text-foreground/55 hover:bg-foreground/5"
+                onClick={closeMember}
+              >
+                {t("common.close")}
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-4 py-4 sm:px-5">
+              <div className="grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
                 <p>
                   {t("loyalty.balance")}: <strong>{selected.balance}</strong>
                 </p>
@@ -1190,157 +1237,156 @@ export function LoyaltyMembersClient() {
                   {t("loyalty.visits")}: <strong>{selected.visitCount ?? 0}</strong>
                 </p>
               </div>
-            </div>
-            <button
-              type="button"
-              className="text-sm text-foreground/60 hover:text-foreground"
-              onClick={() => setSelected(null)}
-            >
-              {t("common.close")}
-            </button>
-          </div>
 
-          {detailError ? (
-            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-              {detailError}
-            </p>
-          ) : null}
+              {detailError ? (
+                <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                  {detailError}
+                </p>
+              ) : null}
 
-          <div className="mt-4 flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1 text-xs">
-              {t("loyalty.points")}
-              <input
-                type="number"
-                value={pointsInput}
-                onChange={(e) => setPointsInput(e.target.value)}
-                className="w-24 rounded-lg border border-foreground/15 px-2 py-1.5 text-sm"
-              />
-            </label>
-            <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
-              {t("loyalty.noteOptional")}
-              <input
-                type="text"
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                className="rounded-lg border border-foreground/15 px-2 py-1.5 text-sm"
-              />
-            </label>
-            <button
-              type="button"
-              disabled={mutating}
-              onClick={() => void mutatePoints("earn")}
-              className="rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background disabled:opacity-50"
-            >
-              {t("loyalty.earn")}
-            </button>
-            <button
-              type="button"
-              disabled={mutating}
-              onClick={() => void mutatePoints("redeem")}
-              className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm disabled:opacity-50"
-            >
-              {t("loyalty.redeem")}
-            </button>
-            <button
-              type="button"
-              disabled={mutating}
-              onClick={() => void mutatePoints("adjust")}
-              className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm disabled:opacity-50"
-            >
-              {t("loyalty.adjust")}
-            </button>
-          </div>
-          {mutationError ? (
-            <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-              {mutationError}
-            </p>
-          ) : null}
+              <div className="mt-4 flex flex-wrap items-end gap-2">
+                <label className="flex flex-col gap-1 text-xs">
+                  {t("loyalty.points")}
+                  <input
+                    type="number"
+                    value={pointsInput}
+                    onChange={(e) => setPointsInput(e.target.value)}
+                    className="w-24 rounded-lg border border-foreground/15 px-2 py-1.5 text-sm"
+                  />
+                </label>
+                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
+                  {t("loyalty.noteOptional")}
+                  <input
+                    type="text"
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                    className="rounded-lg border border-foreground/15 px-2 py-1.5 text-sm"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={mutating}
+                  onClick={() => void mutatePoints("earn")}
+                  className="rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background disabled:opacity-50"
+                >
+                  {t("loyalty.earn")}
+                </button>
+                <button
+                  type="button"
+                  disabled={mutating}
+                  onClick={() => void mutatePoints("redeem")}
+                  className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm disabled:opacity-50"
+                >
+                  {t("loyalty.redeem")}
+                </button>
+                <button
+                  type="button"
+                  disabled={mutating}
+                  onClick={() => void mutatePoints("adjust")}
+                  className="rounded-lg border border-foreground/15 px-3 py-1.5 text-sm disabled:opacity-50"
+                >
+                  {t("loyalty.adjust")}
+                </button>
+              </div>
+              {mutationError ? (
+                <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                  {mutationError}
+                </p>
+              ) : null}
 
-          <div className="mt-6 space-y-2">
-            <h3 className="text-sm font-semibold">{t("loyalty.ordersTitle")}</h3>
-            {detailLoading ? (
-              <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
-            ) : orders.length === 0 ? (
-              <p className="text-sm text-foreground/60">{t("loyalty.noOrders")}</p>
-            ) : (
-              <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/10">
-                {orders.map((order) => {
-                  const open = expandedOrderId === order.id;
-                  return (
-                    <li key={order.id} className="bg-background/40">
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-foreground/5"
-                        onClick={() =>
-                          setExpandedOrderId((id) => (id === order.id ? null : order.id))
-                        }
+              <div className="mt-6 space-y-2">
+                <h3 className="text-sm font-semibold">{t("loyalty.ordersTitle")}</h3>
+                {detailLoading ? (
+                  <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
+                ) : orders.length === 0 ? (
+                  <p className="text-sm text-foreground/60">{t("loyalty.noOrders")}</p>
+                ) : (
+                  <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/10">
+                    {orders.map((order) => {
+                      const open = expandedOrderId === order.id;
+                      return (
+                        <li key={order.id} className="bg-background/40">
+                          <button
+                            type="button"
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                            onClick={() =>
+                              setExpandedOrderId((id) =>
+                                id === order.id ? null : order.id,
+                              )
+                            }
+                          >
+                            <span>
+                              {formatVisitDate(order.occurredAt, "—", locale)} ·{" "}
+                              {formatMinorCurrency(
+                                order.amountMinor,
+                                order.currency || currency,
+                                locale,
+                              )}{" "}
+                              · {order.pointsEarned} pts
+                            </span>
+                            <span className="text-xs text-foreground/50">
+                              {open ? "−" : "+"} {order.items.length} {t("loyalty.items")}
+                            </span>
+                          </button>
+                          {open ? (
+                            <ul className="space-y-1 border-t border-foreground/8 bg-foreground/[0.02] px-3 py-2 text-xs text-foreground/75">
+                              {order.items.length === 0 ? (
+                                <li>{t("loyalty.noOrderItems")}</li>
+                              ) : (
+                                order.items.map((item) => (
+                                  <li key={item.id} className="flex justify-between gap-2">
+                                    <span>
+                                      {item.productName || item.productId} × {item.quantity}
+                                      <span className="ml-2 text-foreground/45">
+                                        {item.attribution === "attributed"
+                                          ? t("loyalty.itemAttributed")
+                                          : t("loyalty.itemShared")}
+                                      </span>
+                                    </span>
+                                    <span className="tabular-nums">
+                                      {formatMinorCurrency(
+                                        item.lineTotalMinor,
+                                        order.currency || currency,
+                                        locale,
+                                      )}
+                                    </span>
+                                  </li>
+                                ))
+                              )}
+                            </ul>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="mt-6 space-y-2">
+                <h3 className="text-sm font-semibold">{t("loyalty.recentTransactions")}</h3>
+                {detailLoading ? (
+                  <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
+                ) : transactions.length === 0 ? (
+                  <p className="text-sm text-foreground/60">{t("loyalty.noTransactions")}</p>
+                ) : (
+                  <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/10">
+                    {transactions.map((tx) => (
+                      <li
+                        key={tx.id}
+                        className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
                       >
                         <span>
-                          {formatVisitDate(order.occurredAt, "—", locale)} ·{" "}
-                          {formatMinorCurrency(order.amountMinor, order.currency || currency, locale)}{" "}
-                          · {order.pointsEarned} pts
+                          {tx.kind} · {tx.note || "—"}
                         </span>
-                        <span className="text-xs text-foreground/50">
-                          {open ? "−" : "+"} {order.items.length} {t("loyalty.items")}
+                        <span className="tabular-nums font-medium">
+                          {tx.points > 0 ? `+${tx.points}` : tx.points}
                         </span>
-                      </button>
-                      {open ? (
-                        <ul className="space-y-1 border-t border-foreground/8 bg-foreground/[0.02] px-3 py-2 text-xs text-foreground/75">
-                          {order.items.length === 0 ? (
-                            <li>{t("loyalty.noOrderItems")}</li>
-                          ) : (
-                            order.items.map((item) => (
-                              <li key={item.id} className="flex justify-between gap-2">
-                                <span>
-                                  {item.productName || item.productId} × {item.quantity}
-                                  <span className="ml-2 text-foreground/45">
-                                    {item.attribution === "attributed"
-                                      ? t("loyalty.itemAttributed")
-                                      : t("loyalty.itemShared")}
-                                  </span>
-                                </span>
-                                <span className="tabular-nums">
-                                  {formatMinorCurrency(
-                                    item.lineTotalMinor,
-                                    order.currency || currency,
-                                    locale,
-                                  )}
-                                </span>
-                              </li>
-                            ))
-                          )}
-                        </ul>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          <div className="mt-6 space-y-2">
-            <h3 className="text-sm font-semibold">{t("loyalty.recentTransactions")}</h3>
-            {detailLoading ? (
-              <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>
-            ) : transactions.length === 0 ? (
-              <p className="text-sm text-foreground/60">{t("loyalty.noTransactions")}</p>
-            ) : (
-              <ul className="divide-y divide-foreground/8 overflow-hidden rounded-xl border border-foreground/10">
-                {transactions.map((tx) => (
-                  <li
-                    key={tx.id}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-                  >
-                    <span>
-                      {tx.kind} · {tx.note || "—"}
-                    </span>
-                    <span className="tabular-nums font-medium">
-                      {tx.points > 0 ? `+${tx.points}` : tx.points}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
