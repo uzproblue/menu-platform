@@ -1512,7 +1512,17 @@ export const ruMessages: Messages = {
   "loyalty.walletLocationsHint":
     "Wallet покажет карту на экране блокировки в пределах ~100 м от точки.",
   "loyalty.walletNoGeoLocations":
-    "Пока нет локаций с широтой/долготой. Сначала укажите координаты у локации.",
+    "У локаций ещё нет координат. Добавьте их ниже, чтобы включить показ на экране блокировки.",
+  "loyalty.walletNoLocations": "Пока нет локаций ресторана.",
+  "loyalty.walletLocationNeedsCoords":
+    "Нет координат — нужны для уведомлений на экране блокировки.",
+  "loyalty.walletAddCoordinates": "Добавить координаты",
+  "loyalty.walletCoordsModalTitle": "Указать координаты локации",
+  "loyalty.walletCoordsAddressPlaceholder": "Найдите или введите адрес",
+  "loyalty.walletCoordsNeedPin": "Перед сохранением поставьте метку на карте.",
+  "loyalty.walletCoordsSave": "Сохранить координаты",
+  "loyalty.walletCoordsSaving": "Сохранение…",
+  "loyalty.walletCoordsFailed": "Не удалось сохранить координаты.",
   "loyalty.walletRelevantText": "Текст на экране блокировки рядом",
   "loyalty.walletMaxLocations": "Можно выбрать не более 10 локаций.",
   "loyalty.walletFeaturedActions": "Быстрые действия ({count}/2)",
@@ -1521,13 +1531,15 @@ export const ruMessages: Messages = {
   "loyalty.walletBarcode": "Штрихкод",
   "loyalty.walletBarcodeValue": "Значение штрихкода",
   "loyalty.walletBarcodeValueHint":
-    "Для каждого гостя используется его id участника лояльности.",
+    "В штрихкоде — номер телефона участника. Ниже образец для превью.",
   "loyalty.walletBarcodeValueHelp":
     "Переносы строк сохраняются. До 1024 символов.",
   "loyalty.walletBarcodeOverride": "Свой текст под штрихкодом",
   "loyalty.walletBarcodeOverrideHint":
     "По умолчанию Google печатает значение под кодом, а Apple — ничего. Включите, чтобы задать свой текст на обеих платформах.",
   "loyalty.walletBarcodeAltText": "Текст под штрихкодом",
+  "loyalty.walletBarcodeAltPhoneHint":
+    "Под штрихкодом всегда показывается номер телефона участника.",
   "loyalty.walletBarcodeAltPlaceholder": "Оставьте пустым, чтобы ничего не показывать",
   "loyalty.walletBarcodeAltHelp":
     "Показывается под штрихкодом в Wallet. Макс. 128 символов.",

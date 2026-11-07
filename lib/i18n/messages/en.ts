@@ -1487,7 +1487,16 @@ export const enMessages: Messages = {
   "loyalty.walletLocationsHint":
     "Wallet shows the pass on the lock screen within ~100m of a coordinate.",
   "loyalty.walletNoGeoLocations":
-    "No locations with latitude/longitude yet. Add coordinates on a location first.",
+    "None of your locations have coordinates yet. Add them below to enable lock-screen relevance.",
+  "loyalty.walletNoLocations": "No restaurant locations yet.",
+  "loyalty.walletLocationNeedsCoords": "Missing coordinates — required for lock-screen alerts.",
+  "loyalty.walletAddCoordinates": "Add coordinates",
+  "loyalty.walletCoordsModalTitle": "Set location coordinates",
+  "loyalty.walletCoordsAddressPlaceholder": "Search or enter an address",
+  "loyalty.walletCoordsNeedPin": "Place a pin on the map before saving.",
+  "loyalty.walletCoordsSave": "Save coordinates",
+  "loyalty.walletCoordsSaving": "Saving…",
+  "loyalty.walletCoordsFailed": "Could not save coordinates.",
   "loyalty.walletRelevantText": "Lock-screen text when nearby",
   "loyalty.walletMaxLocations": "You can select at most 10 locations.",
   "loyalty.walletFeaturedActions": "Featured Actions ({count}/2)",
@@ -1496,13 +1505,15 @@ export const enMessages: Messages = {
   "loyalty.walletBarcode": "Barcode",
   "loyalty.walletBarcodeValue": "Barcode Value",
   "loyalty.walletBarcodeValueHint":
-    "Issued per guest as their loyalty member id.",
+    "Barcode encodes the member’s phone number. Sample shown for preview.",
   "loyalty.walletBarcodeValueHelp":
     "Line breaks are kept. Up to 1024 characters.",
   "loyalty.walletBarcodeOverride": "Override text under barcode",
   "loyalty.walletBarcodeOverrideHint":
     "By default Google prints the value under the code and Apple prints nothing. Enable to set custom text under the barcode on both.",
   "loyalty.walletBarcodeAltText": "Text under barcode",
+  "loyalty.walletBarcodeAltPhoneHint":
+    "Text under the barcode is always the member’s phone number.",
   "loyalty.walletBarcodeAltPlaceholder": "Leave empty to show nothing",
   "loyalty.walletBarcodeAltHelp":
     "Shown under the barcode in Wallet. Max 128 characters.",

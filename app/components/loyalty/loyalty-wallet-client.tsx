@@ -19,6 +19,16 @@ import {
   WalletPassPreview,
   type PreviewPlatform,
 } from "./wallet-pass-preview";
+import { WalletLocationCoordsModal } from "./wallet-location-coords-modal";
+
+function locationHasCoords(loc: Location): boolean {
+  return (
+    typeof loc.latitude === "number" &&
+    typeof loc.longitude === "number" &&
+    Number.isFinite(loc.latitude) &&
+    Number.isFinite(loc.longitude)
+  );
+}
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
@@ -280,6 +290,7 @@ export function LoyaltyWalletClient() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<EditorTab>("brand");
   const [platform, setPlatform] = useState<PreviewPlatform>("apple");
+  const [coordsLocation, setCoordsLocation] = useState<Location | null>(null);
 
   const applyBundle = useCallback((bundle: WalletConfigBundle) => {
     const aligned = {
@@ -358,14 +369,6 @@ export function LoyaltyWalletClient() {
       </p>
     );
   }
-
-  const geoLocations = locations.filter(
-    (loc) =>
-      typeof loc.latitude === "number" &&
-      typeof loc.longitude === "number" &&
-      Number.isFinite(loc.latitude) &&
-      Number.isFinite(loc.longitude),
-  );
 
   const tabs: Array<{ id: EditorTab; label: string }> = [
     { id: "brand", label: t("loyalty.walletTabBrand") },
@@ -607,13 +610,36 @@ export function LoyaltyWalletClient() {
                       {t("loyalty.walletLocationsHint")}
                     </p>
                   </div>
-                  {geoLocations.length === 0 ? (
+                  {locations.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-foreground/15 px-3 py-4 text-center text-xs text-foreground/40">
-                      {t("loyalty.walletNoGeoLocations")}
+                      {t("loyalty.walletNoLocations")}
                     </p>
                   ) : (
                     <ul className="space-y-2">
-                      {geoLocations.map((loc) => {
+                      {locations.map((loc) => {
+                        const hasCoords = locationHasCoords(loc);
+                        if (!hasCoords) {
+                          return (
+                            <li
+                              key={loc.id}
+                              className="flex items-center justify-between gap-3 rounded-xl border border-foreground/10 p-3"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium">{loc.name}</p>
+                                <p className="mt-0.5 text-xs text-foreground/45">
+                                  {t("loyalty.walletLocationNeedsCoords")}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                className="shrink-0 rounded-lg border border-foreground/15 px-3 py-1.5 text-xs font-medium hover:bg-foreground/5"
+                                onClick={() => setCoordsLocation(loc)}
+                              >
+                                {t("loyalty.walletAddCoordinates")}
+                              </button>
+                            </li>
+                          );
+                        }
                         const selected = draft.locations.some(
                           (l) => l.locationId === loc.id,
                         );
@@ -687,6 +713,11 @@ export function LoyaltyWalletClient() {
                       })}
                     </ul>
                   )}
+                  {!locations.some(locationHasCoords) && locations.length > 0 ? (
+                    <p className="text-xs text-foreground/45">
+                      {t("loyalty.walletNoGeoLocations")}
+                    </p>
+                  ) : null}
                 </section>
               </>
             ) : null}
@@ -825,6 +856,36 @@ export function LoyaltyWalletClient() {
           <WalletPassPreview platform={platform} draft={previewDraft} />
         </aside>
       </div>
+
+      {coordsLocation ? (
+        <WalletLocationCoordsModal
+          location={coordsLocation}
+          onClose={() => setCoordsLocation(null)}
+          onSaved={(updated) => {
+            setLocations((prev) =>
+              prev.map((loc) => (loc.id === updated.id ? { ...loc, ...updated } : loc)),
+            );
+            setDraft((prev) => {
+              if (!prev) return prev;
+              if (!locationHasCoords(updated)) return prev;
+              const already = prev.locations.some((l) => l.locationId === updated.id);
+              if (already || prev.locations.length >= 10) return prev;
+              return {
+                ...prev,
+                locations: [
+                  ...prev.locations,
+                  {
+                    locationId: updated.id,
+                    latitude: updated.latitude!,
+                    longitude: updated.longitude!,
+                  },
+                ],
+              };
+            });
+            setCoordsLocation(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

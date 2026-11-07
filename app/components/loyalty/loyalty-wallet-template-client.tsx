@@ -351,43 +351,37 @@ export function LoyaltyWalletTemplateClient() {
                     ))}
                   </select>
                 </label>
-                <div className="mt-4 space-y-2 border-t border-foreground/10 pt-4">
-                  <label className="flex items-center gap-2 text-sm">
+                <div className="mt-4 space-y-3 border-t border-foreground/10 pt-4">
+                  <div className="rounded-xl border border-foreground/10 bg-foreground/[0.02] px-3 py-3">
+                    <p className="text-sm font-semibold">
+                      {t("loyalty.walletBarcodeValue")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-foreground/50">
+                      {t("loyalty.walletBarcodeValueHint")}
+                    </p>
                     <input
-                      type="checkbox"
-                      checked={draft.barcodeAltText !== null}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          barcodeAltText: e.target.checked ? "" : null,
-                        })
-                      }
+                      className="mt-2 w-full cursor-not-allowed rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 font-mono text-sm text-foreground/70"
+                      value="+79991234567"
+                      readOnly
+                      disabled
+                      aria-readonly="true"
                     />
-                    <span>
-                      <span className="font-semibold">
-                        {t("loyalty.walletBarcodeOverride")}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-foreground/50">
-                        {t("loyalty.walletBarcodeOverrideHint")}
-                      </span>
-                    </span>
-                  </label>
-                  {draft.barcodeAltText !== null ? (
-                    <label className="block space-y-1.5">
-                      <span className="text-sm font-semibold">
-                        {t("loyalty.walletBarcodeAltText")}
-                      </span>
-                      <input
-                        className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
-                        value={draft.barcodeAltText}
-                        onChange={(e) =>
-                          setDraft({ ...draft, barcodeAltText: e.target.value })
-                        }
-                        placeholder={t("loyalty.walletBarcodeAltPlaceholder")}
-                        maxLength={128}
-                      />
-                    </label>
-                  ) : null}
+                  </div>
+                  <div className="rounded-xl border border-foreground/10 bg-foreground/[0.02] px-3 py-3">
+                    <p className="text-sm font-semibold">
+                      {t("loyalty.walletBarcodeAltText")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-foreground/50">
+                      {t("loyalty.walletBarcodeAltPhoneHint")}
+                    </p>
+                    <input
+                      className="mt-2 w-full cursor-not-allowed rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 font-mono text-sm text-foreground/70"
+                      value="+79991234567"
+                      readOnly
+                      disabled
+                      aria-readonly="true"
+                    />
+                  </div>
                 </div>
               </>
             ) : null}

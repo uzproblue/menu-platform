@@ -202,19 +202,11 @@ function BarcodePlaceholder({
   );
 }
 
-function barcodeCaption(
-  barcodeAltText: string | null,
-  platform: PreviewPlatform,
-  fallbackValue: string,
-): string | null {
-  // Override on: show the custom text (empty = nothing).
-  if (barcodeAltText !== null) {
-    const trimmed = barcodeAltText.trim();
-    return trimmed.length ? trimmed : null;
-  }
-  // Defaults: Google shows value, Apple shows nothing.
-  if (platform === "google") return fallbackValue.slice(0, 12);
-  return null;
+/** Demo phone used in wallet preview (matches issued-pass phone barcode). */
+export const WALLET_PREVIEW_PHONE = "+79991234567";
+
+function barcodeCaption(phone: string): string {
+  return phone.trim();
 }
 
 type Props = {
@@ -264,12 +256,8 @@ export function WalletPassPreview({ draft, platform }: Props) {
   const background = draft.backgroundURL.trim();
   const icon = draft.iconURL.trim();
   const thumbnail = draft.thumbnailURL.trim();
-  const barcodeValue = "guest-demo";
-  const underBarcode = barcodeCaption(
-    draft.barcodeAltText,
-    platform,
-    barcodeValue,
-  );
+  const barcodeValue = WALLET_PREVIEW_PHONE;
+  const underBarcode = barcodeCaption(barcodeValue);
   const cardBackground = background
     ? `linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.85)), url(${background}) center/cover`
     : bg;

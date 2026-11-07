@@ -1488,7 +1488,17 @@ export const uzMessages: Messages = {
   "loyalty.walletLocationsHint":
     "Wallet kartani nuqtadan ~100 m ichida qulflash ekranida ko‘rsatadi.",
   "loyalty.walletNoGeoLocations":
-    "Hali kenglik/uzunlikli lokatsiyalar yo‘q. Avval lokatsiyaga koordinata qo‘shing.",
+    "Hali hech bir lokatsiyada koordinata yo‘q. Qulflash ekrani uchun pastda qo‘shing.",
+  "loyalty.walletNoLocations": "Hali restoran lokatsiyalari yo‘q.",
+  "loyalty.walletLocationNeedsCoords":
+    "Koordinata yo‘q — qulflash ekrani bildirishi uchun kerak.",
+  "loyalty.walletAddCoordinates": "Koordinata qo‘shish",
+  "loyalty.walletCoordsModalTitle": "Lokatsiya koordinatalarini belgilash",
+  "loyalty.walletCoordsAddressPlaceholder": "Manzilni qidiring yoki kiriting",
+  "loyalty.walletCoordsNeedPin": "Saqlashdan oldin xaritaga belgi qo‘ying.",
+  "loyalty.walletCoordsSave": "Koordinatalarni saqlash",
+  "loyalty.walletCoordsSaving": "Saqlanmoqda…",
+  "loyalty.walletCoordsFailed": "Koordinatalarni saqlab bo‘lmadi.",
   "loyalty.walletRelevantText": "Yaqinlashganda qulflash ekrani matni",
   "loyalty.walletMaxLocations": "Eng ko‘pi bilan 10 ta lokatsiya tanlash mumkin.",
   "loyalty.walletFeaturedActions": "Tezkor amallar ({count}/2)",
@@ -1497,13 +1507,15 @@ export const uzMessages: Messages = {
   "loyalty.walletBarcode": "Shtrixkod",
   "loyalty.walletBarcodeValue": "Shtrixkod qiymati",
   "loyalty.walletBarcodeValueHint":
-    "Har bir mehmon uchun sodiqlik a’zo id si ishlatiladi.",
+    "Shtrixkodda a’zoning telefon raqami kodlanadi. Namuna ko‘rsatilgan.",
   "loyalty.walletBarcodeValueHelp":
     "Qator uzilishlari saqlanadi. 1024 belgigacha.",
   "loyalty.walletBarcodeOverride": "Shtrixkod ostidagi matnni o‘zgartirish",
   "loyalty.walletBarcodeOverrideHint":
     "Standart: Google qiymatni kod ostida chiqaradi, Apple hech narsa chiqarmaydi. Ikkala platformada maxsus matn uchun yoqing.",
   "loyalty.walletBarcodeAltText": "Shtrixkod ostidagi matn",
+  "loyalty.walletBarcodeAltPhoneHint":
+    "Shtrixkod ostidagi matn doimo a’zoning telefon raqami.",
   "loyalty.walletBarcodeAltPlaceholder": "Hech narsa ko‘rsatmaslik uchun bo‘sh qoldiring",
   "loyalty.walletBarcodeAltHelp":
     "Walletda shtrixkod ostida ko‘rsatiladi. Maks. 128 belgi.",
