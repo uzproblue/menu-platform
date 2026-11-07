@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import type {
   GuestDetailResponse,
   GuestsListResponse,
@@ -1147,18 +1148,19 @@ export function LoyaltyMembersClient() {
         </div>
       ) : null}
 
-      {selected ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="loyalty-member-modal-title"
-          onClick={closeMember}
-        >
-          <div
-            className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-foreground/10 bg-background shadow-xl sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {selected
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="loyalty-member-modal-title"
+              onClick={closeMember}
+            >
+              <div
+                className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-foreground/10 bg-background shadow-xl sm:rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
             <div className="flex items-start justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-5">
               <div className="min-w-0">
                 <h2
@@ -1388,8 +1390,10 @@ export function LoyaltyMembersClient() {
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
