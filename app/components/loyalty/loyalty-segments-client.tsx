@@ -53,7 +53,7 @@ function formatRelativeUpdated(
   return rtf.format(-diffDay, "day");
 }
 
-function formatBirthday(iso: string | undefined, locale: string): string | null {
+function formatBirthday(iso: string | null | undefined, locale: string): string | null {
   if (!iso?.trim()) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
   if (!m) return iso;
