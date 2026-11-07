@@ -524,8 +524,8 @@ export function LoyaltyMembersClient() {
 
   function walletLabel(guest: LoyaltyGuest): string {
     if (!guest.walletInstalledAt) return t("loyalty.walletNone");
-    if (guest.walletPlatform === "apple") return t("loyalty.walletApple");
-    if (guest.walletPlatform === "google") return t("loyalty.walletGoogle");
+    if (guest.walletPlatform === "apple") return t("loyalty.membersWalletApple");
+    if (guest.walletPlatform === "google") return t("loyalty.membersWalletGoogle");
     return t("loyalty.walletUnknown");
   }
 
@@ -717,8 +717,8 @@ export function LoyaltyMembersClient() {
                 className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
               >
                 <option value="">{t("loyalty.filterAny")}</option>
-                <option value="apple">{t("loyalty.walletApple")}</option>
-                <option value="google">{t("loyalty.walletGoogle")}</option>
+                <option value="apple">{t("loyalty.membersWalletApple")}</option>
+                <option value="google">{t("loyalty.membersWalletGoogle")}</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-xs text-foreground/70">
