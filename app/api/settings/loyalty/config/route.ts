@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
+import { earnPercentToSpendMinorPerPoint } from "@/lib/currency-minor-units";
 import {
   getEarnConfigWithAuthServer,
   putEarnConfigWithAuthServer,
@@ -42,6 +43,7 @@ export async function PUT(req: Request) {
   const auth = await authorize();
   if ("response" in auth) return auth.response;
   const body = (await req.json().catch(() => null)) as {
+    earnPercent?: unknown;
     spendMinorPerPoint?: unknown;
     currency?: unknown;
     effectiveAt?: unknown;
@@ -49,9 +51,23 @@ export async function PUT(req: Request) {
   if (!body) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
+  const currency = typeof body.currency === "string" ? body.currency : "";
+  const earnPercent = Number(body.earnPercent);
+  let spendMinorPerPoint: number;
+  if (Number.isFinite(earnPercent) && earnPercent > 0) {
+    if (earnPercent > 100) {
+      return NextResponse.json(
+        { error: "validation_error", message: "earnPercent must be greater than 0 and at most 100" },
+        { status: 400 },
+      );
+    }
+    spendMinorPerPoint = earnPercentToSpendMinorPerPoint(earnPercent, currency);
+  } else {
+    spendMinorPerPoint = Number(body.spendMinorPerPoint);
+  }
   const result = await putEarnConfigWithAuthServer(auth.token, auth.restaurantId, {
-    spendMinorPerPoint: Number(body.spendMinorPerPoint),
-    currency: typeof body.currency === "string" ? body.currency : "",
+    spendMinorPerPoint,
+    currency,
     effectiveAt: typeof body.effectiveAt === "string" ? body.effectiveAt : undefined,
   });
   if (!result.ok) {

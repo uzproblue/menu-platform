@@ -1395,14 +1395,14 @@ export const ruMessages: Messages = {
   "loyalty.operationsReplayFailed": "Не удалось повторить начисление.",
   "loyalty.earnTitle": "Правила начисления",
   "loyalty.earnHint":
-    "Сколько гость тратит за один балл. Каждое изменение создаёт новую версию; закрытые заказы используют версию, действовавшую на момент закрытия.",
+    "Процент от суммы заказа, который гости получают баллами (1 балл = 1 единица валюты). Каждое изменение создаёт новую версию; закрытые заказы используют версию, действовавшую на момент закрытия.",
   "loyalty.earnNotConfigured":
     "Правило начисления не задано. Награды за заказы сохраняются как инциденты, пока вы не сохраните правило; затем их можно повторить.",
   "loyalty.earnNotConfiguredBanner": "Гости пока не получают баллы: правило начисления не задано.",
   "loyalty.earnConfigureLink": "Задать правила",
-  "loyalty.earnCurrentRule": "1 балл за каждые {amount}, с {since}.",
+  "loyalty.earnCurrentRule": "Гости получают {percent}% от суммы заказа баллами, с {since}.",
   "loyalty.earnCurrency": "Валюта",
-  "loyalty.earnSpendPerPoint": "Сумма за балл",
+  "loyalty.earnPercent": "Процент начисления",
   "loyalty.earnEffectiveAt": "Действует с",
   "loyalty.earnVersion": "Версия",
   "loyalty.earnSave": "Сохранить новую версию",
@@ -1411,7 +1411,7 @@ export const ruMessages: Messages = {
   "loyalty.earnSaveConfirm":
     "Сохранить новое правило начисления? Оно применяется к заказам, закрытым с этого момента; прошлые заказы сохраняют своё правило.",
   "loyalty.earnInvalidCurrency": "Введите трёхбуквенный код валюты, например KZT.",
-  "loyalty.earnInvalidSpend": "Введите сумму больше нуля.",
+  "loyalty.earnInvalidPercent": "Введите процент больше 0 и не больше 100.",
   "loyalty.earnLoadFailed": "Не удалось загрузить правила начисления.",
   "loyalty.earnSaveFailed": "Не удалось сохранить правило начисления.",
   "loyalty.guestVerificationTitle": "Подтверждение гостей",

@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   currencyFractionDigits,
+  earnPercentToSpendMinorPerPoint,
   formatMinorCurrency,
   majorToMinor,
   minorToMajor,
+  spendMinorPerPointToEarnPercent,
 } from "./currency-minor-units.ts";
 
 describe("currency minor-unit conversion", () => {
@@ -27,5 +29,12 @@ describe("currency minor-unit conversion", () => {
 
   it("formats a plain number when no currency is configured", () => {
     assert.equal(formatMinorCurrency(12_345, null, "en-US"), "123.45");
+  });
+
+  it("maps earn percent to spendMinorPerPoint (1 point = 1 major unit)", () => {
+    assert.equal(earnPercentToSpendMinorPerPoint(5, "KZT"), 2000);
+    assert.equal(earnPercentToSpendMinorPerPoint(1, "KZT"), 10_000);
+    assert.equal(spendMinorPerPointToEarnPercent(2000, "KZT"), 5);
+    assert.equal(spendMinorPerPointToEarnPercent(10_000, "KZT"), 1);
   });
 });

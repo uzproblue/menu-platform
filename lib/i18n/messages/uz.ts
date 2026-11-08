@@ -1371,14 +1371,14 @@ export const uzMessages: Messages = {
   "loyalty.operationsReplayFailed": "Qayta ishlab bo‘lmadi.",
   "loyalty.earnTitle": "Ball to‘plash qoidalari",
   "loyalty.earnHint":
-    "Mehmon bitta ball olish uchun qancha sarflaydi. Har bir o‘zgarish yangi versiya yaratadi; yopilgan buyurtmalar yopilgan paytdagi versiyadan foydalanadi.",
+    "Buyurtma summasidan mehmonlar ball sifatida oladigan foiz (1 ball = 1 valyuta birligi). Har bir o‘zgarish yangi versiya yaratadi; yopilgan buyurtmalar yopilgan paytdagi versiyadan foydalanadi.",
   "loyalty.earnNotConfigured":
     "Ball to‘plash qoidasi o‘rnatilmagan. Buyurtma mukofotlari qoida saqlanmaguncha hodisa sifatida ushlab turiladi, keyin ularni qayta ishlash mumkin.",
   "loyalty.earnNotConfiguredBanner": "Ball to‘plash qoidasi o‘rnatilmagani uchun mehmonlar hali ball olmayapti.",
   "loyalty.earnConfigureLink": "Qoidalarni o‘rnatish",
-  "loyalty.earnCurrentRule": "Har {amount} uchun 1 ball, {since} dan beri.",
+  "loyalty.earnCurrentRule": "Mehmonlar buyurtma summasining {percent}% ini ball sifatida oladi, {since} dan beri.",
   "loyalty.earnCurrency": "Valyuta",
-  "loyalty.earnSpendPerPoint": "Bir ball uchun summa",
+  "loyalty.earnPercent": "Ball foizi",
   "loyalty.earnEffectiveAt": "Amal qilish sanasi",
   "loyalty.earnVersion": "Versiya",
   "loyalty.earnSave": "Yangi versiyani saqlash",
@@ -1387,7 +1387,7 @@ export const uzMessages: Messages = {
   "loyalty.earnSaveConfirm":
     "Yangi qoida saqlansinmi? U hozirdan boshlab yopilgan buyurtmalarga qo‘llanadi; avvalgi buyurtmalar o‘z qoidasini saqlaydi.",
   "loyalty.earnInvalidCurrency": "Uch harfli valyuta kodini kiriting, masalan KZT.",
-  "loyalty.earnInvalidSpend": "Noldan katta summani kiriting.",
+  "loyalty.earnInvalidPercent": "0 dan katta va 100 dan oshmagan foizni kiriting.",
   "loyalty.earnLoadFailed": "Qoidalarni yuklab bo‘lmadi.",
   "loyalty.earnSaveFailed": "Qoidani saqlab bo‘lmadi.",
   "loyalty.guestVerificationTitle": "Mehmon tasdiqlash",

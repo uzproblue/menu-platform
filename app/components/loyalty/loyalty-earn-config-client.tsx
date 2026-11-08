@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { formatMinorCurrency, majorToMinor, minorToMajor } from "@/lib/currency-minor-units";
+import {
+  earnPercentToSpendMinorPerPoint,
+  spendMinorPerPointToEarnPercent,
+} from "@/lib/currency-minor-units";
 import type { EarnConfigResponse } from "@/lib/loyalty-api/operations";
 import { useI18n } from "../i18n-provider";
 
@@ -14,6 +17,12 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
   }
 }
 
+function formatEarnPercent(percent: number): string {
+  if (!Number.isFinite(percent) || percent <= 0) return "0";
+  const rounded = Math.round(percent * 100) / 100;
+  return String(rounded);
+}
+
 export function LoyaltyEarnConfigClient() {
   const { t, locale } = useI18n();
   const [config, setConfig] = useState<EarnConfigResponse | null>(null);
@@ -21,7 +30,7 @@ export function LoyaltyEarnConfigClient() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState("");
-  const [spendDraft, setSpendDraft] = useState("");
+  const [percentDraft, setPercentDraft] = useState("");
 
   const formatDate = useCallback(
     (value: string) =>
@@ -43,7 +52,14 @@ export function LoyaltyEarnConfigClient() {
       setError(null);
       if (data.current) {
         setCurrencyDraft(data.current.currency);
-        setSpendDraft(String(minorToMajor(data.current.spendMinorPerPoint, data.current.currency)));
+        setPercentDraft(
+          formatEarnPercent(
+            spendMinorPerPointToEarnPercent(
+              data.current.spendMinorPerPoint,
+              data.current.currency,
+            ),
+          ),
+        );
       }
     } catch {
       setError(t("loyalty.earnLoadFailed"));
@@ -63,14 +79,18 @@ export function LoyaltyEarnConfigClient() {
   async function save(event: FormEvent) {
     event.preventDefault();
     const currency = currencyDraft.trim().toUpperCase();
-    const spendMajor = Number(spendDraft);
+    const earnPercent = Number(percentDraft);
     if (!/^[A-Z]{3}$/.test(currency)) {
       setError(t("loyalty.earnInvalidCurrency"));
       return;
     }
-    const spendMinorPerPoint = majorToMinor(spendMajor, currency);
-    if (!Number.isFinite(spendMajor) || spendMinorPerPoint < 1) {
-      setError(t("loyalty.earnInvalidSpend"));
+    if (!Number.isFinite(earnPercent) || earnPercent <= 0 || earnPercent > 100) {
+      setError(t("loyalty.earnInvalidPercent"));
+      return;
+    }
+    const spendMinorPerPoint = earnPercentToSpendMinorPerPoint(earnPercent, currency);
+    if (spendMinorPerPoint < 1) {
+      setError(t("loyalty.earnInvalidPercent"));
       return;
     }
     if (!window.confirm(t("loyalty.earnSaveConfirm"))) return;
@@ -81,7 +101,7 @@ export function LoyaltyEarnConfigClient() {
       const res = await fetch("/api/settings/loyalty/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currency, spendMinorPerPoint }),
+        body: JSON.stringify({ currency, earnPercent }),
       });
       if (!res.ok) {
         setError(await readErrorMessage(res, t("loyalty.earnSaveFailed")));
@@ -109,8 +129,13 @@ export function LoyaltyEarnConfigClient() {
         <p className="mt-3 text-sm">
           {t("loyalty.earnCurrentRule")
             .replace(
-              "{amount}",
-              formatMinorCurrency(config.current.spendMinorPerPoint, config.current.currency, locale),
+              "{percent}",
+              formatEarnPercent(
+                spendMinorPerPointToEarnPercent(
+                  config.current.spendMinorPerPoint,
+                  config.current.currency,
+                ),
+              ),
             )
             .replace("{since}", formatDate(config.current.effectiveAt))}
         </p>
@@ -127,11 +152,12 @@ export function LoyaltyEarnConfigClient() {
           />
         </label>
         <label className="text-sm">
-          <span className="block text-foreground/60">{t("loyalty.earnSpendPerPoint")}</span>
+          <span className="block text-foreground/60">{t("loyalty.earnPercent")}</span>
           <input
-            value={spendDraft}
-            onChange={(e) => setSpendDraft(e.target.value)}
+            value={percentDraft}
+            onChange={(e) => setPercentDraft(e.target.value)}
             inputMode="decimal"
+            placeholder="5"
             className="mt-1 w-36 rounded-xl border border-foreground/12 bg-transparent px-3 py-2"
           />
         </label>
@@ -155,7 +181,7 @@ export function LoyaltyEarnConfigClient() {
             <tr>
               <th className="py-2 font-medium">{t("loyalty.earnEffectiveAt")}</th>
               <th className="py-2 font-medium">{t("loyalty.earnCurrency")}</th>
-              <th className="py-2 text-right font-medium">{t("loyalty.earnSpendPerPoint")}</th>
+              <th className="py-2 text-right font-medium">{t("loyalty.earnPercent")}</th>
               <th className="py-2 font-medium">{t("loyalty.earnVersion")}</th>
             </tr>
           </thead>
@@ -165,7 +191,10 @@ export function LoyaltyEarnConfigClient() {
                 <td className="py-2">{formatDate(row.effectiveAt)}</td>
                 <td className="py-2">{row.currency}</td>
                 <td className="py-2 text-right tabular-nums">
-                  {formatMinorCurrency(row.spendMinorPerPoint, row.currency, locale)}
+                  {formatEarnPercent(
+                    spendMinorPerPointToEarnPercent(row.spendMinorPerPoint, row.currency),
+                  )}
+                  %
                 </td>
                 <td className="py-2 font-mono text-xs text-foreground/60">{row.version}</td>
               </tr>
