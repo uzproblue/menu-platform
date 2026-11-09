@@ -9,7 +9,6 @@ import {
   STYLED_QR_PREVIEW_WIDTH,
   STYLED_QR_PRINT_WIDTH,
   downloadStyledQrPng,
-  resolveQrCenterImageUrl,
   styledQrToDataUrl,
 } from "@/lib/styled-qr";
 import { QrCenterImageUpload } from "./qr-center-image-upload";
@@ -33,7 +32,6 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
   const [qrCenterImageUrl, setQrCenterImageUrl] = useState(
     () => location.qrCenterImageUrl?.trim() ?? "",
   );
-  const [showCenterImage, setShowCenterImage] = useState(true);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -41,9 +39,6 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const menuUrl = buildDeliveryMenuPublicUrl(location.id, location.customDomain);
-  const centerImageUrl = showCenterImage
-    ? resolveQrCenterImageUrl(qrCenterImageUrl, location.logoUrl)
-    : undefined;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -60,7 +55,6 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
     void styledQrToDataUrl({
       url: menuUrl,
       width: STYLED_QR_PREVIEW_RENDER_WIDTH,
-      logoUrl: centerImageUrl,
     })
       .then((dataUrl) => {
         if (!cancelled) {
@@ -78,7 +72,7 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
     return () => {
       cancelled = true;
     };
-  }, [centerImageUrl, menuUrl]);
+  }, [menuUrl]);
 
   const handleDownloadPng = useCallback(() => {
     const safeName = location.name
@@ -89,10 +83,9 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
     void downloadStyledQrPng({
       url: menuUrl,
       width: STYLED_QR_PRINT_WIDTH,
-      logoUrl: centerImageUrl,
       filename: `delivery-qr-${safeName || location.id}.png`,
     });
-  }, [centerImageUrl, location.id, location.name, menuUrl]);
+  }, [location.id, location.name, menuUrl]);
 
   const handleDownloadPdf = useCallback(async () => {
     setPdfGenerating(true);
@@ -101,7 +94,6 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
       const highResQrUrl = await styledQrToDataUrl({
         url: menuUrl,
         width: 800,
-        logoUrl: centerImageUrl,
       });
       if (!highResQrUrl) return;
 
@@ -165,7 +157,7 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
     } finally {
       setPdfGenerating(false);
     }
-  }, [centerImageUrl, location.id, location.name, menuUrl]);
+  }, [location.id, location.name, menuUrl]);
 
   async function handleCopyLink() {
     setCopyFailed(false);
@@ -360,8 +352,6 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
               locationId={location.id}
               qrCenterImageUrl={qrCenterImageUrl}
               logoUrl={location.logoUrl}
-              showCenterImage={showCenterImage}
-              onShowCenterImageChange={setShowCenterImage}
               onQrCenterImageUrlChange={setQrCenterImageUrl}
             />
           </div>

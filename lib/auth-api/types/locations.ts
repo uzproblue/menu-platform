@@ -9,7 +9,7 @@ export type Location = {
   logoUrl: string;
   /** Storefront header / background banner image (delivery & public). */
   coverImageUrl?: string;
-  /** Optional center image for table QR codes; falls back to logoUrl when empty. */
+  /** Optional brand logo for table QR tent cards; falls back to logoUrl when empty. */
   qrCenterImageUrl?: string;
   /** Restaurant contact phone number for delivery orders & support. */
   phoneNumber?: string;

@@ -73,11 +73,9 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
   const [qrCenterImageUrl, setQrCenterImageUrl] = useState(
     () => location.qrCenterImageUrl?.trim() ?? "",
   );
-  const [showCenterImage, setShowCenterImage] = useState(true);
 
   useEffect(() => {
     setQrCenterImageUrl(location.qrCenterImageUrl?.trim() ?? "");
-    setShowCenterImage(true);
   }, [location.id, location.qrCenterImageUrl]);
 
   useEffect(() => {
@@ -394,8 +392,6 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
                 locationId={location.id}
                 qrCenterImageUrl={qrCenterImageUrl}
                 logoUrl={location.logoUrl}
-                showCenterImage={showCenterImage}
-                onShowCenterImageChange={setShowCenterImage}
                 onQrCenterImageUrlChange={setQrCenterImageUrl}
               />
               <QrWizardStepCodes
@@ -403,7 +399,6 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
                 locationName={location.name}
                 logoUrl={location.logoUrl}
                 qrCenterImageUrl={qrCenterImageUrl}
-                showCenterImage={showCenterImage}
                 sections={sections}
               />
             </div>

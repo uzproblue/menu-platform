@@ -11,7 +11,6 @@ type QrWizardStepCodesProps = {
   locationName: string;
   logoUrl?: string;
   qrCenterImageUrl?: string;
-  showCenterImage?: boolean;
   sections: LocationDiningTablesSection[];
 };
 
@@ -20,7 +19,6 @@ export function QrWizardStepCodes({
   locationName,
   logoUrl,
   qrCenterImageUrl,
-  showCenterImage = true,
   sections,
 }: QrWizardStepCodesProps) {
   const { t } = useI18n();
@@ -66,9 +64,7 @@ export function QrWizardStepCodes({
     0,
   );
 
-  const centerImageUrl = showCenterImage
-    ? resolveQrCenterImageUrl(qrCenterImageUrl, logoUrl)
-    : undefined;
+  const brandLogoUrl = resolveQrCenterImageUrl(qrCenterImageUrl, logoUrl);
 
   return (
     <div className="space-y-4">
@@ -117,9 +113,8 @@ export function QrWizardStepCodes({
                   key={table.id}
                   locationId={locationId}
                   locationName={locationName}
-                  logoUrl={logoUrl}
+                  logoUrl={brandLogoUrl}
                   sectionName={activeSection.sectionName}
-                  centerImageUrl={centerImageUrl}
                   table={table}
                 />
               ))}

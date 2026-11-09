@@ -18,9 +18,8 @@ const FONT_STACK =
 export type TableQrTentCardConfig = {
   menuUrl: string;
   locationName: string;
+  /** Brand logo shown at the top of the tent card (custom upload or location logo). */
   logoUrl?: string | null;
-  /** Optional QR center image; falls back handled by caller via resolveQrCenterImageUrl. */
-  centerImageUrl?: string | null;
   sectionName: string;
   tableLabel: string;
   instructionText: string;
@@ -89,7 +88,6 @@ export async function composeTableQrTentCard(
   const qrDataUrl = await styledQrToDataUrl({
     url: config.menuUrl,
     width: Math.max(280, qrSize),
-    logoUrl: config.centerImageUrl,
   });
   if (!qrDataUrl) return null;
 

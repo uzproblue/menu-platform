@@ -14,9 +14,9 @@ import {
 type QrTableRowProps = {
   locationId: string;
   locationName: string;
+  /** Brand logo for the top of the tent card. */
   logoUrl?: string;
   sectionName: string;
-  centerImageUrl?: string;
   table: LocationDiningTable;
 };
 
@@ -25,7 +25,6 @@ export function QrTableRow({
   locationName,
   logoUrl,
   sectionName,
-  centerImageUrl,
   table,
 }: QrTableRowProps) {
   const { t } = useI18n();
@@ -65,7 +64,6 @@ export function QrTableRow({
       menuUrl,
       locationName,
       logoUrl,
-      centerImageUrl,
       sectionName,
       tableLabel,
       instructionText,
@@ -86,7 +84,6 @@ export function QrTableRow({
     menuUrl,
     locationName,
     logoUrl,
-    centerImageUrl,
     sectionName,
     tableLabel,
     instructionText,
@@ -97,7 +94,6 @@ export function QrTableRow({
       menuUrl,
       locationName,
       logoUrl,
-      centerImageUrl,
       sectionName,
       tableLabel,
       instructionText,
@@ -108,7 +104,6 @@ export function QrTableRow({
     menuUrl,
     locationName,
     logoUrl,
-    centerImageUrl,
     sectionName,
     tableLabel,
     instructionText,
