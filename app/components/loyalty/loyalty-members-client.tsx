@@ -11,8 +11,13 @@ import type {
   LoyaltyLedgerEntry,
 } from "@/lib/loyalty-api/types";
 import { buildGuestsListQuery } from "@/lib/loyalty-api/guests-query";
+import type { GuestBlastChannel, GuestBlastPreviewResponse } from "@/lib/loyalty-api/guests";
 import { formatMinorCurrency, majorToMinor } from "@/lib/currency-minor-units";
 import { useI18n } from "../i18n-provider";
+import {
+  LoyaltyMemberBlastModals,
+  type BlastSendPayload,
+} from "./loyalty-member-blast-modals";
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
@@ -193,8 +198,11 @@ export function LoyaltyMembersClient() {
   const [selectAllCap, setSelectAllCap] = useState(100);
   const [selectingAll, setSelectingAll] = useState(false);
 
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [blastMessage, setBlastMessage] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [composeChannel, setComposeChannel] = useState<GuestBlastChannel | null>(null);
+  const [blastPreview, setBlastPreview] = useState<GuestBlastPreviewResponse | null>(null);
+  const [blastPreviewLoading, setBlastPreviewLoading] = useState(false);
+  const [blastPreviewError, setBlastPreviewError] = useState<string | null>(null);
   const [blastSending, setBlastSending] = useState(false);
   const [blastError, setBlastError] = useState<string | null>(null);
   const [blastResult, setBlastResult] = useState<{
@@ -290,7 +298,9 @@ export function LoyaltyMembersClient() {
       setIikoMatchedDraft("");
       setMarketingDraft("");
       setCheckedIds(new Set());
-      setComposeOpen(false);
+      setPickerOpen(false);
+      setComposeChannel(null);
+      setBlastPreview(null);
       setBlastResult(null);
       setBlastError(null);
       setPage(1);
@@ -503,11 +513,39 @@ export function LoyaltyMembersClient() {
     }
   }
 
-  async function sendWhatsappBlast() {
+  async function loadBlastPreview(guestIds: string[]) {
+    setBlastPreviewLoading(true);
+    setBlastPreviewError(null);
+    try {
+      const res = await fetch("/api/settings/loyalty/guests/blasts/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestIds }),
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, t("loyalty.blastPreviewFailed")));
+      }
+      const data = (await res.json()) as GuestBlastPreviewResponse;
+      setBlastPreview(data);
+    } catch (e) {
+      setBlastPreview(null);
+      setBlastPreviewError(
+        e instanceof Error ? e.message : t("loyalty.blastPreviewFailed"),
+      );
+    } finally {
+      setBlastPreviewLoading(false);
+    }
+  }
+
+  async function sendGuestBlast(payload: BlastSendPayload) {
     const guestIds = [...checkedIds];
     if (guestIds.length === 0) return;
-    const message = blastMessage.trim();
-    if (!message) {
+    if (payload.channel === "webpush") {
+      if (!payload.title?.trim() || !payload.message?.trim()) {
+        setBlastError(t("loyalty.webpushFieldsRequired"));
+        return;
+      }
+    } else if (!payload.message?.trim()) {
       setBlastError(t("loyalty.whatsappMessageRequired"));
       return;
     }
@@ -515,13 +553,19 @@ export function LoyaltyMembersClient() {
     setBlastError(null);
     setBlastResult(null);
     try {
-      const res = await fetch("/api/settings/loyalty/guests/whatsapp-blast", {
+      const res = await fetch("/api/settings/loyalty/guests/blasts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, guestIds }),
+        body: JSON.stringify({
+          channel: payload.channel,
+          guestIds,
+          message: payload.message,
+          ...(payload.title ? { title: payload.title } : {}),
+          ...(payload.url ? { url: payload.url } : {}),
+        }),
       });
       if (!res.ok) {
-        throw new Error(await readErrorMessage(res, t("loyalty.whatsappSendFailed")));
+        throw new Error(await readErrorMessage(res, t("loyalty.blastSendFailed")));
       }
       const data = (await res.json()) as {
         targeted: number;
@@ -534,7 +578,7 @@ export function LoyaltyMembersClient() {
         failed: data.failed,
       });
     } catch (e) {
-      setBlastError(e instanceof Error ? e.message : t("loyalty.whatsappSendFailed"));
+      setBlastError(e instanceof Error ? e.message : t("loyalty.blastSendFailed"));
     } finally {
       setBlastSending(false);
     }
@@ -851,9 +895,11 @@ export function LoyaltyMembersClient() {
           type="button"
           disabled={checkedIds.size === 0}
           onClick={() => {
-            setComposeOpen(true);
+            setPickerOpen(true);
+            setComposeChannel(null);
             setBlastError(null);
             setBlastResult(null);
+            void loadBlastPreview([...checkedIds]);
           }}
           className="rounded-lg bg-foreground px-3 py-1.5 font-medium text-background disabled:opacity-40"
         >
@@ -870,67 +916,26 @@ export function LoyaltyMembersClient() {
         ) : null}
       </div>
 
-      {composeOpen ? (
-        <div className="space-y-3 rounded-2xl border border-foreground/10 bg-background/60 p-4 ring-1 ring-foreground/5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold">{t("loyalty.whatsappComposeTitle")}</h2>
-              <p className="text-sm text-foreground/60">
-                {t("loyalty.whatsappComposeHint", { count: String(checkedIds.size) })}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="text-sm text-foreground/60 hover:text-foreground"
-              onClick={() => setComposeOpen(false)}
-            >
-              {t("common.close")}
-            </button>
-          </div>
-          <label className="flex flex-col gap-1 text-xs text-foreground/70">
-            {t("loyalty.whatsappMessage")}
-            <textarea
-              value={blastMessage}
-              onChange={(e) => setBlastMessage(e.target.value)}
-              rows={4}
-              maxLength={4096}
-              className="rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm text-foreground"
-              placeholder={t("loyalty.whatsappMessagePlaceholder")}
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={blastSending || checkedIds.size === 0}
-              onClick={() => void sendWhatsappBlast()}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {blastSending ? t("loyalty.whatsappSending") : t("loyalty.whatsappSend")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setComposeOpen(false)}
-              className="rounded-lg border border-foreground/15 px-4 py-2 text-sm hover:bg-foreground/5"
-            >
-              {t("common.cancel")}
-            </button>
-          </div>
-          {blastError ? (
-            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-              {blastError}
-            </p>
-          ) : null}
-          {blastResult ? (
-            <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
-              {t("loyalty.whatsappSendResult", {
-                targeted: String(blastResult.targeted),
-                succeeded: String(blastResult.succeeded),
-                failed: String(blastResult.failed),
-              })}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      <LoyaltyMemberBlastModals
+        selectedCount={checkedIds.size}
+        pickerOpen={pickerOpen}
+        composeChannel={composeChannel}
+        preview={blastPreview}
+        previewLoading={blastPreviewLoading}
+        previewError={blastPreviewError}
+        sending={blastSending}
+        sendError={blastError}
+        sendResult={blastResult}
+        onClosePicker={() => setPickerOpen(false)}
+        onPickChannel={(channel) => {
+          setComposeChannel(channel);
+          setPickerOpen(false);
+          setBlastError(null);
+          setBlastResult(null);
+        }}
+        onCloseCompose={() => setComposeChannel(null)}
+        onSend={(payload) => void sendGuestBlast(payload)}
+      />
 
       {loading ? (
         <p className="text-sm text-foreground/60">{t("loyalty.loading")}</p>

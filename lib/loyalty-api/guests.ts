@@ -65,6 +65,53 @@ export type WhatsappBlastResponse = {
   errors: Array<{ guestId: string; message: string }>;
 };
 
+export type GuestBlastChannel = "whatsapp" | "telegram" | "wallet" | "webpush";
+
+export type GuestBlastPreviewResponse = {
+  selected: number;
+  channels: Record<
+    GuestBlastChannel,
+    { restaurantReady: boolean; reachable: number }
+  >;
+};
+
+export type GuestBlastResponse = WhatsappBlastResponse;
+
+export async function previewGuestBlastsWithAuthServer(
+  accessToken: string,
+  restaurantId: string | undefined,
+  body: { guestIds: string[] },
+) {
+  return loyaltyApiJson<GuestBlastPreviewResponse>({
+    path: "/api/admin/guests/blasts/preview",
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body,
+  });
+}
+
+export async function sendGuestBlastWithAuthServer(
+  accessToken: string,
+  restaurantId: string | undefined,
+  body: {
+    channel: GuestBlastChannel;
+    guestIds: string[];
+    message?: string;
+    title?: string;
+    url?: string;
+    locationId?: string;
+  },
+) {
+  return loyaltyApiJson<GuestBlastResponse>({
+    path: "/api/admin/guests/blasts",
+    method: "POST",
+    accessToken,
+    restaurantId,
+    body,
+  });
+}
+
 export async function sendGuestsWhatsappBlastWithAuthServer(
   accessToken: string,
   restaurantId: string | undefined,
