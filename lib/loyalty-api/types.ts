@@ -139,6 +139,8 @@ export type LoyaltyGuestOrder = {
   locationId: string | null;
   waiterId: string | null;
   waiterName: string | null;
+  tableId: string | null;
+  tableNumber: number | null;
   items: LoyaltyGuestOrderItem[];
 };
 
