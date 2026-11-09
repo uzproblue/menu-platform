@@ -48,6 +48,26 @@ export function RestaurantsList() {
     setQrLocation(null);
   }, []);
 
+  const handleQrCenterImageUrlChange = useCallback(
+    (locationId: string, qrCenterImageUrl: string) => {
+      setQrLocation((prev) =>
+        prev && prev.id === locationId ? { ...prev, qrCenterImageUrl } : prev,
+      );
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          locations: prev.locations.map((location) =>
+            location.id === locationId
+              ? { ...location, qrCenterImageUrl }
+              : location,
+          ),
+        };
+      });
+    },
+    [],
+  );
+
   const loadLocations = useCallback(async () => {
     setLoadError(null);
     const response = await fetch("/api/settings/locations", {
@@ -310,9 +330,21 @@ export function RestaurantsList() {
 
       {qrLocation ? (
         qrLocation.type === "delivery" ? (
-          <DeliveryQrModal location={qrLocation} onClose={closeQrModal} />
+          <DeliveryQrModal
+            location={qrLocation}
+            onClose={closeQrModal}
+            onQrCenterImageUrlChange={(qrCenterImageUrl) =>
+              handleQrCenterImageUrlChange(qrLocation.id, qrCenterImageUrl)
+            }
+          />
         ) : (
-          <QrLocationModal location={qrLocation} onClose={closeQrModal} />
+          <QrLocationModal
+            location={qrLocation}
+            onClose={closeQrModal}
+            onQrCenterImageUrlChange={(qrCenterImageUrl) =>
+              handleQrCenterImageUrlChange(qrLocation.id, qrCenterImageUrl)
+            }
+          />
         )
       ) : null}
 

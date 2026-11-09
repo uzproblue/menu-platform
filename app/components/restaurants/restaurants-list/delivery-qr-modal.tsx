@@ -24,13 +24,30 @@ export type DeliveryQrLocationRef = {
 type DeliveryQrModalProps = {
   location: DeliveryQrLocationRef;
   onClose: () => void;
+  onQrCenterImageUrlChange?: (qrCenterImageUrl: string) => void;
 };
 
-export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
+export function DeliveryQrModal({
+  location,
+  onClose,
+  onQrCenterImageUrlChange,
+}: DeliveryQrModalProps) {
   const { t } = useI18n();
   const titleId = useId();
   const [qrCenterImageUrl, setQrCenterImageUrl] = useState(
     () => location.qrCenterImageUrl?.trim() ?? "",
+  );
+
+  useEffect(() => {
+    setQrCenterImageUrl(location.qrCenterImageUrl?.trim() ?? "");
+  }, [location.id, location.qrCenterImageUrl]);
+
+  const handleQrCenterImageUrlChange = useCallback(
+    (nextValue: string) => {
+      setQrCenterImageUrl(nextValue);
+      onQrCenterImageUrlChange?.(nextValue);
+    },
+    [onQrCenterImageUrlChange],
   );
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(true);
@@ -352,7 +369,7 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
               locationId={location.id}
               qrCenterImageUrl={qrCenterImageUrl}
               logoUrl={location.logoUrl}
-              onQrCenterImageUrlChange={setQrCenterImageUrl}
+              onQrCenterImageUrlChange={handleQrCenterImageUrlChange}
             />
           </div>
         </div>

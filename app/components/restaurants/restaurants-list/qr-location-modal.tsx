@@ -19,6 +19,7 @@ export type QrLocationRef = {
 type QrLocationModalProps = {
   location: QrLocationRef;
   onClose: () => void;
+  onQrCenterImageUrlChange?: (qrCenterImageUrl: string) => void;
 };
 
 type LoadState =
@@ -58,7 +59,11 @@ function hasAnyChosenTables(sections: LocationDiningTablesSection[]): boolean {
   return sections.some((section) => section.tables.some((table) => table.chosen));
 }
 
-export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
+export function QrLocationModal({
+  location,
+  onClose,
+  onQrCenterImageUrlChange,
+}: QrLocationModalProps) {
   const { t } = useI18n();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [phase, setPhase] = useState<WizardPhase>({ kind: "sections" });
@@ -77,6 +82,14 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
   useEffect(() => {
     setQrCenterImageUrl(location.qrCenterImageUrl?.trim() ?? "");
   }, [location.id, location.qrCenterImageUrl]);
+
+  const handleQrCenterImageUrlChange = useCallback(
+    (nextValue: string) => {
+      setQrCenterImageUrl(nextValue);
+      onQrCenterImageUrlChange?.(nextValue);
+    },
+    [onQrCenterImageUrlChange],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -392,7 +405,7 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
                 locationId={location.id}
                 qrCenterImageUrl={qrCenterImageUrl}
                 logoUrl={location.logoUrl}
-                onQrCenterImageUrlChange={setQrCenterImageUrl}
+                onQrCenterImageUrlChange={handleQrCenterImageUrlChange}
               />
               <QrWizardStepCodes
                 locationId={location.id}
