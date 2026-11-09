@@ -8,6 +8,7 @@ import { QrTableRow } from "./qr-table-row";
 
 type QrWizardStepCodesProps = {
   locationId: string;
+  locationName: string;
   logoUrl?: string;
   qrCenterImageUrl?: string;
   sections: LocationDiningTablesSection[];
@@ -15,6 +16,7 @@ type QrWizardStepCodesProps = {
 
 export function QrWizardStepCodes({
   locationId,
+  locationName,
   logoUrl,
   qrCenterImageUrl,
   sections,
@@ -110,6 +112,9 @@ export function QrWizardStepCodes({
                 <QrTableRow
                   key={table.id}
                   locationId={locationId}
+                  locationName={locationName}
+                  logoUrl={logoUrl}
+                  sectionName={activeSection.sectionName}
                   centerImageUrl={centerImageUrl}
                   table={table}
                 />

@@ -396,6 +396,7 @@ export function QrLocationModal({ location, onClose }: QrLocationModalProps) {
               />
               <QrWizardStepCodes
                 locationId={location.id}
+                locationName={location.name}
                 logoUrl={location.logoUrl}
                 qrCenterImageUrl={qrCenterImageUrl}
                 sections={sections}

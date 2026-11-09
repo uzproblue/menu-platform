@@ -530,6 +530,7 @@ export const ruMessages: Messages = {
   "restaurants.qrTablesEmpty":
     "Для этой локации столы ещё не импортированы. Запустите скрипт импорта столов на сервере.",
   "restaurants.qrTableNumber": "Стол {number}",
+  "restaurants.qrPointCamera": "Наведите камеру телефона",
   "restaurants.qrTableIdLabel": "ID стола",
   "restaurants.qrCopyLink": "Копировать ссылку",
   "restaurants.qrLinkCopied": "Скопировано",

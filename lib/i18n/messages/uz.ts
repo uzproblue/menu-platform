@@ -526,6 +526,7 @@ export const uzMessages: Messages = {
   "restaurants.qrTablesEmpty":
     "Bu lokatsiya uchun stollar hali import qilinmagan. Serverda stollar import skriptini ishga tushiring.",
   "restaurants.qrTableNumber": "Stol {number}",
+  "restaurants.qrPointCamera": "Telefon kamerasini qarating",
   "restaurants.qrTableIdLabel": "Stol ID",
   "restaurants.qrCopyLink": "Havoladan nusxa",
   "restaurants.qrLinkCopied": "Nusxa olindi",

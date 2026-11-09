@@ -533,6 +533,7 @@ export const enMessages: Messages = {
   "restaurants.qrTablesEmpty":
     "No tables imported for this location yet. Run the dining-tables import script on the server.",
   "restaurants.qrTableNumber": "Table {number}",
+  "restaurants.qrPointCamera": "Point your phone camera",
   "restaurants.qrTableIdLabel": "Table ID",
   "restaurants.qrCopyLink": "Copy link",
   "restaurants.qrLinkCopied": "Copied",
