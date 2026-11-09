@@ -5,12 +5,15 @@ import { ItemThumbnail } from "@/app/components/global-menu/global-menu-item-row
 import { useI18n } from "@/app/components/i18n-provider";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { getMaxUploadSizeBytes } from "@/lib/r2-upload-shared";
+import { ActivationSwitch } from "./activation-switch";
 import { readErrorMessage } from "./read-error-message";
 
 type QrCenterImageUploadProps = {
   locationId: string;
   qrCenterImageUrl: string;
   logoUrl: string;
+  showCenterImage: boolean;
+  onShowCenterImageChange: (showCenterImage: boolean) => void;
   onQrCenterImageUrlChange: (qrCenterImageUrl: string) => void;
 };
 
@@ -18,6 +21,8 @@ export function QrCenterImageUpload({
   locationId,
   qrCenterImageUrl,
   logoUrl,
+  showCenterImage,
+  onShowCenterImageChange,
   onQrCenterImageUrlChange,
 }: QrCenterImageUploadProps) {
   const { t } = useI18n();
@@ -129,7 +134,27 @@ export function QrCenterImageUpload({
         </p>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start">
+      <div className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-foreground/10 bg-background/60 px-3 py-2.5">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            {t("restaurants.qrCenterImageShow")}
+          </p>
+          <p className="mt-0.5 text-xs text-foreground/55">
+            {t("restaurants.qrCenterImageShowHint")}
+          </p>
+        </div>
+        <ActivationSwitch
+          isActive={showCenterImage}
+          onToggle={() => onShowCenterImageChange(!showCenterImage)}
+          label={t("restaurants.qrCenterImageShow")}
+        />
+      </div>
+
+      <div
+        className={`mt-4 grid gap-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start ${
+          showCenterImage ? "" : "pointer-events-none opacity-45"
+        }`}
+      >
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-wide text-foreground/60">
             {t("global.imagePreviewAlt")}
@@ -165,7 +190,7 @@ export function QrCenterImageUpload({
             id={fileInputId}
             type="file"
             accept="image/*"
-            disabled={saving}
+            disabled={saving || !showCenterImage}
             className="sr-only"
             onChange={(event) => {
               const file = event.target.files?.[0] ?? null;
@@ -176,7 +201,7 @@ export function QrCenterImageUpload({
           <label
             htmlFor={fileInputId}
             className={`inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-foreground/20 px-4 text-sm font-medium text-foreground hover:bg-foreground/5 ${
-              saving ? "pointer-events-none opacity-50" : ""
+              saving || !showCenterImage ? "pointer-events-none opacity-50" : ""
             }`}
           >
             {saving
@@ -190,7 +215,7 @@ export function QrCenterImageUpload({
             <button
               type="button"
               onClick={() => void handleRemove()}
-              disabled={saving}
+              disabled={saving || !showCenterImage}
               className="block text-sm text-foreground/70 hover:text-foreground disabled:opacity-50"
             >
               {t("restaurants.qrCenterImageRemove")}

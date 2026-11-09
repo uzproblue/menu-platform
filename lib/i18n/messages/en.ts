@@ -566,6 +566,9 @@ export const enMessages: Messages = {
   "restaurants.qrCenterImageTitle": "QR center image",
   "restaurants.qrCenterImageHint":
     "Optional image shown in the middle of each table QR code. When not set, your restaurant logo is used instead.",
+  "restaurants.qrCenterImageShow": "Show logo in QR center",
+  "restaurants.qrCenterImageShowHint":
+    "When off, table QR codes are generated without a center image.",
   "restaurants.qrCenterImagePreviewAlt": "QR center image preview",
   "restaurants.qrCenterImageUsingLogo": "Using restaurant logo",
   "restaurants.qrCenterImageUpload": "Upload image",

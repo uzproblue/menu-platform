@@ -561,6 +561,9 @@ export const uzMessages: Messages = {
   "restaurants.qrCenterImageTitle": "QR markazidagi rasm",
   "restaurants.qrCenterImageHint":
     "Har bir stol QR kodining markazidagi ixtiyoriy rasm. Belgilanmagan bo'lsa, restoran logotipi ishlatiladi.",
+  "restaurants.qrCenterImageShow": "QR markazida logotipni ko'rsatish",
+  "restaurants.qrCenterImageShowHint":
+    "O'chirilganda stol QR kodlari markazsiz (rasmsiz) yaratiladi.",
   "restaurants.qrCenterImagePreviewAlt": "QR markazidagi rasm ko'rinishi",
   "restaurants.qrCenterImageUsingLogo": "Restoran logotipi ishlatilmoqda",
   "restaurants.qrCenterImageUpload": "Rasm yuklash",

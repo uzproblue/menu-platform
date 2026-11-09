@@ -564,6 +564,9 @@ export const ruMessages: Messages = {
   "restaurants.qrCenterImageTitle": "Изображение в центре QR",
   "restaurants.qrCenterImageHint":
     "Необязательное изображение в центре QR-кода каждого стола. Если не задано, используется логотип ресторана.",
+  "restaurants.qrCenterImageShow": "Показывать логотип в центре QR",
+  "restaurants.qrCenterImageShowHint":
+    "Если выключено, QR-коды столов создаются без изображения в центре.",
   "restaurants.qrCenterImagePreviewAlt": "Превью изображения в центре QR",
   "restaurants.qrCenterImageUsingLogo": "Используется логотип ресторана",
   "restaurants.qrCenterImageUpload": "Загрузить изображение",
