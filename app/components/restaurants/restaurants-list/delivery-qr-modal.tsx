@@ -33,6 +33,7 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
   const [qrCenterImageUrl, setQrCenterImageUrl] = useState(
     () => location.qrCenterImageUrl?.trim() ?? "",
   );
+  const [showCenterImage, setShowCenterImage] = useState(true);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -40,7 +41,9 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const menuUrl = buildDeliveryMenuPublicUrl(location.id, location.customDomain);
-  const centerImageUrl = resolveQrCenterImageUrl(qrCenterImageUrl, location.logoUrl);
+  const centerImageUrl = showCenterImage
+    ? resolveQrCenterImageUrl(qrCenterImageUrl, location.logoUrl)
+    : undefined;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -357,6 +360,8 @@ export function DeliveryQrModal({ location, onClose }: DeliveryQrModalProps) {
               locationId={location.id}
               qrCenterImageUrl={qrCenterImageUrl}
               logoUrl={location.logoUrl}
+              showCenterImage={showCenterImage}
+              onShowCenterImageChange={setShowCenterImage}
               onQrCenterImageUrlChange={setQrCenterImageUrl}
             />
           </div>
