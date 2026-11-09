@@ -1330,6 +1330,9 @@ export function LoyaltyMembersClient() {
                                 locale,
                               )}{" "}
                               · {order.pointsEarned} pts
+                              {order.waiterName?.trim()
+                                ? ` · ${order.waiterName.trim()}`
+                                : ""}
                             </span>
                             <span className="text-xs text-foreground/50">
                               {open ? "−" : "+"} {order.items.length} {t("loyalty.items")}

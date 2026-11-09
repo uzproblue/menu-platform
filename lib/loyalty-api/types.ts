@@ -137,6 +137,8 @@ export type LoyaltyGuestOrder = {
   pointsEarned: number;
   source: string;
   locationId: string | null;
+  waiterId: string | null;
+  waiterName: string | null;
   items: LoyaltyGuestOrderItem[];
 };
 
