@@ -1335,9 +1335,7 @@ export function LoyaltyMembersClient() {
                                 : ""}
                               {typeof order.tableNumber === "number"
                                 ? ` · Стол ${order.tableNumber}`
-                                : order.tableId?.trim()
-                                  ? ` · Стол ${order.tableId.trim().slice(0, 8)}`
-                                  : ""}
+                                : ""}
                             </span>
                             <span className="text-xs text-foreground/50">
                               {open ? "−" : "+"} {order.items.length} {t("loyalty.items")}
