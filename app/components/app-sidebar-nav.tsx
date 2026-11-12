@@ -86,7 +86,13 @@ function isLoyaltyGroupPath(pathname: string): boolean {
 }
 
 function isGlobalMenuGroupPath(pathname: string): boolean {
-  if (pathname === "/global-menu/sections" || pathname.startsWith("/global-menu/unassigned")) return false;
+  if (
+    pathname === "/global-menu/sections" ||
+    pathname.startsWith("/global-menu/unassigned") ||
+    isConstructorsPath(pathname)
+  ) {
+    return false;
+  }
   if (pathname.startsWith("/global-menu/sections/")) return true;
   return (
     pathname.startsWith("/global-menu") &&
@@ -104,6 +110,13 @@ function isSectionsManagePath(pathname: string): boolean {
 
 function isUnassignedPath(pathname: string): boolean {
   return pathname === "/global-menu/unassigned" || pathname.startsWith("/global-menu/unassigned/");
+}
+
+function isConstructorsPath(pathname: string): boolean {
+  return (
+    pathname === "/global-menu/constructors" ||
+    pathname.startsWith("/global-menu/constructors/")
+  );
 }
 
 const settingsItem = {
@@ -302,6 +315,7 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
   const loyaltyGroupActive = isLoyaltyGroupPath(pathname);
   const sectionsManageActive = isSectionsManagePath(pathname);
   const unassignedActive = isUnassignedPath(pathname);
+  const constructorsActive = isConstructorsPath(pathname);
   const navItemBaseClass =
     "block w-full min-h-11 touch-manipulation rounded-xl px-3 py-3 text-sm font-medium leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:min-h-0 sm:py-2.5";
   const childNavItemClass =
@@ -385,6 +399,18 @@ export function AppSidebarNav({ onNavigate }: AppSidebarNavProps) {
               {unassignedCount}
             </span>
           ) : null}
+        </Link>
+
+        <Link
+          href="/global-menu/constructors"
+          onClick={() => onNavigate?.()}
+          className={`${navItemBaseClass} ${
+            constructorsActive
+              ? "bg-foreground/10 text-foreground"
+              : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+          }`}
+        >
+          {labelForKey("nav.constructors")}
         </Link>
 
         {topLinks.slice(1).map(({ href, labelKey, match }) => {

@@ -5,3 +5,4 @@ export * from "./catalog";
 export * from "./locations";
 export * from "./seasonal";
 export * from "./promotion-stories";
+export * from "./meal-constructors";

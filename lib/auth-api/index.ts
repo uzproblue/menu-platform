@@ -16,3 +16,5 @@ export * from "./menu-v3-merge";
 export * from "./seasonal-menus";
 export * from "./promotion-stories";
 export type * from "./types/promotion-stories";
+export * from "./meal-constructors";
+export type * from "./types/meal-constructors";
