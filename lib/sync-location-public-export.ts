@@ -470,6 +470,26 @@ export async function syncLocationPublicExportToR2(
       );
       if (patchRes.ok) {
         payload = patchRes.data.export;
+        // availability_patch preserves stale promotionStories; refresh so
+        // newly enabled items can unlock stories (and disables can drop them).
+        const storiesRes = await getPublishedPromotionStoriesForLocationWithAuthServer(
+          accessToken,
+          locationId,
+          restaurantId,
+          { forExport: true },
+        );
+        if (storiesRes.ok) {
+          payload = {
+            ...payload,
+            promotionStories: storiesRes.data.stories,
+          };
+        } else {
+          console.warn(
+            "[syncLocationPublicExportToR2] published promotion stories refresh after patch failed",
+            locationId,
+            storiesRes.message ?? storiesRes.error,
+          );
+        }
       } else {
         console.warn(
           "[syncLocationPublicExportToR2] patch failed, falling back to full export",
