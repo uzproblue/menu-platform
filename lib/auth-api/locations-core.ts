@@ -143,10 +143,16 @@ export async function updateLocationActivationWithAuthServer(
   });
 }
 
+export type UpdateLocationCategoriesInput = {
+  add?: string[];
+  remove?: string[];
+  order?: string[];
+};
+
 export async function updateLocationCategoriesWithAuthServer(
   accessToken: string,
   locationId: string,
-  input: { categoryIds: string[] },
+  input: UpdateLocationCategoriesInput,
   restaurantId?: string,
 ): Promise<
   | { ok: true; data: UpdateLocationCategoriesResponse }

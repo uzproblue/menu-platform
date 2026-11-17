@@ -133,10 +133,19 @@ type ReorderCategoryState = {
   error: string | null;
 };
 
+type PatchLocationCategoriesBody = {
+  add?: string[];
+  remove?: string[];
+  order?: string[];
+};
+
 async function patchLocationCategories(
   locationId: string,
-  categoryIds: string[],
-): Promise<{ ok: true } | { ok: false; message?: string }> {
+  body: PatchLocationCategoriesBody,
+): Promise<
+  | { ok: true; enabledCategoryIds?: string[] }
+  | { ok: false; message?: string }
+> {
   try {
     const res = await fetch(
       `/api/settings/locations/${encodeURIComponent(locationId)}/categories`,
@@ -144,20 +153,35 @@ async function patchLocationCategories(
         method: "PATCH",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categoryIds }),
+        body: JSON.stringify(body),
       },
     );
     if (!res.ok) {
       let detail: string | undefined;
       try {
-        const body = (await res.json()) as { message?: string };
-        if (typeof body?.message === "string") detail = body.message;
+        const errBody = (await res.json()) as { message?: string };
+        if (typeof errBody?.message === "string") detail = errBody.message;
       } catch {
         /* ignore */
       }
       return { ok: false, message: detail };
     }
-    return { ok: true };
+    try {
+      const data = (await res.json()) as {
+        location?: { enabledCategoryIds?: string[] };
+      };
+      if (!Array.isArray(data?.location?.enabledCategoryIds)) {
+        return { ok: true };
+      }
+      return {
+        ok: true,
+        enabledCategoryIds: data.location.enabledCategoryIds.filter(
+          (id): id is string => typeof id === "string",
+        ),
+      };
+    } catch {
+      return { ok: true };
+    }
   } catch {
     return { ok: false };
   }
@@ -857,15 +881,18 @@ export function RestaurantDetailClient({
       const nextIds = categoriesCatalog
         .filter((c) => selectedSet.has(c.id))
         .map((c) => c.id);
-      const unchanged =
-        nextIds.length === enabledCategoryIds.length &&
-        nextIds.every((id, i) => id === enabledCategoryIds[i]);
-      if (unchanged) {
+      const nextSet = new Set(nextIds);
+      const add = nextIds.filter((id) => !enabledCategoryIds.includes(id));
+      const remove = enabledCategoryIds.filter((id) => !nextSet.has(id));
+      if (add.length === 0 && remove.length === 0) {
         setAddState((prev) => ({ ...prev, open: false, error: null }));
         return;
       }
       setAddState((prev) => ({ ...prev, saving: true, error: null }));
-      const result = await patchLocationCategories(restaurant.id, nextIds);
+      const result = await patchLocationCategories(restaurant.id, {
+        ...(add.length > 0 ? { add } : {}),
+        ...(remove.length > 0 ? { remove } : {}),
+      });
       if (!result.ok) {
         setAddState({
           open: true,
@@ -874,7 +901,7 @@ export function RestaurantDetailClient({
         });
         return;
       }
-      setEnabledCategoryIds(nextIds);
+      setEnabledCategoryIds(result.enabledCategoryIds ?? nextIds);
       setAddState({ open: false, saving: false, error: null });
     },
     [categoriesCatalog, enabledCategoryIds, restaurant.id, t],
@@ -907,7 +934,9 @@ export function RestaurantDetailClient({
         return;
       }
       setReorderState((prev) => ({ ...prev, saving: true, error: null }));
-      const result = await patchLocationCategories(restaurant.id, mergedIds);
+      const result = await patchLocationCategories(restaurant.id, {
+        order: mergedIds,
+      });
       if (!result.ok) {
         setReorderState({
           open: true,
@@ -916,7 +945,7 @@ export function RestaurantDetailClient({
         });
         return;
       }
-      setEnabledCategoryIds(mergedIds);
+      setEnabledCategoryIds(result.enabledCategoryIds ?? mergedIds);
       setReorderState({ open: false, saving: false, error: null });
     },
     [enabledCategoryIds, menuTab, restaurant.id, sectionOfCategoryId, t],

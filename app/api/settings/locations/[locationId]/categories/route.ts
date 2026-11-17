@@ -10,6 +10,26 @@ import {
 } from "@/lib/sync-location-public-export";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
 
+function parseIdList(
+  raw: unknown,
+  fieldName: string,
+): { ok: true; ids: string[] } | { ok: false; message: string } {
+  if (raw === undefined) {
+    return { ok: true, ids: [] };
+  }
+  if (!Array.isArray(raw)) {
+    return { ok: false, message: `${fieldName} must be an array of strings` };
+  }
+  const ids: string[] = [];
+  for (const x of raw) {
+    if (typeof x !== "string") {
+      return { ok: false, message: `${fieldName} must be an array of strings` };
+    }
+    ids.push(x.trim());
+  }
+  return { ok: true, ids };
+}
+
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ locationId: string }> },
@@ -46,30 +66,58 @@ export async function PATCH(
     );
   }
 
-  const rawIds = (body as Record<string, unknown>).categoryIds;
-  if (!Array.isArray(rawIds)) {
+  const record = body as Record<string, unknown>;
+  const addParsed = parseIdList(record.add, "add");
+  if (!addParsed.ok) {
     return NextResponse.json(
-      { error: "invalid_body", message: "categoryIds must be an array" },
+      { error: "invalid_body", message: addParsed.message },
+      { status: 400 },
+    );
+  }
+  const removeParsed = parseIdList(record.remove, "remove");
+  if (!removeParsed.ok) {
+    return NextResponse.json(
+      { error: "invalid_body", message: removeParsed.message },
+      { status: 400 },
+    );
+  }
+  const hasOrder = Object.prototype.hasOwnProperty.call(record, "order");
+  const orderParsed = parseIdList(record.order, "order");
+  if (!orderParsed.ok) {
+    return NextResponse.json(
+      { error: "invalid_body", message: orderParsed.message },
       { status: 400 },
     );
   }
 
-  const categoryIds: string[] = [];
-  for (const x of rawIds) {
-    if (typeof x !== "string") {
-      return NextResponse.json(
-        { error: "invalid_body", message: "categoryIds must be an array of strings" },
-        { status: 400 },
-      );
-    }
-    categoryIds.push(x.trim());
+  if (
+    addParsed.ids.length === 0 &&
+    removeParsed.ids.length === 0 &&
+    !hasOrder
+  ) {
+    return NextResponse.json(
+      {
+        error: "invalid_body",
+        message: "at least one of add, remove, or order must be provided",
+      },
+      { status: 400 },
+    );
   }
+
+  const input: {
+    add?: string[];
+    remove?: string[];
+    order?: string[];
+  } = {};
+  if (addParsed.ids.length > 0) input.add = addParsed.ids;
+  if (removeParsed.ids.length > 0) input.remove = removeParsed.ids;
+  if (hasOrder) input.order = orderParsed.ids;
 
   const restaurantId = await getSelectedRestaurantIdFromCookies();
   const result = await updateLocationCategoriesWithAuthServer(
     token,
     trimmedId,
-    { categoryIds },
+    input,
     restaurantId,
   );
   if (!result.ok) {
@@ -101,7 +149,9 @@ export async function PATCH(
 
   void trackStaffMutation(PlatformEvent.LOCATION_CATEGORIES_ASSIGNED, {
     locationId: trimmedId,
-    categoryCount: categoryIds.length,
+    addCount: addParsed.ids.length,
+    removeCount: removeParsed.ids.length,
+    orderCount: hasOrder ? orderParsed.ids.length : 0,
   });
 
   return NextResponse.json(

@@ -37,6 +37,29 @@ export type SyncMenuSectionTranslationsResponse = {
   meta?: TranslationSyncMeta;
 };
 
+/** Fixed-price meal constructor payload on a published host item. */
+export type PublishedMealConstructorApi = {
+  id: string;
+  name: string;
+  slots: Array<{
+    id: string;
+    label: string;
+    minPicks: number;
+    maxPicks: number;
+    sortOrder: number;
+    posModifierGroupId: string;
+    options: Array<{
+      id: string;
+      menuItemId: string;
+      posModifierId: string;
+      name: string;
+      image?: string;
+      gramm?: string;
+      sortOrder: number;
+    }>;
+  }>;
+};
+
 /** Menu item row from GET /api/global-menu (matches menu-server JSON). */
 export type GlobalMenuItemApi = {
   id: string;
@@ -49,6 +72,7 @@ export type GlobalMenuItemApi = {
   videoId?: string;
   gramm?: string;
   translations: TranslationTextApi[];
+  mealConstructor?: PublishedMealConstructorApi;
 };
 
 export type GlobalMenuCategoryWithItemsApi = {
