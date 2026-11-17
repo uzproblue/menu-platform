@@ -26,6 +26,10 @@ import {
   type PostCatalogChangeOptions,
 } from "@/lib/catalog-pipeline-options";
 import { PlatformEvent, trackStaffMutation } from "@/lib/analytics/server";
+import {
+  createLocationExportCoalescer,
+  type LocationExportMode,
+} from "@/lib/location-export-coalesce";
 
 export {
   postCatalogOptionsForCategory,
@@ -33,12 +37,7 @@ export {
   type PostCatalogChangeOptions,
 } from "@/lib/catalog-pipeline-options";
 
-export type LocationExportMode =
-  | { kind: "full" }
-  | {
-      kind: "availability_patch";
-      changes: Array<{ menuItemId: string; enabled: boolean }>;
-    };
+export type { LocationExportMode } from "@/lib/location-export-coalesce";
 
 /** Result of Cloudflare CDN purge for the public snapshot URL(s). */
 export type LocationSnapshotPurgeDetail = {
@@ -61,9 +60,6 @@ export type LocationExportResult =
       deferred?: boolean;
     }
   | { ok: false; message: string };
-
-/** Single-flight export per location within a Worker isolate. */
-const locationExportInFlight = new Map<string, Promise<LocationExportResult>>();
 
 const RESTAURANT_EXPORT_DEBOUNCE_MS = 3_000;
 
@@ -174,28 +170,32 @@ function makeDeferredLocationExportResult(
 }
 
 /**
- * One export+purge per `locationId` at a time; concurrent callers share the same promise.
+ * One export+purge per `locationId` at a time. Concurrent callers mark pending
+ * intent (dirty retry) instead of dropping their mode; the shared promise
+ * resolves only after pending work has been drained.
  */
+const coalescedLocationExport = createLocationExportCoalescer<LocationExportResult>(
+  (args) =>
+    syncAndPurgeLocationPublicExport(
+      args.accessToken,
+      args.locationId,
+      args.mode,
+      args.explicitRestaurantId,
+    ),
+);
+
 function coalescedSyncAndPurgeLocationPublicExport(
   accessToken: string,
   locationId: string,
   mode: LocationExportMode = { kind: "full" },
   explicitRestaurantId?: string,
 ): Promise<LocationExportResult> {
-  const key = locationId.trim();
-  const existing = locationExportInFlight.get(key);
-  if (existing) return existing;
-
-  const work = syncAndPurgeLocationPublicExport(
+  return coalescedLocationExport({
     accessToken,
-    key,
+    locationId,
     mode,
     explicitRestaurantId,
-  ).finally(() => {
-    locationExportInFlight.delete(key);
   });
-  locationExportInFlight.set(key, work);
-  return work;
 }
 
 /**
