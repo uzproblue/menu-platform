@@ -4,11 +4,36 @@ export type CloudflarePurgeResult =
   | { ok: true }
   | { ok: false; skipped?: boolean; message: string };
 
+type CloudflareZone = { id?: string; name?: string };
+
 type CloudflareApiResponse = {
   success?: boolean;
   errors?: Array<{ message?: string }>;
-  result?: Array<{ id?: string }>;
+  result?: CloudflareZone[];
+  result_info?: { total_pages?: number };
 };
+
+/**
+ * Zone names are apex domains (`loyaltering.online`), while purge URLs use a
+ * hostname such as `cdn.loyaltering.online`. Pick the longest zone that owns it.
+ */
+export function zoneIdOwningHostname(
+  hostname: string,
+  zones: Array<{ id: string; name: string }>,
+): string | undefined {
+  const host = hostname.trim().toLowerCase().replace(/\.$/, "");
+  if (!host) return undefined;
+  let best: { id: string; name: string } | undefined;
+  for (const zone of zones) {
+    const name = zone.name.trim().toLowerCase().replace(/\.$/, "");
+    const id = zone.id.trim();
+    if (!name || !id) continue;
+    if (host === name || host.endsWith(`.${name}`)) {
+      if (!best || name.length > best.name.length) best = { id, name };
+    }
+  }
+  return best?.id;
+}
 
 const PURGE_FILES_BATCH = 25;
 
@@ -68,10 +93,52 @@ function readCloudflareSetting(name: string): string | undefined {
 
 function purgeApiToken(): string | undefined {
   return (
+    readCloudflareSetting("CF_ANALYTICS_API_TOKEN") ||
     readCloudflareSetting("CLOUDFLARE_API_TOKEN") ||
-    readCloudflareSetting("CF_API_TOKEN") ||
-    readCloudflareSetting("CF_ANALYTICS_API_TOKEN")
+    readCloudflareSetting("CF_API_TOKEN")
   );
+}
+
+async function listAccountZones(
+  apiToken: string,
+  accountId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const zones: Array<{ id: string; name: string }> = [];
+  for (let page = 1; page <= 10; page++) {
+    const endpoint = new URL("https://api.cloudflare.com/client/v4/zones");
+    endpoint.searchParams.set("account.id", accountId);
+    endpoint.searchParams.set("per_page", "50");
+    endpoint.searchParams.set("page", String(page));
+    const res = await fetch(endpoint, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    let payload: CloudflareApiResponse | null = null;
+    try {
+      payload = (await res.json()) as CloudflareApiResponse;
+    } catch {
+      payload = null;
+    }
+    if (!res.ok || !payload?.success) {
+      const apiMessage = payload?.errors
+        ?.map((e) => e.message)
+        .filter(Boolean)
+        .join("; ");
+      throw new Error(
+        apiMessage ||
+          `Could not list Cloudflare zones for CF_ACCOUNT_ID (HTTP ${res.status}). CF_ANALYTICS_API_TOKEN needs Zone Read and Cache Purge, or set CLOUDFLARE_ZONE_ID.`,
+      );
+    }
+    for (const zone of payload.result ?? []) {
+      const id = zone.id?.trim();
+      const name = zone.name?.trim();
+      if (id && name) zones.push({ id, name });
+    }
+    const totalPages = payload.result_info?.total_pages ?? 1;
+    if (page >= totalPages) break;
+  }
+  return zones;
 }
 
 let resolvedZoneId: string | null = null;
@@ -89,29 +156,14 @@ async function resolvePurgeZoneId(
   const name = hostname?.trim();
   if (!accountId || !name) return undefined;
 
-  const endpoint = new URL("https://api.cloudflare.com/client/v4/zones");
-  endpoint.searchParams.set("account.id", accountId);
-  endpoint.searchParams.set("name", name);
-  const res = await fetch(endpoint, {
-    headers: { Authorization: `Bearer ${apiToken}` },
-    cache: "no-store",
-    signal: AbortSignal.timeout(15_000),
-  });
-  let payload: CloudflareApiResponse | null = null;
-  try {
-    payload = (await res.json()) as CloudflareApiResponse;
-  } catch {
-    payload = null;
-  }
-  const zoneId = payload?.result?.[0]?.id?.trim();
-  if (res.ok && payload?.success && zoneId) {
+  const zones = await listAccountZones(apiToken, accountId);
+  const zoneId = zoneIdOwningHostname(name, zones);
+  if (zoneId) {
     resolvedZoneId = zoneId;
     return zoneId;
   }
-  const apiMessage = payload?.errors?.map((e) => e.message).filter(Boolean).join("; ");
   throw new Error(
-    apiMessage ||
-      `Could not resolve Cloudflare zone for ${name} (HTTP ${res.status}). CF_ANALYTICS_API_TOKEN needs Zone Read and Cache Purge, or set CLOUDFLARE_ZONE_ID.`,
+    `Could not resolve Cloudflare zone for ${name} in CF_ACCOUNT_ID. CF_ANALYTICS_API_TOKEN needs Zone Read and Cache Purge, or set CLOUDFLARE_ZONE_ID.`,
   );
 }
 
@@ -136,7 +188,7 @@ export async function purgeCloudflareUrls(
       ok: false,
       skipped: true,
       message:
-        "Cloudflare purge skipped: set CLOUDFLARE_API_TOKEN or CF_ANALYTICS_API_TOKEN on menu-platform",
+        "Cloudflare purge skipped: set CF_ANALYTICS_API_TOKEN on menu-platform",
     };
   }
 
@@ -155,7 +207,7 @@ export async function purgeCloudflareUrls(
       ok: false,
       skipped: true,
       message:
-        "Cloudflare purge skipped: set CLOUDFLARE_ZONE_ID, or CF_ACCOUNT_ID plus a token that can list zones",
+        "Cloudflare purge skipped: set CF_ACCOUNT_ID on menu-platform",
     };
   }
 
