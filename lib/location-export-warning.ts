@@ -18,6 +18,7 @@ type LocationExportBatchShape = {
   failed?: unknown;
   failures?: unknown;
   deferred?: unknown;
+  purge?: unknown;
 };
 
 type LocationExportShape = {
@@ -67,8 +68,13 @@ export function readLocationExportWarning(
         total: String(total),
       });
     }
-    // Even when failed === 0 the per-location purge can still have been skipped,
-    // but the batch shape doesn't carry that detail today; skip the warning.
+    const purge = asPlainObject(batch.purge) as LocationExportPurgeShape | null;
+    if (purge?.skipped === true) {
+      return t("locationExport.purgeSkipped");
+    }
+    if (purge && purge.purgeOk === false) {
+      return t("locationExport.purgeFailed");
+    }
     return null;
   }
 

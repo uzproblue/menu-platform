@@ -3,10 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { reorderPromotionStoriesWithAuthServer } from "@/lib/auth-api";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
-import {
-  isLocationExportStrict,
-  scheduleOrAwaitAllRestaurantLocationExports,
-} from "@/lib/sync-location-public-export";
+import { syncAndPurgeLocationIds } from "@/lib/sync-location-public-export";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -44,18 +41,27 @@ export async function POST(req: Request) {
     );
   }
 
-  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
-  if (!exportBatchResult.ok && isLocationExportStrict()) {
+  const ordered = new Set(orderedIds);
+  const stories = result.data.stories.filter(
+    (story) => ordered.size === 0 || ordered.has(story.id),
+  );
+  const locationExportBatch = await syncAndPurgeLocationIds(
+    token,
+    stories.flatMap((story) => story.locationIds ?? []),
+    4,
+    restaurantId,
+  );
+  if (!locationExportBatch.ok) {
     return NextResponse.json(
       {
         ...result.data,
         error: "location_export_failed",
         message: "One or more location exports failed",
-        locationExportBatch: exportBatchResult,
+        locationExportBatch,
       },
       { status: 503 },
     );
   }
 
-  return NextResponse.json(result.data);
+  return NextResponse.json({ ...result.data, locationExportBatch });
 }

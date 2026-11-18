@@ -7,10 +7,14 @@ import {
 } from "@/lib/auth-api";
 import { authOptions } from "@/lib/auth-options";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
-import {
-  isLocationExportStrict,
-  scheduleOrAwaitAllRestaurantLocationExports,
-} from "@/lib/sync-location-public-export";
+import { syncAndPurgeLocationIds } from "@/lib/sync-location-public-export";
+
+function locationIdsFromBody(body: unknown): string[] {
+  if (!body || typeof body !== "object") return [];
+  const raw = (body as { locationIds?: unknown }).locationIds;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((id): id is string => typeof id === "string");
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -57,18 +61,30 @@ export async function POST(req: Request) {
     );
   }
 
-  const exportBatchResult = await scheduleOrAwaitAllRestaurantLocationExports(token);
-  if (!exportBatchResult.ok && isLocationExportStrict()) {
+  const locationIds = [
+    ...locationIdsFromBody(body),
+    ...(result.data.story.locationIds ?? []),
+  ];
+  const locationExportBatch = await syncAndPurgeLocationIds(
+    token,
+    locationIds,
+    4,
+    restaurantId,
+  );
+  if (!locationExportBatch.ok) {
     return NextResponse.json(
       {
         ...result.data,
         error: "location_export_failed",
         message: "One or more location exports failed",
-        locationExportBatch: exportBatchResult,
+        locationExportBatch,
       },
       { status: 503 },
     );
   }
 
-  return NextResponse.json(result.data, { status: 201 });
+  return NextResponse.json(
+    { ...result.data, locationExportBatch },
+    { status: 201 },
+  );
 }

@@ -4,6 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { PromotionStory } from "@/lib/auth-api";
+import {
+  consumePendingLocationExportWarning,
+  readLocationExportWarning,
+  tryReadJson,
+} from "@/lib/location-export-warning";
 import { useI18n } from "../i18n-provider";
 
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
@@ -28,6 +33,7 @@ export function PromotionStoriesClient() {
   const [stories, setStories] = useState<PromotionStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
 
@@ -40,6 +46,11 @@ export function PromotionStoriesClient() {
     const data = (await res.json()) as { stories: PromotionStory[] };
     setStories(data.stories);
   }, [t]);
+
+  useEffect(() => {
+    const pending = consumePendingLocationExportWarning();
+    if (pending) setExportNotice(pending);
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -75,9 +86,12 @@ export function PromotionStoriesClient() {
       const res = await fetch(`/api/settings/promotion-stories/${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
+      const payload = await tryReadJson(res);
       if (!res.ok && res.status !== 204) {
-        throw new Error(await readErrorMessage(res, t("stories.errDelete")));
+        const errBody = payload as { message?: string } | null;
+        throw new Error(errBody?.message?.trim() || t("stories.errDelete"));
       }
+      setExportNotice(readLocationExportWarning(payload, t));
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("stories.errDelete"));
@@ -102,11 +116,14 @@ export function PromotionStoriesClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderedIds: next.map((s) => s.id) }),
       });
+      const payload = await tryReadJson(res);
       if (!res.ok) {
-        throw new Error(await readErrorMessage(res, t("stories.errReorder")));
+        const errBody = payload as { message?: string } | null;
+        throw new Error(errBody?.message?.trim() || t("stories.errReorder"));
       }
-      const data = (await res.json()) as { stories: PromotionStory[] };
-      setStories(data.stories);
+      const data = payload as { stories?: PromotionStory[] } | null;
+      if (data?.stories) setStories(data.stories);
+      setExportNotice(readLocationExportWarning(payload, t));
     } catch (e) {
       setError(e instanceof Error ? e.message : t("stories.errReorder"));
       await load();
@@ -135,6 +152,11 @@ export function PromotionStoriesClient() {
       {error ? (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
           {error}
+        </p>
+      ) : null}
+      {exportNotice ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          {exportNotice}
         </p>
       ) : null}
 

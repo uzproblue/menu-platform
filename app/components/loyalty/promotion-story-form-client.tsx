@@ -18,6 +18,11 @@ import {
   computeComboPrice,
   parsePriceNumber,
 } from "@/lib/promotion-combo-price";
+import {
+  persistPendingLocationExportWarning,
+  readLocationExportWarning,
+  tryReadJson,
+} from "@/lib/location-export-warning";
 import { DEFAULT_LOCATION_TIMEZONE } from "@/lib/location-timezones";
 import { expandR2AssetToPublicUrl, looksLikeR2ObjectKey } from "@/lib/r2-object-key";
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
@@ -398,9 +403,12 @@ export function PromotionStoryFormClient({ storyId }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const payload = await tryReadJson(res);
       if (!res.ok) {
-        throw new Error(await readErrorMessage(res, t("stories.errSave")));
+        const errBody = payload as { message?: string } | null;
+        throw new Error(errBody?.message?.trim() || t("stories.errSave"));
       }
+      persistPendingLocationExportWarning(readLocationExportWarning(payload, t));
       router.push("/loyalty/promotions");
       router.refresh();
     } catch (err) {

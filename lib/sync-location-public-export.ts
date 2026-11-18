@@ -146,6 +146,11 @@ export type SyncAndPurgeAllLocationExportsResult = {
   failures: Array<{ locationId: string; message: string }>;
   /** Set when the batch was scheduled on `ctx.waitUntil` (non-strict Workers); counts are placeholders. */
   deferred?: boolean;
+  /**
+   * Aggregated CDN purge outcome when the batch awaited real exports.
+   * `skipped` means credentials were missing; `purgeOk` is false when any purge failed.
+   */
+  purge?: { skipped: boolean; purgeOk: boolean };
 };
 
 /**
@@ -718,6 +723,90 @@ export async function syncAndPurgeAllRestaurantLocationExports(
     succeeded,
     failed,
     failures,
+  };
+}
+
+/**
+ * Await a full public-menu export + CDN purge for specific locations.
+ * Used by promotion-story saves so guest JSON updates before the HTTP response returns.
+ */
+export async function syncAndPurgeLocationIds(
+  accessToken: string,
+  locationIds: string[],
+  concurrency = 4,
+  explicitRestaurantId?: string,
+): Promise<SyncAndPurgeAllLocationExportsResult> {
+  const restaurantId =
+    explicitRestaurantId ||
+    (await getSelectedRestaurantIdFromCookies().catch(() => undefined));
+  const unique = [
+    ...new Set(locationIds.map((id) => id.trim()).filter((id) => id.length > 0)),
+  ];
+  const total = unique.length;
+  if (total === 0) {
+    return {
+      ok: true,
+      total: 0,
+      succeeded: 0,
+      failed: 0,
+      failures: [],
+      purge: { skipped: false, purgeOk: true },
+    };
+  }
+
+  const failures: Array<{ locationId: string; message: string }> = [];
+  let succeeded = 0;
+  let purgeSkipped = false;
+  let purgeFailed = false;
+
+  const workerCount = Math.min(Math.max(1, Math.floor(concurrency) || 1), total);
+  let cursor = 0;
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const current = cursor;
+      cursor += 1;
+      if (current >= total) return;
+
+      const locationId = unique[current]!;
+      const result = await coalescedSyncAndPurgeLocationPublicExport(
+        accessToken,
+        locationId,
+        { kind: "full" },
+        restaurantId,
+      );
+
+      if (!result.ok) {
+        failures.push({ locationId, message: result.message });
+        if (result.message === "purge_failed" || /purge/i.test(result.message)) {
+          purgeFailed = true;
+        }
+        continue;
+      }
+
+      succeeded += 1;
+      if (result.purge.skipped) purgeSkipped = true;
+      if (!result.purge.purgeOk) purgeFailed = true;
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      await worker();
+    }),
+  );
+
+  const failed = failures.length;
+  return {
+    ok: failed === 0,
+    total,
+    succeeded,
+    failed,
+    failures,
+    purge: {
+      skipped: purgeSkipped,
+      purgeOk: !purgeSkipped && !purgeFailed,
+    },
   };
 }
 
