@@ -45,3 +45,16 @@ export type LoyaltyAnalytics = {
   trend: LoyaltyAnalyticsTrendPoint[];
   waiters: LoyaltyAnalyticsWaiter[];
 };
+
+export type LoyaltyWaiterMember = {
+  guestId: string;
+  name: string;
+  registeredAt: string;
+  firstOrderAt: string;
+  lifetimeSpendMinor: number;
+};
+
+export type LoyaltyWaiterMembers = {
+  currency: string | null;
+  members: LoyaltyWaiterMember[];
+};

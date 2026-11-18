@@ -468,6 +468,27 @@ export function LoyaltyMembersClient() {
     }
   }
 
+  const openGuestRef = useRef(openGuest);
+  openGuestRef.current = openGuest;
+  useEffect(() => {
+    const guestId = new URLSearchParams(window.location.search).get("guest")?.trim();
+    if (!guestId) return;
+    void openGuestRef.current({
+      id: guestId,
+      restaurantId: "",
+      phoneE164: "",
+      name: "",
+      balance: 0,
+      status: "active",
+      marketingConsent: false,
+      consentVersion: "",
+      lastVisitedAt: null,
+      lifetimeSpendMinor: 0,
+      createdAt: null,
+      updatedAt: null,
+    });
+  }, []);
+
   async function mutatePoints(kind: "earn" | "redeem" | "adjust") {
     if (!selected) return;
     const points = Number(pointsInput);

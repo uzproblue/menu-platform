@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
   Area,
   Bar,
@@ -24,7 +25,7 @@ import {
   type DashboardPreset,
   type ResolvedDashboardRange,
 } from "@/lib/analytics/date-range";
-import type { LoyaltyAnalytics } from "@/lib/analytics/loyalty-types";
+import type { LoyaltyAnalytics, LoyaltyAnalyticsWaiter, LoyaltyWaiterMembers } from "@/lib/analytics/loyalty-types";
 import type { GuestDashboardData, GuestFunnelStepKey } from "@/lib/analytics/types";
 import { formatMinorCurrency } from "@/lib/currency-minor-units";
 
@@ -129,12 +130,14 @@ function HorizontalBarChart({
   emptyLabel,
   wide = false,
   heightClass,
+  onItemClick,
 }: {
-  data: { label: string; count: number }[];
+  data: { key?: string; label: string; count: number }[];
   config: ChartConfig;
   emptyLabel: string;
   wide?: boolean;
   heightClass?: string;
+  onItemClick?: (key: string) => void;
 }) {
   if (data.length === 0) {
     return <p className="flex h-72 items-center justify-center text-sm text-foreground/50">{emptyLabel}</p>;
@@ -165,7 +168,17 @@ function HorizontalBarChart({
           cursor={{ fill: "var(--foreground)", fillOpacity: 0.04 }}
           content={<ChartTooltipContent hideLabel />}
         />
-        <Bar dataKey="count" fill="var(--color-count)" radius={[0, 10, 10, 0]} maxBarSize={28} />
+        <Bar
+          dataKey="count"
+          fill="var(--color-count)"
+          radius={[0, 10, 10, 0]}
+          maxBarSize={28}
+          className={onItemClick ? "cursor-pointer" : undefined}
+          onClick={(state) => {
+            const key = (state as { payload?: { key?: string } } | undefined)?.payload?.key;
+            if (key && onItemClick) onItemClick(key);
+          }}
+        />
       </BarChart>
     </ChartContainer>
   );
@@ -180,6 +193,16 @@ function localizeTrend<T extends { key: string; label: string }>(points: T[], lo
     }).format(new Date(`${point.key}T00:00:00.000Z`));
     return { ...point, label };
   });
+}
+
+function waiterKey(row: Pick<LoyaltyAnalyticsWaiter, "waiterId" | "waiterName" | "unknown">): string {
+  return JSON.stringify([row.waiterId, row.waiterName, row.unknown]);
+}
+
+function formatUtcDate(iso: string, locale: string): string {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "—";
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(ms));
 }
 
 function waiterLabel(
@@ -687,12 +710,18 @@ function LoyaltySection({
   const { summary, previousSummary, currency } = loyalty;
   const money = (amount: number) => formatMinorCurrency(amount, currency, locale);
   const unknown = t("dashboard.loyalty.unknownWaiter");
+  const [selectedWaiter, setSelectedWaiter] = useState<LoyaltyAnalyticsWaiter | null>(null);
   const waiterBars = loyalty.waiters.slice(0, 8).map((row) => ({
+    key: waiterKey(row),
     label: waiterLabel(row, unknown),
     count: row.members,
   }));
   const trend = localizeTrend(loyalty.trend, locale);
   const tickInterval = trend.length > 16 ? ("preserveStartEnd" as const) : 0;
+
+  function openWaiter(row: LoyaltyAnalyticsWaiter) {
+    setSelectedWaiter(row);
+  }
 
   return (
     <div className="space-y-4">
@@ -765,6 +794,10 @@ function LoyaltySection({
             config={waiterConfig}
             emptyLabel={t("dashboard.noData")}
             heightClass="h-80"
+            onItemClick={(key) => {
+              const row = loyalty.waiters.find((item) => waiterKey(item) === key);
+              if (row) openWaiter(row);
+            }}
           />
         </ChartCard>
 
@@ -789,7 +822,11 @@ function LoyaltySection({
                 </thead>
                 <tbody>
                   {loyalty.waiters.map((row) => (
-                    <tr key={`${row.waiterId}:${row.waiterName}:${row.unknown}`} className="border-t border-foreground/10">
+                    <tr
+                      key={waiterKey(row)}
+                      className="cursor-pointer border-t border-foreground/10 hover:bg-foreground/[0.03]"
+                      onClick={() => openWaiter(row)}
+                    >
                       <td className="px-4 py-3 font-medium text-foreground">{waiterLabel(row, unknown)}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{row.members.toLocaleString(locale)}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
@@ -805,6 +842,151 @@ function LoyaltySection({
           </div>
         </div>
       </div>
+      {selectedWaiter ? (
+        <WaiterMembersDialog
+          waiter={selectedWaiter}
+          from={loyalty.range.from}
+          to={loyalty.range.to}
+          locale={locale}
+          fallbackCurrency={currency}
+          onClose={() => setSelectedWaiter(null)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function WaiterMembersDialog({
+  waiter,
+  from,
+  to,
+  locale,
+  fallbackCurrency,
+  onClose,
+}: {
+  waiter: LoyaltyAnalyticsWaiter;
+  from: string;
+  to: string;
+  locale: string;
+  fallbackCurrency: string | null;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const title = waiterLabel(waiter, t("dashboard.loyalty.unknownWaiter"));
+  const [payload, setPayload] = useState<LoyaltyWaiterMembers | null>(null);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const url = new URL("/api/analytics/loyalty/members", window.location.origin);
+    url.searchParams.set("from", from);
+    url.searchParams.set("to", to);
+    url.searchParams.set("waiterId", waiter.waiterId);
+    url.searchParams.set("waiterName", waiter.waiterName);
+    if (waiter.unknown) url.searchParams.set("unknown", "1");
+    setLoading(true);
+    setError(false);
+    void (async () => {
+      try {
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        if (!res.ok) throw new Error("members");
+        setPayload((await res.json()) as LoyaltyWaiterMembers);
+      } catch {
+        if (!controller.signal.aborted) setError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [from, to, waiter]);
+
+  const currency = payload?.currency ?? fallbackCurrency;
+  const members = payload?.members ?? [];
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="waiter-members-title"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-foreground/10 bg-background shadow-xl sm:rounded-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-foreground/10 px-4 py-3 sm:px-5">
+          <div className="min-w-0">
+            <h2 id="waiter-members-title" className="text-lg font-semibold tracking-tight">
+              {title}
+            </h2>
+            <p className="mt-0.5 text-sm text-foreground/60">{t("dashboard.loyalty.members.subtitle")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-2 py-1 text-sm text-foreground/60 hover:bg-foreground/5"
+          >
+            {t("common.close")}
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto">
+          {loading ? (
+            <p className="px-5 py-10 text-sm text-foreground/60">{t("dashboard.loyalty.members.loading")}</p>
+          ) : error ? (
+            <p className="px-5 py-10 text-sm text-foreground/60">{t("dashboard.loyalty.members.error")}</p>
+          ) : members.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-foreground/50">{t("dashboard.loyalty.members.empty")}</p>
+          ) : (
+            <table className="w-full min-w-[40rem] text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-background text-xs uppercase tracking-wide text-foreground/50">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{t("dashboard.loyalty.members.name")}</th>
+                  <th className="px-4 py-3 font-medium">{t("dashboard.loyalty.members.registered")}</th>
+                  <th className="px-4 py-3 font-medium">{t("dashboard.loyalty.members.firstOrder")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("dashboard.loyalty.members.spend")}</th>
+                  <th className="px-4 py-3 text-right font-medium">
+                    <span className="sr-only">{t("dashboard.loyalty.members.open")}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((member) => (
+                  <tr key={member.guestId} className="border-t border-foreground/10">
+                    <td className="px-4 py-3 font-medium text-foreground">{member.name}</td>
+                    <td className="px-4 py-3 tabular-nums text-foreground/80">{formatUtcDate(member.registeredAt, locale)}</td>
+                    <td className="px-4 py-3 tabular-nums text-foreground/80">{formatUtcDate(member.firstOrderAt, locale)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {formatMinorCurrency(member.lifetimeSpendMinor, currency, locale)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <a
+                        href={`/loyalty/members?guest=${encodeURIComponent(member.guestId)}`}
+                        aria-label={t("dashboard.loyalty.members.openMember", { name: member.name })}
+                        className="inline-flex rounded-lg p-1.5 text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+                      >
+                        <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+                          <path d="M5 15 15 5M8 5h7v7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
