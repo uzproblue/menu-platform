@@ -7,6 +7,7 @@ export type CloudflarePurgeResult =
 type CloudflareApiResponse = {
   success?: boolean;
   errors?: Array<{ message?: string }>;
+  result?: Array<{ id?: string }>;
 };
 
 const PURGE_FILES_BATCH = 25;
@@ -96,13 +97,9 @@ async function resolvePurgeZoneId(
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
   });
-  let payload: {
-    success?: boolean;
-    errors?: Array<{ message?: string }>;
-    result?: Array<{ id?: string }>;
-  } | null = null;
+  let payload: CloudflareApiResponse | null = null;
   try {
-    payload = (await res.json()) as typeof payload;
+    payload = (await res.json()) as CloudflareApiResponse;
   } catch {
     payload = null;
   }
