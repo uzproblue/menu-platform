@@ -1008,9 +1008,9 @@ export const enMessages: Messages = {
     "Saved, but the public menu snapshot did not refresh: {detail}",
   "locationExport.singleFailedFallback": "unknown error",
   "locationExport.purgeSkipped":
-    "Saved, but CDN cache was not purged (CLOUDFLARE_ZONE_ID/CLOUDFLARE_API_TOKEN missing). Guests may see stale data up to 10 min.",
+    "Saved to R2, but CDN was not purged (set CLOUDFLARE_ZONE_ID + CLOUDFLARE_API_TOKEN on menu-platform). Guests may keep a stale menu for hours if a Cache Rule overrides TTL.",
   "locationExport.purgeFailed":
-    "Saved, but Cloudflare CDN purge failed. Guests may see stale data up to 10 min.",
+    "Saved to R2, but Cloudflare CDN purge failed. Guests may keep a stale menu until the edge TTL expires.",
   "categories.errLoad": "Unable to load categories right now.",
   "categories.errLoadNetwork": "Network error while loading categories.",
   "categories.errAdd": "Unable to add category.",

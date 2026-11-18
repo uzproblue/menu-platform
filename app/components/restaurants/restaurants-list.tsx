@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { RestaurantsListData } from "@/lib/data/restaurant-types";
+import {
+  readLocationExportWarning,
+  tryReadJson,
+} from "@/lib/location-export-warning";
 import { useI18n } from "../i18n-provider";
 import { ToastStack, type ToastEntry } from "@/app/components/ui/toast-stack";
 import { DeleteLocationModal } from "./restaurants-list/delete-location-modal";
@@ -207,24 +211,26 @@ export function RestaurantsList() {
           { method: "POST" },
         );
 
+        const payload = await tryReadJson(response);
         if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as {
-            message?: string;
-          } | null;
+          const errBody = payload as { message?: string } | null;
           throw new Error(
-            payload?.message ??
+            errBody?.message ??
               t("restaurants.refreshFailed", { name: location.name }),
           );
         }
 
+        const exportWarning = readLocationExportWarning(payload, t);
         setToasts((prev) =>
           prev
             .filter((t) => t.id !== toastId)
             .concat({
               id: `success-${Date.now()}`,
-              variant: "success",
-              message: t("restaurants.refreshSuccess", { name: location.name }),
-              durationMs: 4000,
+              variant: exportWarning ? "error" : "success",
+              message:
+                exportWarning ??
+                t("restaurants.refreshSuccess", { name: location.name }),
+              durationMs: exportWarning ? 8000 : 4000,
             }),
         );
       } catch (err) {

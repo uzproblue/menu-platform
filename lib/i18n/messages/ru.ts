@@ -1022,9 +1022,9 @@ export const ruMessages: Messages = {
     "Сохранено, но публичный снимок меню не обновился: {detail}",
   "locationExport.singleFailedFallback": "неизвестная ошибка",
   "locationExport.purgeSkipped":
-    "Сохранено, но кеш CDN не очищен (CLOUDFLARE_ZONE_ID/CLOUDFLARE_API_TOKEN отсутствуют). Гости могут видеть устаревшие данные до 10 минут.",
+    "Сохранено в R2, но CDN не сброшен (задайте CLOUDFLARE_ZONE_ID и CLOUDFLARE_API_TOKEN на menu-platform). Гости могут видеть старое меню часами, если Cache Rule переопределяет TTL.",
   "locationExport.purgeFailed":
-    "Сохранено, но очистка кеша Cloudflare CDN не удалась. Гости могут видеть устаревшие данные до 10 минут.",
+    "Сохранено в R2, но сброс CDN Cloudflare не удался. Гости могут видеть старое меню до истечения edge TTL.",
   "categories.errLoad": "Сейчас не удается загрузить категории.",
   "categories.errLoadNetwork": "Ошибка сети при загрузке категорий.",
   "categories.errAdd": "Не удалось добавить категорию.",

@@ -78,8 +78,10 @@ export async function putLocationPublicExportToR2(
       Body: body,
       ContentType: "application/json; charset=utf-8",
       ContentEncoding: "br",
-      CacheControl:
-        "public, max-age=300, s-maxage=600, stale-while-revalidate=120",
+      // Keep TTL short. If a Cloudflare Cache Rule overrides these values,
+      // menu-platform MUST purge via CLOUDFLARE_ZONE_ID + CLOUDFLARE_API_TOKEN
+      // or guests will keep a stale HIT for hours.
+      CacheControl: "public, max-age=60, s-maxage=60, must-revalidate",
     }),
   );
   return {

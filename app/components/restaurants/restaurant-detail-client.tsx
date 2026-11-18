@@ -21,6 +21,10 @@ import {
   ToastStack,
   type ToastEntry,
 } from "@/app/components/ui/toast-stack";
+import {
+  readLocationExportWarning,
+  tryReadJson,
+} from "@/lib/location-export-warning";
 import { useSerializedAsyncQueue } from "@/lib/use-serialized-async-queue";
 import { useI18n } from "../i18n-provider";
 import {
@@ -997,27 +1001,23 @@ export function RestaurantDetailClient({
         `/api/settings/locations/${encodeURIComponent(restaurant.id)}/refresh`,
         { method: "POST" },
       );
+      const body = await tryReadJson(res);
       if (!res.ok) {
-        let msg = "Failed to publish menu snapshot";
-        try {
-          const body = (await res.json()) as { message?: string };
-          if (body?.message) msg = body.message;
-        } catch {
-          /* ignore */
-        }
+        const errBody = body as { message?: string } | null;
         upsertToast({
           id: toastId,
           variant: "error",
-          message: msg,
+          message: errBody?.message?.trim() || "Failed to publish menu snapshot",
           durationMs: 5000,
         });
         return;
       }
+      const exportWarning = readLocationExportWarning(body, t);
       upsertToast({
         id: toastId,
-        variant: "success",
-        message: t("restaurants.publishSnapshotSuccess"),
-        durationMs: 4000,
+        variant: exportWarning ? "error" : "success",
+        message: exportWarning ?? t("restaurants.publishSnapshotSuccess"),
+        durationMs: exportWarning ? 8000 : 4000,
       });
     } catch {
       upsertToast({

@@ -1007,9 +1007,9 @@ export const uzMessages: Messages = {
     "Saqlandi, ammo umumiy menyu nusxasi yangilanmadi: {detail}",
   "locationExport.singleFailedFallback": "noma'lum xatolik",
   "locationExport.purgeSkipped":
-    "Saqlandi, ammo CDN keshi tozalanmadi (CLOUDFLARE_ZONE_ID/CLOUDFLARE_API_TOKEN sozlanmagan). Mehmonlar eski ma'lumotni 10 daqiqagacha ko'rishi mumkin.",
+    "R2 ga saqlandi, lekin CDN tozalanmadi (menu-platform da CLOUDFLARE_ZONE_ID + CLOUDFLARE_API_TOKEN qo‘ying). Cache Rule TTL ni o‘zgartirsa, mehmonlar soatlab eski menyuni ko‘rishi mumkin.",
   "locationExport.purgeFailed":
-    "Saqlandi, ammo Cloudflare CDN keshini tozalashda xatolik. Mehmonlar eski ma'lumotni 10 daqiqagacha ko'rishi mumkin.",
+    "R2 ga saqlandi, lekin Cloudflare CDN tozalash muvaffaqiyatsiz. Edge TTL tugaguncha mehmonlar eski menyuni ko‘rishi mumkin.",
   "categories.errLoad": "Hozir kategoriyalarni yuklab bo'lmadi.",
   "categories.errLoadNetwork": "Kategoriyalarni yuklashda tarmoq xatosi.",
   "categories.errAdd": "Kategoriyani qo'shib bo'lmadi.",
