@@ -1767,9 +1767,14 @@ export const uzMessages: Messages = {
   "stories.limitByTimeOrDays": "Soat yoki hafta kunlari bilan cheklash",
   "stories.activeTimeStart": "Ko‘rsatish boshlanishi",
   "stories.activeTimeEnd": "Ko‘rsatish tugashi",
+  "stories.activeTimeOptionalHint":
+    "Ikkalasini ham bo‘sh qoldirsangiz — kun bo‘yi ko‘rsatiladi; pastdagi kunlar baribir cheklashi mumkin.",
   "stories.overnightHint": "Tun oralig‘iga ruxsat (masalan, 22:00–02:00).",
   "stories.activeDays": "Hafta kunlari",
-  "stories.activeDaysHint": "Hech narsa tanlanmasa — yuqoridagi soatlarda har kuni.",
+  "stories.activeDaysHint":
+    "Hech narsa tanlanmasa — har kuni (agar soatlar berilgan bo‘lsa, shu soatlarda).",
+  "stories.scheduleLimitRequired": "Soat oralig‘i, hafta kunlari yoki ikkalasini tanlang.",
+  "stories.scheduleTimePairRequired": "Ikkala soatni ham to‘ldiring yoki ikkalasini ham tozalang.",
   "stories.daySun": "Ya",
   "stories.dayMon": "Du",
   "stories.dayTue": "Se",

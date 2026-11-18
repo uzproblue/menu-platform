@@ -59,7 +59,7 @@ function expandMenuForExport(
   return { sections, categories };
 }
 
-function expandPromotionStoriesForExport(
+export function expandPromotionStoriesForExport(
   stories: PublishedPromotionStoryExport[] | undefined,
   publicBaseUrl: string,
 ): PublishedPromotionStoryExport[] {

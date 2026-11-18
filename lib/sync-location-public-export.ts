@@ -10,8 +10,12 @@ import {
 } from "@/lib/auth-api";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
-import { buildLocationPublicExport } from "@/lib/data/location-public-export";
-import type { LocationPublicExport } from "@/lib/data/location-public-export";
+import {
+  buildLocationPublicExport,
+  expandPromotionStoriesForExport,
+  LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
+  type LocationPublicExport,
+} from "@/lib/data/location-public-export";
 import {
   getLocationPublicExportFromR2,
   makeLocationPublicExportObjectKey,
@@ -469,9 +473,10 @@ export async function syncLocationPublicExportToR2(
         restaurantId,
       );
       if (patchRes.ok) {
-        payload = patchRes.data.export;
+        payload = patchRes.data.export as LocationPublicExport;
         // availability_patch preserves stale promotionStories; refresh so
         // newly enabled items can unlock stories (and disables can drop them).
+        // Always bump schema/exportedAt so patch writes match full-export metadata.
         const storiesRes = await getPublishedPromotionStoriesForLocationWithAuthServer(
           accessToken,
           locationId,
@@ -481,7 +486,12 @@ export async function syncLocationPublicExportToR2(
         if (storiesRes.ok) {
           payload = {
             ...payload,
-            promotionStories: storiesRes.data.stories,
+            schemaVersion: LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            promotionStories: expandPromotionStoriesForExport(
+              storiesRes.data.stories,
+              r2Config.publicBaseUrl,
+            ),
           };
         } else {
           console.warn(
@@ -489,6 +499,11 @@ export async function syncLocationPublicExportToR2(
             locationId,
             storiesRes.message ?? storiesRes.error,
           );
+          payload = {
+            ...payload,
+            schemaVersion: LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+          };
         }
       } else {
         console.warn(

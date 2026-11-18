@@ -1791,9 +1791,14 @@ export const ruMessages: Messages = {
   "stories.limitByTimeOrDays": "Ограничить по часам или дням недели",
   "stories.activeTimeStart": "Показывать с",
   "stories.activeTimeEnd": "Показывать до",
+  "stories.activeTimeOptionalHint":
+    "Оставьте оба времени пустыми, чтобы показывать весь день; дни ниже всё равно можно ограничить.",
   "stories.overnightHint": "Можно задать ночной интервал (например, 22:00–02:00).",
   "stories.activeDays": "Дни недели",
-  "stories.activeDaysHint": "Если ничего не выбрано — каждый день в указанные часы.",
+  "stories.activeDaysHint":
+    "Если ничего не выбрано — каждый день (в указанные часы, если они заданы).",
+  "stories.scheduleLimitRequired": "Укажите часы «показывать с/до», дни недели или и то и другое.",
+  "stories.scheduleTimePairRequired": "Заполните оба поля времени или очистите оба.",
   "stories.daySun": "Вс",
   "stories.dayMon": "Пн",
   "stories.dayTue": "Вт",

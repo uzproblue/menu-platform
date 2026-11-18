@@ -23,6 +23,10 @@ import { expandR2AssetToPublicUrl, looksLikeR2ObjectKey } from "@/lib/r2-object-
 import { uploadFileToR2 } from "@/lib/r2-upload-client";
 import { resolveVideoSource } from "@/lib/video-source";
 import {
+  buildStorySchedulePayload,
+  normalizeHhMm,
+} from "@/lib/promotion-story-schedule-form";
+import {
   endOfDayUtcIso,
   isoToYmdInZone,
   startOfDayUtcIso,
@@ -163,8 +167,8 @@ export function PromotionStoryFormClient({ storyId }: Props) {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [scheduleLimited, setScheduleLimited] = useState(false);
-  const [activeTimeStart, setActiveTimeStart] = useState("08:00");
-  const [activeTimeEnd, setActiveTimeEnd] = useState("13:00");
+  const [activeTimeStart, setActiveTimeStart] = useState("");
+  const [activeTimeEnd, setActiveTimeEnd] = useState("");
   const [activeDaysOfWeek, setActiveDaysOfWeek] = useState<number[]>([]);
 
   const [menu, setMenu] = useState<GlobalMenuResponse | null>(null);
@@ -230,8 +234,12 @@ export function PromotionStoryFormClient({ storyId }: Props) {
           Boolean(s.activeTimeStart && s.activeTimeEnd) ||
           (Array.isArray(s.activeDaysOfWeek) && s.activeDaysOfWeek.length > 0);
         setScheduleLimited(hasRecurring);
-        setActiveTimeStart(s.activeTimeStart ?? "08:00");
-        setActiveTimeEnd(s.activeTimeEnd ?? "13:00");
+        setActiveTimeStart(
+          s.activeTimeStart ? (normalizeHhMm(s.activeTimeStart) ?? "") : "",
+        );
+        setActiveTimeEnd(
+          s.activeTimeEnd ? (normalizeHhMm(s.activeTimeEnd) ?? "") : "",
+        );
         setActiveDaysOfWeek(
           Array.isArray(s.activeDaysOfWeek) ? [...s.activeDaysOfWeek] : [],
         );
@@ -326,6 +334,16 @@ export function PromotionStoryFormClient({ storyId }: Props) {
         throw new Error(t("stories.mediaRequired"));
       }
 
+      const schedule = buildStorySchedulePayload({
+        scheduleLimited,
+        activeTimeStart,
+        activeTimeEnd,
+        activeDaysOfWeek,
+      });
+      if (!schedule.ok) {
+        throw new Error(t(schedule.errorKey));
+      }
+
       const body: PromotionStoryMutationBody = {
         ...(isEdit ? {} : { id: clientStoryId }),
         mediaType,
@@ -344,16 +362,9 @@ export function PromotionStoryFormClient({ storyId }: Props) {
         active,
         startsAt: startsAt ? startOfDayUtcIso(startsAt, scheduleTimezone) : null,
         endsAt: endsAt ? endOfDayUtcIso(endsAt, scheduleTimezone) : null,
-        activeTimeStart: scheduleLimited
-          ? (activeTimeStart.match(/^(\d{2}):(\d{2})/)?.[0] ?? null)
-          : null,
-        activeTimeEnd: scheduleLimited
-          ? (activeTimeEnd.match(/^(\d{2}):(\d{2})/)?.[0] ?? null)
-          : null,
-        activeDaysOfWeek:
-          scheduleLimited && activeDaysOfWeek.length > 0
-            ? [...activeDaysOfWeek].sort((a, b) => a - b)
-            : null,
+        activeTimeStart: schedule.activeTimeStart,
+        activeTimeEnd: schedule.activeTimeEnd,
+        activeDaysOfWeek: schedule.activeDaysOfWeek,
         translations: LANGS.map((lang) => ({
           lang,
           title: translations[lang].title.trim(),
@@ -734,7 +745,15 @@ export function PromotionStoryFormClient({ storyId }: Props) {
               <input
                 type="checkbox"
                 checked={scheduleLimited}
-                onChange={(e) => setScheduleLimited(e.target.checked)}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setScheduleLimited(on);
+                  if (!on) {
+                    setActiveTimeStart("");
+                    setActiveTimeEnd("");
+                    setActiveDaysOfWeek([]);
+                  }
+                }}
                 disabled={saving}
               />
               {t("stories.limitByTimeOrDays")}
@@ -746,8 +765,11 @@ export function PromotionStoryFormClient({ storyId }: Props) {
                     <span className="text-foreground/70">{t("stories.activeTimeStart")}</span>
                     <input
                       type="time"
+                      step={60}
                       value={activeTimeStart}
-                      onChange={(e) => setActiveTimeStart(e.target.value)}
+                      onChange={(e) =>
+                        setActiveTimeStart(normalizeHhMm(e.target.value) ?? e.target.value)
+                      }
                       disabled={saving}
                       className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-foreground"
                     />
@@ -756,13 +778,17 @@ export function PromotionStoryFormClient({ storyId }: Props) {
                     <span className="text-foreground/70">{t("stories.activeTimeEnd")}</span>
                     <input
                       type="time"
+                      step={60}
                       value={activeTimeEnd}
-                      onChange={(e) => setActiveTimeEnd(e.target.value)}
+                      onChange={(e) =>
+                        setActiveTimeEnd(normalizeHhMm(e.target.value) ?? e.target.value)
+                      }
                       disabled={saving}
                       className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-foreground"
                     />
                   </label>
                 </div>
+                <p className="text-xs text-foreground/45">{t("stories.activeTimeOptionalHint")}</p>
                 <p className="text-xs text-foreground/45">{t("stories.overnightHint")}</p>
                 <div>
                   <p className="text-xs font-medium text-foreground/70">

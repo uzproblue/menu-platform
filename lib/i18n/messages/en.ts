@@ -1764,9 +1764,14 @@ export const enMessages: Messages = {
   "stories.limitByTimeOrDays": "Limit to certain hours or days of the week",
   "stories.activeTimeStart": "Show from",
   "stories.activeTimeEnd": "Show until",
+  "stories.activeTimeOptionalHint":
+    "Leave both times empty to show all day; days below can still limit which weekdays.",
   "stories.overnightHint": "Overnight windows are allowed (e.g. 22:00–02:00).",
   "stories.activeDays": "Days of the week",
-  "stories.activeDaysHint": "Leave all unselected to show every day within the hours above.",
+  "stories.activeDaysHint":
+    "Leave all unselected to show every day (within the hours above if set).",
+  "stories.scheduleLimitRequired": "Choose show-from/until hours, weekdays, or both.",
+  "stories.scheduleTimePairRequired": "Set both show-from and show-until, or clear both.",
   "stories.daySun": "Sun",
   "stories.dayMon": "Mon",
   "stories.dayTue": "Tue",
