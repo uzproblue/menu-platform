@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { getMyRestaurantsWithAuthServer } from "@/lib/auth-api/teammates";
+import {
+  isResolvedDashboardRange,
+  resolveDashboardRange,
+} from "@/lib/analytics/date-range";
 import { enrichGuestDashboardWithCatalogNames } from "@/lib/analytics/enrich-guest-dashboard";
 import {
   fetchGuestDashboardData,
@@ -42,9 +46,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const requestedId = new URL(req.url).searchParams.get("restaurantId");
+  const url = new URL(req.url);
+  const range = resolveDashboardRange({
+    preset: url.searchParams.get("preset"),
+    from: url.searchParams.get("from"),
+    to: url.searchParams.get("to"),
+  });
+  if (!isResolvedDashboardRange(range)) {
+    return NextResponse.json({ error: range.error }, { status: 400 });
+  }
+
+  const requestedId = url.searchParams.get("restaurantId");
   const restaurantId = await resolveRestaurantId(requestedId);
-  const raw = await fetchGuestDashboardData(restaurantId);
+  const raw = await fetchGuestDashboardData(restaurantId, range);
   const data = await enrichGuestDashboardWithCatalogNames(raw, token, restaurantId);
   return NextResponse.json(data, { status: 200 });
 }

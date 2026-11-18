@@ -597,17 +597,13 @@ export async function syncAndPurgeLocationPublicExport(
   const urls = buildLocationSnapshotPurgeUrls(syncRes.publicUrl, syncRes.objectKey);
   const purgeRes = await purgeCloudflareUrls(urls);
 
+  // R2 already has the new snapshot. CDN purge must not fail the export/refresh.
   const purge: LocationSnapshotPurgeDetail = {
     urls,
     purgeOk: purgeRes.ok,
     skipped: !purgeRes.ok ? Boolean(purgeRes.skipped) : false,
     message: !purgeRes.ok ? purgeRes.message : undefined,
   };
-
-  if (!purgeRes.ok && !purge.skipped) {
-    logPurgeOutcome("syncAndPurgeLocationPublicExport", purge);
-    return { ok: false, message: purge.message ?? "purge_failed" };
-  }
 
   logPurgeOutcome("syncAndPurgeLocationPublicExport", purge);
 

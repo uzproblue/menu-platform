@@ -1,11 +1,22 @@
 import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import {
+  analyticsSqlDateTime,
+  buildTrendBuckets,
+  type ResolvedDashboardRange,
+  type TrendBucket,
+} from "./date-range";
 import { queryAnalyticsEngine, restaurantFilter } from "./query";
-import type { GuestDashboardData, GuestDailyTrendDay, GuestFunnelStep } from "./types";
+import type {
+  GuestDashboardData,
+  GuestDashboardRange,
+  GuestDashboardSummary,
+  GuestFunnelStep,
+  GuestTrendPoint,
+} from "./types";
 
 export type { GuestDashboardData } from "./types";
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const GUEST_DATASET = "menu_guest_events";
 
 const METADATA_EVENTS = [
@@ -18,6 +29,15 @@ const METADATA_EVENTS = [
   "guest.language_first_pick",
   "guest.language_changed",
 ] as const;
+
+const EMPTY_SUMMARY: GuestDashboardSummary = {
+  uniqueVisitors: 0,
+  totalEvents: 0,
+  pageViews: 0,
+  cartAdds: 0,
+  loyaltyEnrolls: 0,
+  loyaltyEnrollStarted: 0,
+};
 
 function formatEventLabel(event: string): string {
   return event
@@ -41,36 +61,33 @@ function isAnalyticsConfigured(): boolean {
   }
 }
 
-function buildLast7DaysSkeleton(): GuestDailyTrendDay[] {
-  const days: GuestDailyTrendDay[] = [];
-  const now = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setUTCDate(d.getUTCDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    days.push({
-      date: iso,
-      day: DAY_NAMES[d.getUTCDay()] ?? "—",
-      visitors: 0,
-      pageViews: 0,
-      cartAdds: 0,
-    });
-  }
-  return days;
+function rangeMeta(range: ResolvedDashboardRange): GuestDashboardRange {
+  return {
+    from: range.from,
+    to: range.to,
+    previousFrom: range.previousFrom,
+    previousTo: range.previousTo,
+    bucket: range.bucket,
+  };
 }
 
-function emptyDashboard(): GuestDashboardData {
-  const skeleton = buildLast7DaysSkeleton();
+function emptyTrend(buckets: TrendBucket[]): GuestTrendPoint[] {
+  return buckets.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    visitors: 0,
+    pageViews: 0,
+    cartAdds: 0,
+  }));
+}
+
+function emptyDashboard(range: ResolvedDashboardRange): GuestDashboardData {
   return {
     configured: false,
-    summary: {
-      uniqueVisitors: 0,
-      totalEvents: 0,
-      pageViews: 0,
-      cartAdds: 0,
-      loyaltyEnrolls: 0,
-    },
-    dailyTrend: skeleton,
+    range: rangeMeta(range),
+    summary: { ...EMPTY_SUMMARY },
+    previousSummary: { ...EMPTY_SUMMARY },
+    trend: emptyTrend(buildTrendBuckets(range)),
     topPages: [],
     topCategories: [],
     topItemsViewed: [],
@@ -88,8 +105,10 @@ function emptyDashboard(): GuestDashboardData {
   };
 }
 
-function scopedWhere(restaurantId: string): string {
-  return `timestamp >= NOW() - INTERVAL '7' DAY AND ${restaurantFilter(restaurantId)}`;
+function timestampWhere(restaurantId: string, fromMs: number, toExclusiveMs: number): string {
+  const from = analyticsSqlDateTime(fromMs);
+  const to = analyticsSqlDateTime(toExclusiveMs);
+  return `timestamp >= toDateTime('${from}') AND timestamp < toDateTime('${to}') AND ${restaurantFilter(restaurantId)}`;
 }
 
 function parseMetadataField(blob6: string, field: string): string {
@@ -113,30 +132,23 @@ function topNFromMap(map: Map<string, number>, limit = 10): { key: string; count
     .slice(0, limit);
 }
 
-export async function fetchGuestDashboardData(
-  restaurantId: string | null,
-): Promise<GuestDashboardData> {
-  const configured = isAnalyticsConfigured();
-  if (!configured) {
-    return emptyDashboard();
-  }
-  if (!restaurantId) {
-    return { ...emptyDashboard(), configured: true };
-  }
+function summaryFromEvents(
+  uniqueVisitors: number,
+  eventMap: Map<string, number>,
+): GuestDashboardSummary {
+  const totalEvents = [...eventMap.values()].reduce((sum, n) => sum + n, 0);
+  return {
+    uniqueVisitors,
+    totalEvents,
+    pageViews: eventMap.get("guest.page_viewed") ?? 0,
+    cartAdds: eventMap.get("guest.cart_add") ?? 0,
+    loyaltyEnrolls: eventMap.get("guest.loyalty_enrolled") ?? 0,
+    loyaltyEnrollStarted: eventMap.get("guest.loyalty_enroll_started") ?? 0,
+  };
+}
 
-  const where = scopedWhere(restaurantId);
-  const skeleton = buildLast7DaysSkeleton();
-  const metadataEventList = METADATA_EVENTS.map((e) => `'${e}'`).join(", ");
-
-  const [
-    uniqueVisitorRows,
-    eventRows,
-    dailyEventRows,
-    dailyVisitorRows,
-    metadataRows,
-    locationRows,
-    hourlyRows,
-  ] = await Promise.all([
+async function fetchSummary(where: string): Promise<GuestDashboardSummary> {
+  const [uniqueVisitorRows, eventRows] = await Promise.all([
     queryAnalyticsEngine(`
       SELECT count(DISTINCT blob2) AS uniqueVisitors
       FROM ${GUEST_DATASET}
@@ -149,28 +161,111 @@ export async function fetchGuestDashboardData(
       FROM ${GUEST_DATASET}
       WHERE ${where}
       GROUP BY event
-      ORDER BY n DESC
-      LIMIT 50
     `),
+  ]);
+  const eventMap = new Map(
+    eventRows.map((row) => [String(row.event ?? ""), Number(row.n ?? 0)]),
+  );
+  return summaryFromEvents(Number(uniqueVisitorRows[0]?.uniqueVisitors ?? 0), eventMap);
+}
+
+function hourKey(raw: string): string | null {
+  const hour = Number(raw);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+  return String(hour).padStart(2, "0");
+}
+
+function bucketKeyForDay(day: string, buckets: TrendBucket[]): string | null {
+  const ms = Date.parse(`${day.slice(0, 10)}T00:00:00.000Z`);
+  if (!Number.isFinite(ms)) return null;
+  const bucket = buckets.find((item) => ms >= item.startMs && ms < item.endMs);
+  return bucket?.key ?? null;
+}
+
+export async function fetchGuestDashboardData(
+  restaurantId: string | null,
+  range: ResolvedDashboardRange,
+): Promise<GuestDashboardData> {
+  const configured = isAnalyticsConfigured();
+  if (!configured) return emptyDashboard(range);
+  if (!restaurantId) return { ...emptyDashboard(range), configured: true };
+
+  const where = timestampWhere(restaurantId, range.fromMs, range.toExclusiveMs);
+  const previousWhere = timestampWhere(
+    restaurantId,
+    range.previousFromMs,
+    range.previousToExclusiveMs,
+  );
+  const buckets = buildTrendBuckets(range);
+  const metadataEventList = METADATA_EVENTS.map((event) => `'${event}'`).join(", ");
+  const hourlyTrend = range.bucket === "hour";
+
+  const [
+    previousSummary,
+    eventRows,
+    uniqueVisitorRows,
+    trendEventRows,
+    trendVisitorRows,
+    metadataRows,
+    locationRows,
+    hourlyRows,
+  ] = await Promise.all([
+    fetchSummary(previousWhere),
     queryAnalyticsEngine(`
       SELECT
-        toDate(timestamp) AS day,
         blob1 AS event,
         SUM(_sample_interval * double1) AS n
       FROM ${GUEST_DATASET}
       WHERE ${where}
-        AND blob1 IN ('guest.page_viewed', 'guest.cart_add')
-      GROUP BY day, event
-      ORDER BY day
+      GROUP BY event
+      ORDER BY n DESC
+      LIMIT 50
     `),
     queryAnalyticsEngine(`
-      SELECT
-        toDate(timestamp) AS day,
-        blob2 AS visitor
+      SELECT count(DISTINCT blob2) AS uniqueVisitors
       FROM ${GUEST_DATASET}
       WHERE ${where}
-      GROUP BY day, visitor
     `),
+    hourlyTrend
+      ? queryAnalyticsEngine(`
+          SELECT
+            toHour(timestamp) AS bucket,
+            blob1 AS event,
+            SUM(_sample_interval * double1) AS n
+          FROM ${GUEST_DATASET}
+          WHERE ${where}
+            AND blob1 IN ('guest.page_viewed', 'guest.cart_add')
+          GROUP BY bucket, event
+          ORDER BY bucket
+        `)
+      : queryAnalyticsEngine(`
+          SELECT
+            toDate(timestamp) AS bucket,
+            blob1 AS event,
+            SUM(_sample_interval * double1) AS n
+          FROM ${GUEST_DATASET}
+          WHERE ${where}
+            AND blob1 IN ('guest.page_viewed', 'guest.cart_add')
+          GROUP BY bucket, event
+          ORDER BY bucket
+        `),
+    hourlyTrend
+      ? queryAnalyticsEngine(`
+          SELECT
+            toHour(timestamp) AS bucket,
+            blob2 AS visitor
+          FROM ${GUEST_DATASET}
+          WHERE ${where}
+          GROUP BY bucket, visitor
+        `)
+      : queryAnalyticsEngine(`
+          SELECT
+            toDate(timestamp) AS bucket,
+            blob2 AS visitor
+          FROM ${GUEST_DATASET}
+          WHERE ${where}
+          GROUP BY bucket, visitor
+        `),
     queryAnalyticsEngine(`
       SELECT
         blob1 AS event,
@@ -207,38 +302,42 @@ export async function fetchGuestDashboardData(
   const eventMap = new Map(
     eventRows.map((row) => [String(row.event ?? ""), Number(row.n ?? 0)]),
   );
+  const summary = summaryFromEvents(
+    Number(uniqueVisitorRows[0]?.uniqueVisitors ?? 0),
+    eventMap,
+  );
 
-  const totalEvents = [...eventMap.values()].reduce((sum, n) => sum + n, 0);
-  const pageViews = eventMap.get("guest.page_viewed") ?? 0;
-  const cartAdds = eventMap.get("guest.cart_add") ?? 0;
-  const loyaltyEnrolls = eventMap.get("guest.loyalty_enrolled") ?? 0;
-  const uniqueVisitors = Number(uniqueVisitorRows[0]?.uniqueVisitors ?? 0);
-
-  const byDay = new Map(skeleton.map((d) => [d.date, { ...d }]));
-  const visitorsByDay = new Map<string, Set<string>>();
-
-  for (const row of dailyVisitorRows) {
-    const day = String(row.day ?? "").slice(0, 10);
+  const visitorsByBucket = new Map<string, Set<string>>();
+  for (const row of trendVisitorRows) {
+    const raw = String(row.bucket ?? "");
     const visitor = String(row.visitor ?? "");
-    if (!day || !visitor) continue;
-    if (!visitorsByDay.has(day)) visitorsByDay.set(day, new Set());
-    visitorsByDay.get(day)!.add(visitor);
+    if (!raw || !visitor) continue;
+    const key = hourlyTrend ? hourKey(raw) : bucketKeyForDay(raw, buckets);
+    if (!key) continue;
+    if (!visitorsByBucket.has(key)) visitorsByBucket.set(key, new Set());
+    visitorsByBucket.get(key)!.add(visitor);
   }
 
-  for (const [day, visitors] of visitorsByDay) {
-    const entry = byDay.get(day);
-    if (entry) entry.visitors = visitors.size;
-  }
-
-  for (const row of dailyEventRows) {
-    const day = String(row.day ?? "").slice(0, 10);
+  const eventsByBucket = new Map<string, { pageViews: number; cartAdds: number }>();
+  for (const row of trendEventRows) {
+    const raw = String(row.bucket ?? "");
     const event = String(row.event ?? "");
     const n = Number(row.n ?? 0);
-    const entry = byDay.get(day);
-    if (!entry) continue;
+    const key = hourlyTrend ? hourKey(raw) : bucketKeyForDay(raw, buckets);
+    if (!key) continue;
+    const entry = eventsByBucket.get(key) ?? { pageViews: 0, cartAdds: 0 };
     if (event === "guest.page_viewed") entry.pageViews += n;
     if (event === "guest.cart_add") entry.cartAdds += n;
+    eventsByBucket.set(key, entry);
   }
+
+  const trend: GuestTrendPoint[] = buckets.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    visitors: visitorsByBucket.get(bucket.key)?.size ?? 0,
+    pageViews: eventsByBucket.get(bucket.key)?.pageViews ?? 0,
+    cartAdds: eventsByBucket.get(bucket.key)?.cartAdds ?? 0,
+  }));
 
   const pageCounts = new Map<string, number>();
   const categoryCounts = new Map<string, number>();
@@ -299,7 +398,7 @@ export async function fetchGuestDashboardData(
   }
 
   const funnel: GuestFunnelStep[] = [
-    { stepKey: "menuOpen", count: pageViews },
+    { stepKey: "menuOpen", count: summary.pageViews },
     {
       stepKey: "category",
       count:
@@ -307,13 +406,10 @@ export async function fetchGuestDashboardData(
         (eventMap.get("guest.category_selected") ?? 0),
     },
     { stepKey: "itemView", count: eventMap.get("guest.item_viewed") ?? 0 },
-    { stepKey: "cartAdd", count: cartAdds },
+    { stepKey: "cartAdd", count: summary.cartAdds },
   ];
 
-  const hourlyActivity = Array.from({ length: 24 }, (_, hour) => ({
-    hour,
-    count: 0,
-  }));
+  const hourlyActivity = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }));
   for (const row of hourlyRows) {
     const hour = Number(row.hour ?? -1);
     if (hour < 0 || hour > 23) continue;
@@ -322,18 +418,11 @@ export async function fetchGuestDashboardData(
 
   return {
     configured: true,
-    summary: {
-      uniqueVisitors,
-      totalEvents,
-      pageViews,
-      cartAdds,
-      loyaltyEnrolls,
-    },
-    dailyTrend: [...byDay.values()],
-    topPages: topNFromMap(pageCounts).map(({ key, count }) => ({
-      page: key,
-      count,
-    })),
+    range: rangeMeta(range),
+    summary,
+    previousSummary,
+    trend,
+    topPages: topNFromMap(pageCounts).map(({ key, count }) => ({ page: key, count })),
     topCategories: topNFromMap(categoryCounts).map(({ key, count }) => ({
       categoryId: key,
       name: key,
@@ -365,10 +454,7 @@ export async function fetchGuestDashboardData(
         label: formatEventLabel(event),
       };
     }),
-    languages: topNFromMap(languageCounts).map(({ key, count }) => ({
-      lang: key,
-      count,
-    })),
+    languages: topNFromMap(languageCounts).map(({ key, count }) => ({ lang: key, count })),
     hourlyActivity,
     funnel,
   };

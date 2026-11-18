@@ -18,17 +18,28 @@ export type StaffDashboardData = {
   locationActions: StaffActionCount[];
 };
 
+export type AnalyticsBucket = "hour" | "day" | "week";
+
+export type GuestDashboardRange = {
+  from: string;
+  to: string;
+  previousFrom: string;
+  previousTo: string;
+  bucket: AnalyticsBucket;
+};
+
 export type GuestDashboardSummary = {
   uniqueVisitors: number;
   totalEvents: number;
   pageViews: number;
   cartAdds: number;
   loyaltyEnrolls: number;
+  loyaltyEnrollStarted: number;
 };
 
-export type GuestDailyTrendDay = {
-  date: string;
-  day: string;
+export type GuestTrendPoint = {
+  key: string;
+  label: string;
   visitors: number;
   pageViews: number;
   cartAdds: number;
@@ -54,8 +65,10 @@ export type GuestFunnelStep = {
 
 export type GuestDashboardData = {
   configured: boolean;
+  range: GuestDashboardRange;
   summary: GuestDashboardSummary;
-  dailyTrend: GuestDailyTrendDay[];
+  previousSummary: GuestDashboardSummary;
+  trend: GuestTrendPoint[];
   topPages: { page: string; count: number }[];
   topCategories: { categoryId: string; name: string; count: number }[];
   topItemsViewed: { itemId: string; name: string; count: number }[];
