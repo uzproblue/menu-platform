@@ -29,6 +29,10 @@
 		{
 			"binding": "META_GATEWAY",
 			"service": "meta-gateway"
+		},
+		{
+			"binding": "MENU_2GIS",
+			"service": "menu-2gis-worker"
 		}
 	],
 	"analytics_engine_datasets": [

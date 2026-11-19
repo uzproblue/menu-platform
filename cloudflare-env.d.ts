@@ -20,6 +20,7 @@ declare namespace Cloudflare {
 		CLOUDFLARE_API_TOKEN: string;
 		MENU_SERVER: Fetcher /* menu-server */;
 		MENU_LOYALTY: Fetcher /* menu-loyalty-worker */;
+		MENU_2GIS: Fetcher /* menu-2gis-worker */;
 		NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?: string;
 		GOOGLE_MAPS_API_KEY?: string;
 	}

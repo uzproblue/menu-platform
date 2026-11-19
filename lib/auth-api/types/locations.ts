@@ -34,6 +34,8 @@ export type Location = {
   chefAlertChatId?: string;
   instagramUrl?: string;
   twoGisUrl?: string;
+  /** Category ids included in the 2GIS YML feed. */
+  twoGisExportCategoryIds?: string[];
   ordersEnabled: boolean;
   /** When true, menu-customer auto-opens loyalty enrollment after language selection. */
   loyaltyPushEnabled?: boolean;
@@ -159,6 +161,7 @@ export type UpdateLocationDetailsInput = {
   chefAlertChatId?: string | null;
   instagramUrl?: string | null;
   twoGisUrl?: string | null;
+  twoGisExportCategoryIds?: string[];
   ordersEnabled?: boolean;
   loyaltyPushEnabled?: boolean;
   customDomain?: string | null;
@@ -188,6 +191,7 @@ export type UpdateLocationDetailsResponse = {
     chefAlertChatId?: string;
     instagramUrl?: string;
     twoGisUrl?: string;
+    twoGisExportCategoryIds?: string[];
     ordersEnabled: boolean;
     loyaltyPushEnabled?: boolean;
     customDomain?: string | null;

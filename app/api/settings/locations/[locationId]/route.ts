@@ -108,6 +108,7 @@ export async function PATCH(
     chefAlertChatId?: string | null;
     instagramUrl?: string | null;
     twoGisUrl?: string | null;
+    twoGisExportCategoryIds?: string[];
     ordersEnabled?: boolean;
     loyaltyPushEnabled?: boolean;
     customDomain?: string | null;
@@ -349,6 +350,35 @@ export async function PATCH(
     }
     payload.twoGisUrl = v?.length ? v : null;
   }
+  if ("twoGisExportCategoryIds" in o) {
+    if (!Array.isArray(o.twoGisExportCategoryIds)) {
+      return NextResponse.json(
+        {
+          error: "invalid_body",
+          message: "twoGisExportCategoryIds must be an array of strings",
+        },
+        { status: 400 },
+      );
+    }
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of o.twoGisExportCategoryIds) {
+      if (typeof raw !== "string") {
+        return NextResponse.json(
+          {
+            error: "invalid_body",
+            message: "twoGisExportCategoryIds must be an array of strings",
+          },
+          { status: 400 },
+        );
+      }
+      const id = raw.trim();
+      if (!id.length || seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
+    }
+    payload.twoGisExportCategoryIds = ids;
+  }
   if ("ordersEnabled" in o) {
     if (typeof o.ordersEnabled !== "boolean") {
       return NextResponse.json(
@@ -396,6 +426,7 @@ export async function PATCH(
     payload.chefAlertChatId === undefined &&
     payload.instagramUrl === undefined &&
     payload.twoGisUrl === undefined &&
+    payload.twoGisExportCategoryIds === undefined &&
     payload.ordersEnabled === undefined &&
     payload.loyaltyPushEnabled === undefined &&
     payload.customDomain === undefined
@@ -404,7 +435,7 @@ export async function PATCH(
       {
         error: "invalid_body",
         message:
-          "at least one of name, currency, timezone, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, ordersEnabled, loyaltyPushEnabled, customDomain is required",
+          "at least one of name, currency, timezone, logoUrl, qrCenterImageUrl, address, translationLangs, posOrganizationId, posTerminalGroupId, posApiToken, externalMenuId, chefAlertChatId, instagramUrl, twoGisUrl, twoGisExportCategoryIds, ordersEnabled, loyaltyPushEnabled, customDomain is required",
       },
       { status: 400 },
     );

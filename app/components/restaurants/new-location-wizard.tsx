@@ -62,6 +62,8 @@ export function NewLocationWizard({
   const [chefAlertChatId, setChefAlertChatId] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [twoGisUrl, setTwoGisUrl] = useState("");
+  const [twoGisExportCategoryIds, setTwoGisExportCategoryIds] = useState<string[]>([]);
+  const [enabledCategoryIds, setEnabledCategoryIds] = useState<string[]>([]);
   const [ordersEnabled, setOrdersEnabled] = useState(false);
   const [loyaltyPushEnabled, setLoyaltyPushEnabled] = useState(false);
   const [customDomain, setCustomDomain] = useState("");
@@ -161,6 +163,12 @@ export function NewLocationWizard({
         setChefAlertChatId(loc.chefAlertChatId ?? "");
         setInstagramUrl(loc.instagramUrl ?? "");
         setTwoGisUrl(loc.twoGisUrl ?? "");
+        setTwoGisExportCategoryIds(
+          Array.isArray(loc.twoGisExportCategoryIds) ? loc.twoGisExportCategoryIds : [],
+        );
+        setEnabledCategoryIds(
+          Array.isArray(loc.enabledCategoryIds) ? loc.enabledCategoryIds : [],
+        );
         setOrdersEnabled(loc.ordersEnabled ?? false);
         setLoyaltyPushEnabled(loc.loyaltyPushEnabled ?? false);
         setLogoFile(null);
@@ -243,6 +251,7 @@ export function NewLocationWizard({
               chefAlertChatId: chefAlertChatId.trim() || null,
               instagramUrl: instagramUrl.trim() || null,
               twoGisUrl: twoGisUrl.trim() || null,
+              twoGisExportCategoryIds,
               ordersEnabled,
               loyaltyPushEnabled,
               customDomain: customDomain.trim() || null,
@@ -277,6 +286,12 @@ export function NewLocationWizard({
         setChefAlertChatId(loc.chefAlertChatId ?? "");
         setInstagramUrl(loc.instagramUrl ?? "");
         setTwoGisUrl(loc.twoGisUrl ?? "");
+        setTwoGisExportCategoryIds(
+          Array.isArray(loc.twoGisExportCategoryIds) ? loc.twoGisExportCategoryIds : [],
+        );
+        setEnabledCategoryIds(
+          Array.isArray(loc.enabledCategoryIds) ? loc.enabledCategoryIds : [],
+        );
         setOrdersEnabled(loc.ordersEnabled ?? false);
         setLoyaltyPushEnabled(loc.loyaltyPushEnabled ?? false);
         setLogoFile(null);
@@ -451,6 +466,10 @@ export function NewLocationWizard({
             setInstagramUrl={setInstagramUrl}
             twoGisUrl={twoGisUrl}
             setTwoGisUrl={setTwoGisUrl}
+            locationIdForTwoGis={createdLocationId || trimmedInitialLocationId || null}
+            enabledCategoryIds={enabledCategoryIds}
+            twoGisExportCategoryIds={twoGisExportCategoryIds}
+            setTwoGisExportCategoryIds={setTwoGisExportCategoryIds}
             ordersEnabled={ordersEnabled}
             setOrdersEnabled={setOrdersEnabled}
             loyaltyPushEnabled={loyaltyPushEnabled}

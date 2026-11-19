@@ -11,6 +11,7 @@ import { SUPPORTED_CATALOG_CURRENCIES } from "@/lib/supported-currencies";
 import { LocationTypeSelector } from "./location-type-selector";
 import { GoogleLocationPicker } from "../google-location-picker";
 import type { GeoCoordinates } from "@/lib/address-types";
+import { LocationTwoGisExportPanel } from "./location-2gis-export-panel";
 
 type WizardStepBasicsProps = {
   name: string;
@@ -64,6 +65,10 @@ type WizardStepBasicsProps = {
   setInstagramUrl: (v: string) => void;
   twoGisUrl: string;
   setTwoGisUrl: (v: string) => void;
+  locationIdForTwoGis?: string | null;
+  enabledCategoryIds?: string[];
+  twoGisExportCategoryIds?: string[];
+  setTwoGisExportCategoryIds?: (ids: string[]) => void;
   ordersEnabled: boolean;
   setOrdersEnabled: (v: boolean) => void;
   loyaltyPushEnabled: boolean;
@@ -138,6 +143,10 @@ export function WizardStepBasics({
   setInstagramUrl,
   twoGisUrl,
   setTwoGisUrl,
+  locationIdForTwoGis = null,
+  enabledCategoryIds = [],
+  twoGisExportCategoryIds = [],
+  setTwoGisExportCategoryIds,
   ordersEnabled,
   setOrdersEnabled,
   loyaltyPushEnabled,
@@ -414,6 +423,15 @@ export function WizardStepBasics({
                   className="mt-1 w-full rounded-xl border border-foreground/15 bg-background/80 px-3 py-2 text-sm text-foreground outline-none ring-foreground/20 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
+              {setTwoGisExportCategoryIds ? (
+                <LocationTwoGisExportPanel
+                  locationId={locationIdForTwoGis ?? null}
+                  enabledCategoryIds={enabledCategoryIds}
+                  twoGisExportCategoryIds={twoGisExportCategoryIds}
+                  setTwoGisExportCategoryIds={setTwoGisExportCategoryIds}
+                  disabled={formDisabled}
+                />
+              ) : null}
               <div className="sm:col-span-2">
                 <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">
                   <input
