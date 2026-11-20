@@ -34,9 +34,27 @@ export async function POST(
     );
   }
 
+  const selectedIds = existing.data.location.twoGisExportCategoryIds ?? [];
+  if (!selectedIds.length) {
+    return NextResponse.json(
+      {
+        error: "skipped",
+        reason: "no_categories_selected",
+        message: "Select at least one category before generating the 2GIS feed",
+        publicUrl: makeTwoGisExportPublicUrl(trimmedId),
+      },
+      { status: 400 },
+    );
+  }
+
   const result = await requestTwoGisLocationExport(trimmedId);
   if (!result.ok) {
-    const status = result.status === 409 ? 409 : result.status >= 400 ? result.status : 502;
+    const status =
+      result.status === 409
+        ? 409
+        : result.status >= 400
+          ? result.status
+          : 502;
     return NextResponse.json(
       {
         error: result.error,

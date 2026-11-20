@@ -75,13 +75,46 @@ export async function requestTwoGisLocationExport(
   }
 
   if (!res.ok) {
+    const error =
+      typeof body.error === "string" ? body.error : "export_failed";
+    const reason =
+      typeof body.reason === "string" ? body.reason : undefined;
+    // Prefer structured fields; avoid stuffing the raw JSON body into message
+    // when the worker already returned error/reason (prevents nested JSON).
+    let message: string | undefined;
+    if (typeof body.message === "string" && body.message.trim()) {
+      const trimmed = body.message.trim();
+      // Worker sometimes returns the whole JSON as message — unwrap once.
+      if (trimmed.startsWith("{")) {
+        try {
+          const nested = JSON.parse(trimmed) as Record<string, unknown>;
+          if (typeof nested.message === "string") {
+            message = nested.message;
+          } else if (typeof nested.reason === "string") {
+            message = nested.reason;
+          }
+        } catch {
+          message = trimmed;
+        }
+      } else {
+        message = trimmed;
+      }
+    } else if (reason) {
+      message = reason;
+    } else if (error !== "export_failed") {
+      message = error;
+    } else if (text && !text.startsWith("{")) {
+      message = text;
+    }
+
     return {
       ok: false,
       status: res.status,
-      error: typeof body.error === "string" ? body.error : "export_failed",
-      message: typeof body.message === "string" ? body.message : text || undefined,
-      reason: typeof body.reason === "string" ? body.reason : undefined,
-      publicUrl: typeof body.publicUrl === "string" ? body.publicUrl : undefined,
+      error,
+      message,
+      reason,
+      publicUrl:
+        typeof body.publicUrl === "string" ? body.publicUrl : undefined,
     };
   }
 

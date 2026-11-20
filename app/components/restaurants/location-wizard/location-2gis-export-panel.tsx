@@ -151,10 +151,28 @@ export function LocationTwoGisExportPanel({
 
   const regenerate = useCallback(async () => {
     if (!locationId || disabled) return;
+    if (twoGisExportCategoryIds.length === 0) {
+      setRegenError(t("restaurants.newWizard.twoGisExportNoCategories"));
+      return;
+    }
     setIsRegenerating(true);
     setRegenError(null);
     setRegenMessage(null);
     try {
+      // Persist checkbox selection before the worker reads D1.
+      const saveRes = await fetch(
+        `/api/settings/locations/${encodeURIComponent(locationId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ twoGisExportCategoryIds }),
+        },
+      );
+      if (!saveRes.ok) {
+        setRegenError(t("restaurants.newWizard.errUpdateLocation"));
+        return;
+      }
+
       const res = await fetch(
         `/api/settings/locations/${encodeURIComponent(locationId)}/2gis-export`,
         { method: "POST" },
@@ -183,7 +201,7 @@ export function LocationTwoGisExportPanel({
     } finally {
       setIsRegenerating(false);
     }
-  }, [disabled, locationId, t]);
+  }, [disabled, locationId, t, twoGisExportCategoryIds]);
 
   if (!locationId) {
     return (
