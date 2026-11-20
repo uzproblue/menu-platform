@@ -816,6 +816,7 @@ export const uzMessages: Messages = {
   "restaurants.newWizard.twoGisExportRegenerating": "Yaratilmoqda…",
   "restaurants.newWizard.twoGisExportRegenOk": "Fayl yangilandi ({count} ta pozitsiya).",
   "restaurants.newWizard.twoGisExportRegenFailed": "2GIS faylini yangilab bo‘lmadi.",
+  "restaurants.newWizard.twoGisExportPurgeFailed": "Fayl saqlandi, lekin CDN tozalanmadi — havolada bir daqiqagacha eski versiya ko‘rinishi mumkin.",
   "restaurants.newWizard.twoGisExportNoCategories": "Fayl yaratishdan oldin kamida bitta kategoriya tanlang.",
   "restaurants.newWizard.ordersEnabled": "Savatdan buyurtma berishni yoqish",
   "restaurants.newWizard.ordersEnabledHint":

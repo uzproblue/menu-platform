@@ -5,6 +5,7 @@ import { getLocationWithAuthServer } from "@/lib/auth-api";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { makeTwoGisExportPublicUrl } from "@/lib/2gis-export-url";
 import { requestTwoGisLocationExport } from "@/lib/2gis-worker-client";
+import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
 
 export async function POST(
   _req: Request,
@@ -66,14 +67,30 @@ export async function POST(
     );
   }
 
+  const publicUrl = result.publicUrl || makeTwoGisExportPublicUrl(trimmedId);
+  const purgeRes = await purgeCloudflareUrls([publicUrl]);
+  if (!purgeRes.ok) {
+    console.warn("[2gis-export] CDN purge failed or skipped", {
+      locationId: trimmedId,
+      publicUrl,
+      skipped: Boolean(purgeRes.skipped),
+      message: purgeRes.message,
+    });
+  }
+
   return NextResponse.json(
     {
       ok: true,
       locationId: result.locationId,
-      publicUrl: result.publicUrl || makeTwoGisExportPublicUrl(trimmedId),
+      publicUrl,
       objectKey: result.objectKey,
       offerCount: result.offerCount,
       categoryCount: result.categoryCount,
+      purge: {
+        ok: purgeRes.ok,
+        skipped: !purgeRes.ok ? Boolean(purgeRes.skipped) : false,
+        message: !purgeRes.ok ? purgeRes.message : undefined,
+      },
     },
     { status: 200 },
   );

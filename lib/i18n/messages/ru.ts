@@ -824,6 +824,7 @@ export const ruMessages: Messages = {
   "restaurants.newWizard.twoGisExportRegenerating": "Формирование…",
   "restaurants.newWizard.twoGisExportRegenOk": "Прайс обновлён ({count} позиций).",
   "restaurants.newWizard.twoGisExportRegenFailed": "Не удалось обновить прайс 2GIS.",
+  "restaurants.newWizard.twoGisExportPurgeFailed": "Прайс сохранён, но сброс CDN не удался — по ссылке до минуты может быть предыдущая версия.",
   "restaurants.newWizard.twoGisExportNoCategories": "Выберите хотя бы одну категорию перед формированием прайса.",
   "restaurants.newWizard.ordersEnabled": "Включить оформление заказа",
   "restaurants.newWizard.ordersEnabledHint":

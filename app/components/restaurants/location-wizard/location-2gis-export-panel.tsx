@@ -182,6 +182,7 @@ export function LocationTwoGisExportPanel({
         reason?: string;
         offerCount?: number;
         publicUrl?: string;
+        purge?: { ok?: boolean; skipped?: boolean; message?: string };
       };
       if (!res.ok) {
         setRegenError(
@@ -191,11 +192,13 @@ export function LocationTwoGisExportPanel({
         );
         return;
       }
-      setRegenMessage(
-        t("restaurants.newWizard.twoGisExportRegenOk", {
-          count: String(data.offerCount ?? 0),
-        }),
-      );
+      let okMsg = t("restaurants.newWizard.twoGisExportRegenOk", {
+        count: String(data.offerCount ?? 0),
+      });
+      if (data.purge && data.purge.ok === false && !data.purge.skipped) {
+        okMsg = `${okMsg} ${t("restaurants.newWizard.twoGisExportPurgeFailed")}`;
+      }
+      setRegenMessage(okMsg);
     } catch {
       setRegenError(t("restaurants.newWizard.twoGisExportRegenFailed"));
     } finally {

@@ -820,6 +820,7 @@ export const enMessages: Messages = {
   "restaurants.newWizard.twoGisExportRegenerating": "Generating…",
   "restaurants.newWizard.twoGisExportRegenOk": "Feed updated ({count} items).",
   "restaurants.newWizard.twoGisExportRegenFailed": "Could not regenerate the 2GIS feed.",
+  "restaurants.newWizard.twoGisExportPurgeFailed": "Feed saved, but CDN purge failed — the link may show the previous file for up to a minute.",
   "restaurants.newWizard.twoGisExportNoCategories": "Select at least one category before generating the feed.",
   "restaurants.newWizard.ordersEnabled": "Enable cart checkout",
   "restaurants.newWizard.ordersEnabledHint":
