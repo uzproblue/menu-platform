@@ -24,6 +24,10 @@ export type LoyaltyGuest = {
   visitCount?: number;
   visits90d?: number;
   spend90d?: number;
+  acquisitionSource?: string | null;
+  acquisitionMedium?: string | null;
+  acquisitionCampaign?: string | null;
+  analyticsVisitorId?: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -193,6 +197,7 @@ export type GuestsListParams = {
   walletPlatform?: "apple" | "google";
   iikoMatched?: boolean;
   marketingConsent?: boolean;
+  acquisitionSource?: string;
   page?: number;
   limit?: number;
   sort?: GuestsListSort;

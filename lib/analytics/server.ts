@@ -8,4 +8,16 @@ export { getStaffAnalyticsContext, trackStaffMutation } from "./context";
 export type { StaffAnalyticsContext } from "./context";
 export { fetchStaffDashboardData } from "./dashboard-data";
 export { fetchGuestDashboardData } from "./guest-dashboard-data";
+export {
+  DIRECT_ACQUISITION_SOURCE,
+  fetchAcquisitionSources,
+  fetchAcquisitionDashboardData,
+  fetchAcquisitionVisitors,
+  fetchAcquisitionVisitorEvents,
+} from "./acquisition-dashboard-data";
+export type {
+  AcquisitionSourceSummary,
+  AcquisitionVisitorRow,
+  AcquisitionVisitorEvent,
+} from "./acquisition-dashboard-data";
 export type { StaffDashboardData, StaffActivityDay, StaffActionCount, GuestDashboardData } from "./types";

@@ -88,6 +88,7 @@ export async function GET(req: Request) {
     walletPlatform,
     iikoMatched: parseOptionalBool(searchParams.get("iikoMatched")),
     marketingConsent: parseOptionalBool(searchParams.get("marketingConsent")),
+    acquisitionSource: searchParams.get("acquisitionSource")?.trim() || undefined,
     page: parseOptionalInt(searchParams.get("page")),
     limit: parseOptionalInt(searchParams.get("limit")),
     sort,

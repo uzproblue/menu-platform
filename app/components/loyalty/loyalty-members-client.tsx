@@ -33,6 +33,7 @@ type MemberTab = "all" | "legacy";
 type VerifiedFilter = "" | "whatsapp" | "telegram" | "any" | "none";
 type TriFilter = "" | "true" | "false";
 type WalletPlatformFilter = "" | "apple" | "google";
+type AcquisitionSourceFilter = "" | "2gis" | "direct";
 type SortOrder = "asc" | "desc";
 
 type AppliedFilters = {
@@ -51,6 +52,7 @@ type AppliedFilters = {
   walletPlatform: WalletPlatformFilter;
   iikoMatched: TriFilter;
   marketingConsent: TriFilter;
+  acquisitionSource: AcquisitionSourceFilter;
 };
 
 const DEFAULT_FILTERS: AppliedFilters = {
@@ -69,6 +71,7 @@ const DEFAULT_FILTERS: AppliedFilters = {
   walletPlatform: "",
   iikoMatched: "",
   marketingConsent: "",
+  acquisitionSource: "",
 };
 
 const PAGE_SIZE_OPTIONS = [25, 50] as const;
@@ -177,6 +180,8 @@ export function LoyaltyMembersClient() {
     useState<WalletPlatformFilter>("");
   const [iikoMatchedDraft, setIikoMatchedDraft] = useState<TriFilter>("");
   const [marketingDraft, setMarketingDraft] = useState<TriFilter>("");
+  const [acquisitionSourceDraft, setAcquisitionSourceDraft] =
+    useState<AcquisitionSourceFilter>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [applied, setApplied] = useState<AppliedFilters>(DEFAULT_FILTERS);
 
@@ -238,6 +243,7 @@ export function LoyaltyMembersClient() {
         walletPlatform: applied.walletPlatform || undefined,
         iikoMatched: parseTriBool(applied.iikoMatched),
         marketingConsent: parseTriBool(applied.marketingConsent),
+        acquisitionSource: applied.acquisitionSource || undefined,
         page: overrides?.page ?? page,
         limit: overrides?.limit ?? limit,
         sort,
@@ -297,6 +303,7 @@ export function LoyaltyMembersClient() {
       setWalletPlatformDraft("");
       setIikoMatchedDraft("");
       setMarketingDraft("");
+      setAcquisitionSourceDraft("");
       setCheckedIds(new Set());
       setPickerOpen(false);
       setComposeChannel(null);
@@ -364,6 +371,7 @@ export function LoyaltyMembersClient() {
       walletPlatform: walletPlatformDraft,
       iikoMatched: iikoMatchedDraft,
       marketingConsent: marketingDraft,
+      acquisitionSource: acquisitionSourceDraft,
     });
   }
 
@@ -383,6 +391,7 @@ export function LoyaltyMembersClient() {
     setWalletPlatformDraft("");
     setIikoMatchedDraft("");
     setMarketingDraft("");
+    setAcquisitionSourceDraft("");
     applyFilters(DEFAULT_FILTERS);
   }
 
@@ -625,6 +634,14 @@ export function LoyaltyMembersClient() {
     return badges.length > 0 ? badges.join(" · ") : t("loyalty.verifyNone");
   }
 
+  function acquisitionSourceLabel(source: string | null | undefined): string {
+    if (!source?.trim()) return t("loyalty.acquisitionSourceDirect");
+    const normalized = source.trim().toLowerCase();
+    if (normalized === "2gis") return t("loyalty.acquisitionSource2gis");
+    if (normalized === "direct") return t("loyalty.acquisitionSourceDirect");
+    return source.trim();
+  }
+
   const pageAllChecked =
     guests.length > 0 && guests.every((g) => checkedIds.has(g.id));
   const pageSomeChecked = guests.some((g) => checkedIds.has(g.id));
@@ -832,6 +849,20 @@ export function LoyaltyMembersClient() {
                 <option value="">{t("loyalty.filterAny")}</option>
                 <option value="true">{t("loyalty.filterYes")}</option>
                 <option value="false">{t("loyalty.filterNo")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-foreground/70">
+              {t("loyalty.acquisitionSourceFilter")}
+              <select
+                value={acquisitionSourceDraft}
+                onChange={(e) =>
+                  setAcquisitionSourceDraft(e.target.value as AcquisitionSourceFilter)
+                }
+                className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="">{t("loyalty.acquisitionSourceAll")}</option>
+                <option value="2gis">{t("loyalty.acquisitionSource2gis")}</option>
+                <option value="direct">{t("loyalty.acquisitionSourceDirect")}</option>
               </select>
             </label>
             <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4">
@@ -1232,6 +1263,10 @@ export function LoyaltyMembersClient() {
                 </p>
                 <p>
                   {t("loyalty.email")}: <strong>{selected.email || "—"}</strong>
+                </p>
+                <p>
+                  {t("loyalty.acquisitionSourceFilter")}:{" "}
+                  <strong>{acquisitionSourceLabel(selected.acquisitionSource)}</strong>
                 </p>
                 <p>
                   {t("loyalty.lastVisited")}:{" "}

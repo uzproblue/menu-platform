@@ -27,6 +27,7 @@ import {
 } from "@/lib/analytics/date-range";
 import type { LoyaltyAnalytics, LoyaltyAnalyticsWaiter, LoyaltyWaiterMembers } from "@/lib/analytics/loyalty-types";
 import type { GuestDashboardData, GuestFunnelStepKey } from "@/lib/analytics/types";
+import { AcquisitionSourcesTeaser } from "@/app/components/analytics/acquisition-sources-teaser";
 import { formatMinorCurrency } from "@/lib/currency-minor-units";
 
 const PRESETS: DashboardPreset[] = ["day", "week", "month", "custom"];
@@ -497,6 +498,13 @@ export function HomeDashboardCharts() {
               funnelConfig={funnelConfig}
               hourlyConfig={hourlyConfig}
               barConfig={barConfig}
+            />
+          ) : null}
+          {rangeKey ? (
+            <AcquisitionSourcesTeaser
+              restaurantId={restaurantId}
+              from={rangeKey.split(":")[0] ?? ""}
+              to={rangeKey.split(":")[1] ?? ""}
             />
           ) : null}
         </section>

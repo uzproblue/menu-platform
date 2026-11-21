@@ -47,6 +47,9 @@ export function buildGuestsListQuery(params: GuestsListParams = {}): string {
       params.marketingConsent ? "true" : "false",
     );
   }
+  if (params.acquisitionSource?.trim()) {
+    searchParams.set("acquisitionSource", params.acquisitionSource.trim());
+  }
   if (typeof params.page === "number" && Number.isFinite(params.page)) {
     searchParams.set("page", String(Math.max(1, Math.floor(params.page))));
   }

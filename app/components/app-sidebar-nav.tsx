@@ -19,6 +19,11 @@ const topLinks: Array<{
 }> = [
   { href: "/", labelKey: "nav.home", match: (p) => p === "/" },
   {
+    href: "/analytics/acquisition",
+    labelKey: "nav.acquisition",
+    match: (p) => p.startsWith("/analytics/acquisition"),
+  },
+  {
     href: "/restaurants",
     labelKey: "nav.restaurants",
     match: (p) => p.startsWith("/restaurants"),
