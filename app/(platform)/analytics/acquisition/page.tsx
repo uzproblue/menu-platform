@@ -20,18 +20,16 @@ export default async function AcquisitionAnalyticsPage({
       : "2gis";
 
   return (
-    <div className="w-full max-w-[1600px]">
-      <div className="rounded-2xl border border-foreground/10 bg-background/60 p-4 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6">
+      <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("acquisition.pageTitle")}
         </h1>
-        <p className="mt-2 text-sm text-foreground/60">
+        <p className="max-w-2xl text-sm text-muted-foreground">
           {t("acquisition.pageSubtitle")}
         </p>
-        <div className="mt-6">
-          <AcquisitionExplorerClient initialSource={initialSource} />
-        </div>
       </div>
+      <AcquisitionExplorerClient initialSource={initialSource} />
     </div>
   );
 }

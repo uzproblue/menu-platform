@@ -3,6 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/app/components/i18n-provider";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SourceRow = {
   source: string;
@@ -55,49 +64,58 @@ export function AcquisitionSourcesTeaser({
     .slice(0, 5);
 
   return (
-    <section className="rounded-2xl border border-foreground/10 bg-background/50 px-4 py-4 ring-1 ring-foreground/5 sm:px-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <Card className="shadow-none">
+      <CardHeader className="border-b sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h3 className="text-base font-semibold tracking-tight">
-            {t("acquisition.teaserTitle")}
-          </h3>
-          <p className="mt-1 text-sm text-foreground/60">
-            {t("acquisition.teaserHint")}
-          </p>
+          <CardTitle>{t("acquisition.teaserTitle")}</CardTitle>
+          <CardDescription>{t("acquisition.teaserHint")}</CardDescription>
         </div>
         <Link
           href="/analytics/acquisition?source=2gis"
-          className="text-sm font-medium underline underline-offset-2"
+          className="text-sm font-medium underline underline-offset-4"
         >
           {t("acquisition.teaserLink")}
         </Link>
-      </div>
-      {!loaded ? (
-        <p className="mt-3 text-sm text-foreground/45">{t("acquisition.loading")}</p>
-      ) : ranked.length === 0 ? (
-        <p className="mt-3 text-sm text-foreground/45">
-          {t("acquisition.teaserEmpty")}
-        </p>
-      ) : (
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {ranked.map((row) => (
-            <li key={row.source}>
-              <Link
-                href={`/analytics/acquisition?source=${encodeURIComponent(row.source)}`}
-                className="block rounded-xl border border-foreground/10 px-3 py-2 transition hover:border-foreground/25"
-              >
-                <p className="text-sm font-semibold">{labelFor(t, row.source)}</p>
-                <p className="mt-0.5 text-xs text-foreground/55">
-                  {t("acquisition.sourceMeta", {
-                    visitors: String(row.visitors),
-                    enrolls: String(row.loyaltyEnrolls),
-                  })}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+      </CardHeader>
+      <CardContent className="pt-(--card-spacing)">
+        {!loaded ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-16 rounded-xl" />
+          </div>
+        ) : ranked.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("acquisition.teaserEmpty")}
+          </p>
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {ranked.map((row) => (
+              <li key={row.source}>
+                <Link
+                  href={`/analytics/acquisition?source=${encodeURIComponent(row.source)}`}
+                  className="block rounded-xl border px-3 py-2.5 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">
+                      {labelFor(t, row.source)}
+                    </p>
+                    {row.source === "2gis" ? (
+                      <Badge variant="secondary">2GIS</Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {t("acquisition.sourceMeta", {
+                      visitors: String(row.visitors),
+                      enrolls: String(row.loyaltyEnrolls),
+                    })}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

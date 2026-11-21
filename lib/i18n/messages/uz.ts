@@ -1416,6 +1416,7 @@ export const uzMessages: Messages = {
   "acquisition.sourcesHeading": "Trafik manbalari",
   "acquisition.source.2gis": "2GIS",
   "acquisition.source.direct": "To‘g‘ridan-to‘g‘ri",
+  "acquisition.source.active": "Faol",
   "acquisition.sourceMeta": "{visitors} tashrif · {enrolls} ro'yxat",
   "acquisition.loading": "Jalb analitikasi yuklanmoqda...",
   "acquisition.loadError": "Jalb analitikasini yuklab bo‘lmadi.",

@@ -1440,6 +1440,7 @@ export const ruMessages: Messages = {
   "acquisition.sourcesHeading": "Источники трафика",
   "acquisition.source.2gis": "2GIS",
   "acquisition.source.direct": "Прямой",
+  "acquisition.source.active": "Выбрано",
   "acquisition.sourceMeta": "{visitors} посетителей · {enrolls} регистраций",
   "acquisition.loading": "Загрузка аналитики привлечения...",
   "acquisition.loadError": "Не удалось загрузить аналитику привлечения.",

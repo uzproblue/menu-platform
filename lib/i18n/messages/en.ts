@@ -1415,6 +1415,7 @@ export const enMessages: Messages = {
   "acquisition.sourcesHeading": "Traffic sources",
   "acquisition.source.2gis": "2GIS",
   "acquisition.source.direct": "Direct",
+  "acquisition.source.active": "Active",
   "acquisition.sourceMeta": "{visitors} visitors · {enrolls} enrolls",
   "acquisition.loading": "Loading acquisition analytics...",
   "acquisition.loadError": "Acquisition analytics could not be loaded.",

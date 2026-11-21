@@ -11,12 +11,45 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  UsersIcon,
+} from "lucide-react";
 import type { ChartConfig } from "@/components/ui/chart";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n } from "@/app/components/i18n-provider";
 import {
   isResolvedDashboardRange,
@@ -24,6 +57,7 @@ import {
   type DashboardPreset,
 } from "@/lib/analytics/date-range";
 import type { GuestDashboardData, GuestFunnelStepKey } from "@/lib/analytics/types";
+import { cn } from "@/lib/utils";
 
 const PRESETS: DashboardPreset[] = ["day", "week", "month", "custom"];
 
@@ -55,28 +89,6 @@ type TimelineEvent = {
   metadata: Record<string, unknown>;
 };
 
-function ChartCard({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col rounded-2xl border border-foreground/10 bg-background/60 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md">
-      <div className="border-b border-foreground/10 px-4 py-4 sm:px-5">
-        <h3 className="text-base font-semibold tracking-tight text-foreground">
-          {title}
-        </h3>
-        <p className="mt-1 text-xs text-foreground/60 sm:text-sm">{description}</p>
-      </div>
-      <div className="min-h-0 flex-1 p-3 sm:p-4">{children}</div>
-    </div>
-  );
-}
-
 function formatDelta(
   current: number,
   previous: number,
@@ -96,38 +108,6 @@ function formatDelta(
   };
 }
 
-function KpiCard({
-  label,
-  value,
-  previous,
-}: {
-  label: string;
-  value: number;
-  previous: number;
-}) {
-  const { t } = useI18n();
-  const delta = formatDelta(value, previous, t("dashboard.delta.new"));
-  const toneClass =
-    delta.tone === "up"
-      ? "text-emerald-700 dark:text-emerald-400"
-      : delta.tone === "down"
-        ? "text-rose-700 dark:text-rose-400"
-        : "text-foreground/45";
-  return (
-    <div className="rounded-xl border border-foreground/10 bg-background/50 px-4 py-3 ring-1 ring-foreground/5">
-      <p className="text-xs font-medium uppercase tracking-widest text-foreground/50">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-        {value.toLocaleString()}
-      </p>
-      <p className={`mt-1 text-xs font-medium tabular-nums ${toneClass}`}>
-        {delta.text}
-      </p>
-    </div>
-  );
-}
-
 function sourceLabel(t: (key: string) => string, source: string): string {
   if (source === "2gis") return t("acquisition.source.2gis");
   if (source === "direct") return t("acquisition.source.direct");
@@ -136,7 +116,9 @@ function sourceLabel(t: (key: string) => string, source: string): string {
 
 function formatWhen(value: string | null, locale: string): string {
   if (!value) return "—";
-  const ms = Date.parse(value.includes("T") ? value : value.replace(" ", "T") + "Z");
+  const ms = Date.parse(
+    value.includes("T") ? value : `${value.replace(" ", "T")}Z`,
+  );
   if (!Number.isFinite(ms)) return value;
   return new Date(ms).toLocaleString(locale, {
     month: "short",
@@ -165,6 +147,63 @@ const FUNNEL_KEYS: GuestFunnelStepKey[] = [
   "cartAdd",
 ];
 
+function KpiCard({
+  label,
+  value,
+  previous,
+}: {
+  label: string;
+  value: number;
+  previous: number;
+}) {
+  const { t } = useI18n();
+  const delta = formatDelta(value, previous, t("dashboard.delta.new"));
+  return (
+    <Card size="sm" className="shadow-none">
+      <CardHeader className="pb-0">
+        <CardDescription className="text-[11px] font-medium tracking-wide uppercase">
+          {label}
+        </CardDescription>
+        <CardTitle className="text-2xl font-semibold tabular-nums tracking-tight">
+          {value.toLocaleString()}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p
+          className={cn(
+            "text-xs font-medium tabular-nums",
+            delta.tone === "up" && "text-emerald-600 dark:text-emerald-400",
+            delta.tone === "down" && "text-rose-600 dark:text-rose-400",
+            delta.tone === "flat" && "text-muted-foreground",
+          )}
+        >
+          {delta.text}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChartPanel({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="shadow-none">
+      <CardHeader className="border-b">
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-(--card-spacing)">{children}</CardContent>
+    </Card>
+  );
+}
+
 export function AcquisitionExplorerClient({
   initialSource = "2gis",
 }: {
@@ -187,9 +226,13 @@ export function AcquisitionExplorerClient({
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [selectedVisitor, setSelectedVisitor] = useState<VisitorRow | null>(null);
+  const [selectedVisitor, setSelectedVisitor] = useState<VisitorRow | null>(
+    null,
+  );
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [timelineMember, setTimelineMember] = useState<VisitorMember | null>(null);
+  const [timelineMember, setTimelineMember] = useState<VisitorMember | null>(
+    null,
+  );
   const [timelineLoading, setTimelineLoading] = useState(false);
 
   const range = useMemo(() => {
@@ -204,6 +247,12 @@ export function AcquisitionExplorerClient({
     if (!isResolvedDashboardRange(range)) return "";
     return `${range.from}:${range.to}`;
   }, [range]);
+
+  const closeDrawer = useCallback(() => {
+    setSelectedVisitor(null);
+    setTimeline([]);
+    setTimelineMember(null);
+  }, []);
 
   const loadContext = useCallback(async () => {
     const res = await fetch("/api/settings/restaurant-context", {
@@ -306,10 +355,8 @@ export function AcquisitionExplorerClient({
 
   useEffect(() => {
     setPage(1);
-    setSelectedVisitor(null);
-    setTimeline([]);
-    setTimelineMember(null);
-  }, [source, rangeKey, restaurantId]);
+    closeDrawer();
+  }, [source, rangeKey, restaurantId, closeDrawer]);
 
   useEffect(() => {
     if (!selectedVisitor || !restaurantId || !isResolvedDashboardRange(range)) {
@@ -338,11 +385,11 @@ export function AcquisitionExplorerClient({
         setTimeline(data.events ?? []);
         setTimelineMember(data.member ?? null);
         if (data.guestId && selectedVisitor.guestId !== data.guestId) {
-          setSelectedVisitor({
-            ...selectedVisitor,
-            guestId: data.guestId,
-            enrolled: true,
-          });
+          setSelectedVisitor((prev) =>
+            prev
+              ? { ...prev, guestId: data.guestId!, enrolled: true }
+              : prev,
+          );
         }
       } finally {
         if (!controller.signal.aborted) setTimelineLoading(false);
@@ -382,90 +429,100 @@ export function AcquisitionExplorerClient({
     });
   }, [dashboard, t]);
 
+  const sourceOptions = sources.length
+    ? sources
+    : [
+        { source: "2gis", visitors: 0, pageViews: 0, loyaltyEnrolls: 0 },
+        { source: "direct", visitors: 0, pageViews: 0, loyaltyEnrolls: 0 },
+      ];
+
   const totalPages = Math.max(1, Math.ceil(visitorsTotal / 50));
+  const activeMember = timelineMember ?? selectedVisitor?.member ?? null;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPreset(p)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                preset === p
-                  ? "bg-foreground text-background"
-                  : "border border-foreground/15 text-foreground/70 hover:border-foreground/30"
-              }`}
-            >
-              {t(`dashboard.range.${p}`)}
-            </button>
-          ))}
-        </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs
+          value={preset}
+          onValueChange={(value) => setPreset(value as DashboardPreset)}
+        >
+          <TabsList>
+            {PRESETS.map((p) => (
+              <TabsTrigger key={p} value={p}>
+                {t(`dashboard.range.${p}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
         {preset === "custom" ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <input
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5"
+              className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
             />
-            <span className="text-foreground/40">→</span>
+            <span className="text-muted-foreground">-</span>
             <input
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="rounded-lg border border-foreground/15 bg-background px-2 py-1.5"
+              className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
             />
           </div>
         ) : null}
       </div>
 
       {restaurantId === null ? (
-        <p className="text-sm text-foreground/60">
-          {t("dashboard.selectRestaurant")}
-        </p>
+        <Card className="shadow-none">
+          <CardContent className="py-6 text-sm text-muted-foreground">
+            {t("dashboard.selectRestaurant")}
+          </CardContent>
+        </Card>
       ) : null}
 
       {restaurantId ? (
         <>
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-foreground/50">
-              {t("acquisition.sourcesHeading")}
-            </h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {(sources.length
-                ? sources
-                : [
-                    { source: "2gis", visitors: 0, pageViews: 0, loyaltyEnrolls: 0 },
-                    {
-                      source: "direct",
-                      visitors: 0,
-                      pageViews: 0,
-                      loyaltyEnrolls: 0,
-                    },
-                  ]
-              ).map((row) => {
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-sm font-medium text-muted-foreground">
+                {t("acquisition.sourcesHeading")}
+              </h2>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {sourceOptions.map((row) => {
                 const active = source === row.source;
                 return (
                   <button
                     key={row.source}
                     type="button"
                     onClick={() => setSource(row.source)}
-                    className={`min-w-[9rem] rounded-2xl border px-4 py-3 text-left transition ${
+                    className={cn(
+                      "rounded-xl border px-4 py-3 text-left transition-colors",
                       active
                         ? "border-foreground bg-foreground text-background"
-                        : "border-foreground/15 bg-background/50 hover:border-foreground/30"
-                    }`}
+                        : "border-border bg-card hover:bg-muted/60",
+                    )}
                   >
-                    <p className="text-sm font-semibold">
-                      {sourceLabel(t, row.source)}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">
+                        {sourceLabel(t, row.source)}
+                      </p>
+                      {active ? (
+                        <Badge
+                          variant="secondary"
+                          className="bg-background/15 text-background"
+                        >
+                          {t("acquisition.source.active")}
+                        </Badge>
+                      ) : null}
+                    </div>
                     <p
-                      className={`mt-1 text-xs tabular-nums ${
-                        active ? "text-background/70" : "text-foreground/55"
-                      }`}
+                      className={cn(
+                        "mt-1 text-xs tabular-nums",
+                        active ? "text-background/70" : "text-muted-foreground",
+                      )}
                     >
                       {t("acquisition.sourceMeta", {
                         visitors: String(row.visitors),
@@ -479,12 +536,19 @@ export function AcquisitionExplorerClient({
           </section>
 
           {loading && !dashboard ? (
-            <p className="text-sm text-foreground/60">{t("acquisition.loading")}</p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 rounded-xl" />
+              ))}
+            </div>
           ) : null}
+
           {error && !dashboard ? (
-            <p className="text-sm text-rose-700 dark:text-rose-400">
-              {t("acquisition.loadError")}
-            </p>
+            <Card className="shadow-none">
+              <CardContent className="py-6 text-sm text-destructive">
+                {t("acquisition.loadError")}
+              </CardContent>
+            </Card>
           ) : null}
 
           {dashboard ? (
@@ -496,7 +560,7 @@ export function AcquisitionExplorerClient({
                       source: sourceLabel(t, source),
                     })}
                   </h2>
-                  <p className="mt-1 text-sm text-foreground/60">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {t("acquisition.cohortHint")}
                   </p>
                 </div>
@@ -525,7 +589,7 @@ export function AcquisitionExplorerClient({
               </section>
 
               <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard
+                <ChartPanel
                   title={t("dashboard.chart.guestActivity.title")}
                   description={t("acquisition.trendHint")}
                 >
@@ -571,9 +635,9 @@ export function AcquisitionExplorerClient({
                       />
                     </ComposedChart>
                   </ChartContainer>
-                </ChartCard>
+                </ChartPanel>
 
-                <ChartCard
+                <ChartPanel
                   title={t("dashboard.chart.funnel.title")}
                   description={t("acquisition.funnelHint")}
                 >
@@ -586,7 +650,11 @@ export function AcquisitionExplorerClient({
                     }}
                     className="h-64 w-full"
                   >
-                    <BarChart data={funnelData} layout="vertical" margin={{ left: 12 }}>
+                    <BarChart
+                      data={funnelData}
+                      layout="vertical"
+                      margin={{ left: 12 }}
+                    >
                       <CartesianGrid horizontal={false} strokeOpacity={0.15} />
                       <XAxis type="number" hide />
                       <YAxis
@@ -604,11 +672,11 @@ export function AcquisitionExplorerClient({
                       />
                     </BarChart>
                   </ChartContainer>
-                </ChartCard>
+                </ChartPanel>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <ChartCard
+                <ChartPanel
                   title={t("dashboard.chart.topItemsViewed.title")}
                   description={t("acquisition.topsHint")}
                 >
@@ -619,8 +687,8 @@ export function AcquisitionExplorerClient({
                     }))}
                     empty={t("acquisition.emptyRank")}
                   />
-                </ChartCard>
-                <ChartCard
+                </ChartPanel>
+                <ChartPanel
                   title={t("dashboard.chart.topItemsCarted.title")}
                   description={t("acquisition.topsHint")}
                 >
@@ -631,8 +699,8 @@ export function AcquisitionExplorerClient({
                     }))}
                     empty={t("acquisition.emptyRank")}
                   />
-                </ChartCard>
-                <ChartCard
+                </ChartPanel>
+                <ChartPanel
                   title={t("dashboard.chart.topCategories.title")}
                   description={t("acquisition.topsHint")}
                 >
@@ -643,211 +711,207 @@ export function AcquisitionExplorerClient({
                     }))}
                     empty={t("acquisition.emptyRank")}
                   />
-                </ChartCard>
+                </ChartPanel>
               </div>
             </>
           ) : null}
 
-          <section className="rounded-2xl border border-foreground/10 bg-background/60 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md">
-            <div className="border-b border-foreground/10 px-4 py-4 sm:px-5">
-              <h2 className="text-base font-semibold tracking-tight">
-                {t("acquisition.customersHeading")}
-              </h2>
-              <p className="mt-1 text-sm text-foreground/60">
-                {t("acquisition.customersHint")}
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-foreground/10 text-xs uppercase tracking-wider text-foreground/50">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">
-                      {t("acquisition.col.visitor")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
-                      {t("acquisition.col.lastActive")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
+          <Card className="shadow-none">
+            <CardHeader className="border-b">
+              <CardTitle>{t("acquisition.customersHeading")}</CardTitle>
+              <CardDescription>{t("acquisition.customersHint")}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("acquisition.col.visitor")}</TableHead>
+                    <TableHead>{t("acquisition.col.lastActive")}</TableHead>
+                    <TableHead className="text-right">
                       {t("acquisition.col.events")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
+                    </TableHead>
+                    <TableHead className="text-right">
                       {t("acquisition.col.pages")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
+                    </TableHead>
+                    <TableHead className="text-right">
                       {t("acquisition.col.carts")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
-                      {t("acquisition.col.member")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                    <TableHead>{t("acquisition.col.member")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {visitors.length === 0 ? (
-                    <tr>
-                      <td
+                    <TableRow>
+                      <TableCell
                         colSpan={6}
-                        className="px-4 py-8 text-center text-foreground/50"
+                        className="h-28 text-center text-muted-foreground"
                       >
                         {loading
                           ? t("acquisition.loading")
                           : t("acquisition.noCustomers")}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     visitors.map((row) => (
-                      <tr
+                      <TableRow
                         key={row.visitorId}
-                        className={`cursor-pointer border-b border-foreground/5 transition hover:bg-foreground/5 ${
+                        className="cursor-pointer"
+                        data-state={
                           selectedVisitor?.visitorId === row.visitorId
-                            ? "bg-foreground/5"
-                            : ""
-                        }`}
+                            ? "selected"
+                            : undefined
+                        }
                         onClick={() => setSelectedVisitor(row)}
                       >
-                        <td className="px-4 py-3 font-mono text-xs">
+                        <TableCell className="font-mono text-xs">
                           {shortVisitorId(row.visitorId)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums text-foreground/80">
+                        </TableCell>
+                        <TableCell className="tabular-nums text-muted-foreground">
                           {formatWhen(row.lastSeenAt, locale)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">{row.eventCount}</td>
-                        <td className="px-4 py-3 tabular-nums">{row.pageViews}</td>
-                        <td className="px-4 py-3 tabular-nums">{row.cartAdds}</td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {row.eventCount}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {row.pageViews}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {row.cartAdds}
+                        </TableCell>
+                        <TableCell>
                           {row.member ? (
                             <span className="font-medium">{row.member.name}</span>
                           ) : row.enrolled ? (
-                            <span className="text-emerald-700 dark:text-emerald-400">
+                            <Badge variant="secondary">
                               {t("acquisition.enrolled")}
-                            </span>
+                            </Badge>
                           ) : (
-                            <span className="text-foreground/40">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   )}
-                </tbody>
-              </table>
-            </div>
-            {visitorsTotal > 50 ? (
-              <div className="flex items-center justify-between border-t border-foreground/10 px-4 py-3 text-sm">
-                <span className="text-foreground/55">
-                  {t("acquisition.pageOf", {
-                    page: String(page),
-                    pages: String(totalPages),
-                    total: String(visitorsTotal),
-                  })}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-foreground/15 px-3 py-1 disabled:opacity-40"
-                  >
-                    {t("acquisition.prev")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="rounded-lg border border-foreground/15 px-3 py-1 disabled:opacity-40"
-                  >
-                    {t("acquisition.next")}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </section>
+                </TableBody>
+              </Table>
+
+              {visitorsTotal > 50 ? (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <p className="text-sm text-muted-foreground">
+                      {t("acquisition.pageOf", {
+                        page: String(page),
+                        pages: String(totalPages),
+                        total: String(visitorsTotal),
+                      })}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        <ChevronLeftIcon />
+                        {t("acquisition.prev")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        {t("acquisition.next")}
+                        <ChevronRightIcon />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </CardContent>
+          </Card>
         </>
       ) : null}
 
-      {selectedVisitor ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-foreground/30 backdrop-blur-sm">
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            aria-label={t("acquisition.closeDrawer")}
-            onClick={() => {
-              setSelectedVisitor(null);
-              setTimeline([]);
-              setTimelineMember(null);
-            }}
-          />
-          <aside className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-foreground/10 bg-background shadow-2xl">
-            <div className="border-b border-foreground/10 px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold tracking-tight">
-                    {t("acquisition.drawerTitle")}
-                  </h3>
-                  <p className="mt-1 font-mono text-xs text-foreground/55">
-                    {selectedVisitor.visitorId}
-                  </p>
+      <Sheet
+        open={selectedVisitor != null}
+        onOpenChange={(open) => {
+          if (!open) closeDrawer();
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full gap-0 p-0 sm:max-w-md"
+          showCloseButton
+        >
+          <SheetHeader className="border-b p-4">
+            <SheetTitle>{t("acquisition.drawerTitle")}</SheetTitle>
+            <SheetDescription className="font-mono text-xs break-all">
+              {selectedVisitor?.visitorId}
+            </SheetDescription>
+          </SheetHeader>
+
+          {activeMember ? (
+            <div className="border-b px-4 py-3">
+              <div className="rounded-xl border bg-muted/40 px-3 py-3">
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 rounded-md bg-background p-1.5 ring-1 ring-border">
+                    <UsersIcon className="size-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{activeMember.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {activeMember.phoneE164}
+                    </p>
+                    <Link
+                      href={`/loyalty/members?guest=${encodeURIComponent(activeMember.id)}`}
+                      className="mt-2 inline-flex text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80"
+                    >
+                      {t("acquisition.openMember")}
+                    </Link>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="rounded-lg border border-foreground/15 px-2 py-1 text-sm"
-                  onClick={() => {
-                    setSelectedVisitor(null);
-                    setTimeline([]);
-                    setTimelineMember(null);
-                  }}
-                >
-                  ✕
-                </button>
               </div>
-              {(timelineMember || selectedVisitor.member) && (
-                <div className="mt-3 rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm">
-                  <p className="font-medium">
-                    {(timelineMember ?? selectedVisitor.member)!.name}
-                  </p>
-                  <p className="text-foreground/60">
-                    {(timelineMember ?? selectedVisitor.member)!.phoneE164}
-                  </p>
-                  <Link
-                    href={`/loyalty/members?guest=${encodeURIComponent(
-                      (timelineMember ?? selectedVisitor.member)!.id,
-                    )}`}
-                    className="mt-2 inline-block text-sm font-medium underline underline-offset-2"
-                  >
-                    {t("acquisition.openMember")}
-                  </Link>
-                </div>
-              )}
             </div>
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+          ) : null}
+
+          <ScrollArea className="h-[min(70dvh,calc(100dvh-12rem))]">
+            <div className="space-y-3 p-4">
               {timelineLoading ? (
-                <p className="text-sm text-foreground/55">{t("acquisition.loading")}</p>
+                <div className="space-y-2">
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                </div>
               ) : timeline.length === 0 ? (
-                <p className="text-sm text-foreground/55">
+                <p className="py-8 text-center text-sm text-muted-foreground">
                   {t("acquisition.noEvents")}
                 </p>
               ) : (
-                <ol className="space-y-3">
-                  {timeline.map((ev, idx) => (
-                    <li
-                      key={`${ev.timestamp}-${ev.event}-${idx}`}
-                      className="rounded-xl border border-foreground/10 px-3 py-2"
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-sm font-medium">
-                          {eventLabel(t, ev.event)}
-                        </p>
-                        <p className="shrink-0 text-xs tabular-nums text-foreground/50">
-                          {formatWhen(ev.timestamp, locale)}
-                        </p>
-                      </div>
-                      <EventMeta metadata={ev.metadata} />
-                    </li>
-                  ))}
-                </ol>
+                timeline.map((ev, idx) => (
+                  <div
+                    key={`${ev.timestamp}-${ev.event}-${idx}`}
+                    className="rounded-xl border px-3 py-2.5"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-sm font-medium">
+                        {eventLabel(t, ev.event)}
+                      </p>
+                      <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {formatWhen(ev.timestamp, locale)}
+                      </p>
+                    </div>
+                    <EventMeta metadata={ev.metadata} />
+                  </div>
+                ))
               )}
             </div>
-          </aside>
-        </div>
-      ) : null}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -860,20 +924,22 @@ function RankedList({
   empty: string;
 }) {
   if (!rows.length) {
-    return <p className="py-6 text-center text-sm text-foreground/45">{empty}</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>
+    );
   }
   const max = Math.max(...rows.map((r) => r.count), 1);
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-2.5">
       {rows.slice(0, 8).map((row) => (
         <li key={row.label} className="space-y-1">
           <div className="flex justify-between gap-2 text-sm">
             <span className="truncate">{row.label}</span>
-            <span className="tabular-nums text-foreground/60">{row.count}</span>
+            <span className="tabular-nums text-muted-foreground">{row.count}</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-foreground/10">
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-foreground/40"
+              className="h-full rounded-full bg-foreground/50"
               style={{ width: `${(row.count / max) * 100}%` }}
             />
           </div>
@@ -893,6 +959,8 @@ function EventMeta({ metadata }: { metadata: Record<string, unknown> }) {
   }
   if (!bits.length) return null;
   return (
-    <p className="mt-1 truncate text-xs text-foreground/50">{bits.join(" · ")}</p>
+    <p className="mt-1 truncate text-xs text-muted-foreground">
+      {bits.join(" · ")}
+    </p>
   );
 }
