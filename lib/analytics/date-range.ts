@@ -1,4 +1,4 @@
-import { isoToYmdInZone, startOfDayUtcIso } from "../zoned-datetime.js";
+import { isoToYmdInZone, startOfDayUtcIso } from "@/lib/zoned-datetime";
 
 export const ANALYTICS_MAX_DAYS = 366;
 
