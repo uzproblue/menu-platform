@@ -326,6 +326,7 @@ export const uzMessages: Messages = {
     "Ushbu restoran uchun mehmon menyusi skinini tanlang. Brend paketlari — mahsulot tomonidan boshqariladigan tayyor layoutlar, erkin rang tanlash emas.",
   "settings.guestMenuThemeLabel": "Tema paketi",
   "settings.guestMenuThemeDefault": "Standart (joriy)",
+  "settings.guestMenuThemeMaxcreme": "Max Cream",
   "settings.guestMenuThemeNote":
     "Saqlash barcha lokatsiyalar mehmon menyularini qayta nashr qiladi — yangi skin darhol qo'llaniladi.",
   "settings.guestMenuThemeSave": "Ko'rinishni saqlash",

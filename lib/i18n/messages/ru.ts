@@ -326,6 +326,7 @@ export const ruMessages: Messages = {
     "Выберите оформление гостевого меню для этого ресторана. Брендовые пакеты — готовые скины продукта, а не свободный выбор цветов.",
   "settings.guestMenuThemeLabel": "Пакет темы",
   "settings.guestMenuThemeDefault": "По умолчанию (текущий)",
+  "settings.guestMenuThemeMaxcreme": "Max Cream",
   "settings.guestMenuThemeNote":
     "Сохранение заново публикует гостевые меню всех локаций, чтобы новый скин применился сразу.",
   "settings.guestMenuThemeSave": "Сохранить оформление",

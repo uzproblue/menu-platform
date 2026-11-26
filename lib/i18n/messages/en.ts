@@ -330,6 +330,7 @@ export const enMessages: Messages = {
     "Choose the guest menu skin for this restaurant. Brand packs are product-managed layouts — not free color editing.",
   "settings.guestMenuThemeLabel": "Theme pack",
   "settings.guestMenuThemeDefault": "Default (current)",
+  "settings.guestMenuThemeMaxcreme": "Max Cream",
   "settings.guestMenuThemeNote":
     "Saving republishes all location guest menus so the new skin applies immediately.",
   "settings.guestMenuThemeSave": "Save appearance",

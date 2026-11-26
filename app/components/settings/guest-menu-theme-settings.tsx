@@ -10,8 +10,9 @@ import {
 } from "@/lib/guest-menu-theme";
 
 type ThemeResponse = {
-  restaurantId: string;
-  guestMenuThemeId: string;
+  restaurantId?: string;
+  guestMenuThemeId?: string;
+  message?: string;
   options?: Array<{ id: string; label: string }>;
   export?: {
     ok: boolean;
@@ -42,9 +43,11 @@ export function GuestMenuThemeSettings() {
         const data = (await res.json().catch(() => null)) as ThemeResponse | null;
         if (!res.ok) {
           if (!cancelled) {
-            setError(data && "message" in (data as object)
-              ? String((data as { message?: string }).message || t("settings.guestMenuThemeLoadError"))
-              : t("settings.guestMenuThemeLoadError"));
+            setError(
+              data && typeof data.message === "string"
+                ? data.message
+                : t("settings.guestMenuThemeLoadError"),
+            );
           }
           return;
         }
@@ -78,8 +81,8 @@ export function GuestMenuThemeSettings() {
       const data = (await res.json().catch(() => null)) as ThemeResponse | null;
       if (!res.ok) {
         setError(
-          data && typeof (data as { message?: unknown }).message === "string"
-            ? (data as { message: string }).message
+          data && typeof data.message === "string"
+            ? data.message
             : t("settings.guestMenuThemeSaveError"),
         );
         return;
