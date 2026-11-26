@@ -30,10 +30,12 @@ export function AcquisitionSourcesTeaser({
   restaurantId,
   from,
   to,
+  timeZone,
 }: {
   restaurantId: string;
   from: string;
   to: string;
+  timeZone?: string;
 }) {
   const { t } = useI18n();
   const [sources, setSources] = useState<SourceRow[]>([]);
@@ -42,6 +44,7 @@ export function AcquisitionSourcesTeaser({
   useEffect(() => {
     const controller = new AbortController();
     const params = new URLSearchParams({ from, to, restaurantId });
+    if (timeZone) params.set("timeZone", timeZone);
     void (async () => {
       try {
         const res = await fetch(`/api/analytics/acquisition/sources?${params}`, {
@@ -57,7 +60,7 @@ export function AcquisitionSourcesTeaser({
       }
     })();
     return () => controller.abort();
-  }, [restaurantId, from, to]);
+  }, [restaurantId, from, to, timeZone]);
 
   const ranked = sources
     .filter((s) => s.visitors > 0 || s.loyaltyEnrolls > 0 || s.source === "2gis")

@@ -38,6 +38,7 @@ export async function GET(
     preset: url.searchParams.get("preset"),
     from: url.searchParams.get("from"),
     to: url.searchParams.get("to"),
+    timeZone: url.searchParams.get("timeZone"),
   });
   if (!isResolvedDashboardRange(range)) {
     return NextResponse.json({ error: range.error }, { status: 400 });

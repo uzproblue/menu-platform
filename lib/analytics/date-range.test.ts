@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildTrendBuckets, resolveDashboardRange } from "./date-range.ts";
+import {
+  buildTrendBuckets,
+  resolveDashboardRange,
+  todayYmdInZone,
+} from "./date-range.ts";
 
 const NOW = new Date("2026-11-18T15:00:00.000Z");
 
@@ -16,6 +20,9 @@ describe("resolveDashboardRange", () => {
 
     assert.deepEqual([day.from, day.to, day.bucket], ["2026-11-18", "2026-11-18", "hour"]);
     assert.deepEqual([day.previousFrom, day.previousTo], ["2026-11-17", "2026-11-17"]);
+    assert.equal(day.timeZone, "UTC");
+    assert.equal(day.fromMs, Date.parse("2026-11-18T00:00:00.000Z"));
+    assert.equal(day.toExclusiveMs, Date.parse("2026-11-19T00:00:00.000Z"));
     assert.deepEqual([week.from, week.to, week.bucket], ["2026-11-16", "2026-11-18", "day"]);
     assert.deepEqual([week.previousFrom, week.previousTo], ["2026-11-13", "2026-11-15"]);
     assert.deepEqual([month.from, month.to], ["2026-11-01", "2026-11-18"]);
@@ -30,9 +37,44 @@ describe("resolveDashboardRange", () => {
     if (!("error" in ok)) {
       assert.equal(ok.bucket, "week");
       assert.equal(ok.dayCount, 74);
+      assert.equal(ok.timeZone, "UTC");
     }
     assert.deepEqual(inverted, { error: "invalid_range" });
     assert.deepEqual(tooLong, { error: "range_too_long" });
+  });
+
+  it("resolves today in Asia/Almaty across the UTC midnight boundary", () => {
+    const beforeUtcMidnight = new Date("2026-11-25T20:00:00.000Z"); // Nov 26 01:00 Almaty
+    const afterUtcMidnight = new Date("2026-11-26T01:00:00.000Z"); // Nov 26 06:00 Almaty
+
+    assert.equal(todayYmdInZone(beforeUtcMidnight, "UTC"), "2026-11-25");
+    assert.equal(todayYmdInZone(beforeUtcMidnight, "Asia/Almaty"), "2026-11-26");
+    assert.equal(todayYmdInZone(afterUtcMidnight, "Asia/Almaty"), "2026-11-26");
+
+    const day = resolveDashboardRange({
+      preset: "day",
+      now: beforeUtcMidnight,
+      timeZone: "Asia/Almaty",
+    });
+    assert.equal("error" in day, false);
+    if ("error" in day) return;
+    assert.deepEqual([day.from, day.to], ["2026-11-26", "2026-11-26"]);
+    assert.equal(day.fromMs, Date.parse("2026-11-25T19:00:00.000Z"));
+    assert.equal(day.toExclusiveMs, Date.parse("2026-11-26T19:00:00.000Z"));
+  });
+
+  it("uses Almaty midnight for an explicit day range, not UTC midnight", () => {
+    const day = resolveDashboardRange({
+      preset: "day",
+      from: "2026-11-25",
+      to: "2026-11-25",
+      timeZone: "Asia/Almaty",
+    });
+    assert.equal("error" in day, false);
+    if ("error" in day) return;
+    assert.equal(day.fromMs, Date.parse("2026-11-24T19:00:00.000Z"));
+    assert.equal(day.toExclusiveMs, Date.parse("2026-11-25T19:00:00.000Z"));
+    assert.equal(day.timeZone, "Asia/Almaty");
   });
 });
 
@@ -48,6 +90,7 @@ describe("buildTrendBuckets", () => {
     assert.equal(hours.length, 24);
     assert.equal(hours[0]?.key, "00");
     assert.equal(hours[23]?.label, "23");
+    assert.equal(hours[0]?.startMs, Date.parse("2026-11-18T00:00:00.000Z"));
 
     const days = buildTrendBuckets(week);
     assert.deepEqual(days.map((bucket) => bucket.label), ["Mon", "Tue", "Wed"]);
@@ -58,5 +101,22 @@ describe("buildTrendBuckets", () => {
     assert.equal(weeks[0]?.endMs, Date.parse("2026-01-05T00:00:00.000Z"));
     assert.equal(weeks[1]?.key, "2026-01-05");
     assert.equal(weeks.at(-1)?.endMs, Date.parse("2026-03-16T00:00:00.000Z"));
+  });
+
+  it("builds Almaty-local hour buckets from restaurant midnight", () => {
+    const day = resolveDashboardRange({
+      preset: "day",
+      from: "2026-11-25",
+      to: "2026-11-25",
+      timeZone: "Asia/Almaty",
+    });
+    assert.equal("error" in day, false);
+    if ("error" in day) return;
+
+    const hours = buildTrendBuckets(day);
+    assert.equal(hours.length, 24);
+    assert.equal(hours[0]?.startMs, Date.parse("2026-11-24T19:00:00.000Z"));
+    assert.equal(hours[5]?.startMs, Date.parse("2026-11-25T00:00:00.000Z"));
+    assert.equal(hours[23]?.endMs, Date.parse("2026-11-25T19:00:00.000Z"));
   });
 });

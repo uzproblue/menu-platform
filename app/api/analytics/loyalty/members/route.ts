@@ -15,7 +15,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const access = await requireLoyaltyRestaurantAccess(token);
+  const url = new URL(req.url);
+  const access = await requireLoyaltyRestaurantAccess(
+    token,
+    url.searchParams.get("restaurantId"),
+  );
   if (!access.ok) {
     return NextResponse.json(
       { error: access.error, message: access.message },
@@ -23,7 +27,6 @@ export async function GET(req: Request) {
     );
   }
 
-  const url = new URL(req.url);
   const range = resolveDashboardRange({
     preset: url.searchParams.get("preset"),
     from: url.searchParams.get("from"),

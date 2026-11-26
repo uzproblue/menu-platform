@@ -191,7 +191,7 @@ export const uzMessages: Messages = {
   "dashboard.range.custom": "Davr",
   "dashboard.range.from": "Dan",
   "dashboard.range.to": "Gacha",
-  "dashboard.range.active": "{from} – {to} UTC",
+  "dashboard.range.active": "{from} – {to} ({timezone})",
   "dashboard.range.vsPrevious": "{from} – {to} bilan solishtirish",
   "dashboard.range.invalid": "Boshlanish sanasi tugash sanasidan kech bo'lmasin, davr 366 kungacha.",
   "dashboard.range.updating": "Yangilanmoqda…",
@@ -209,7 +209,7 @@ export const uzMessages: Messages = {
     "Noyob tashrif buyuruvchilar, sahifa ko'rishlari va savatga qo'shishlar.",
   "dashboard.chart.funnel.title": "Konversiya voronkasi",
   "dashboard.chart.funnel.description": "Menyu → kategoriya → taom ko'rish → savat.",
-  "dashboard.chart.hourly.title": "Soatlik faollik (UTC)",
+  "dashboard.chart.hourly.title": "Soatlik faollik ({timezone})",
   "dashboard.chart.hourly.description": "Mehmonlar kun davomida menyuni qachon ko'radi.",
   "dashboard.chart.topItemsViewed.title": "Eng ko'p ko'rilgan taomlar",
   "dashboard.chart.topItemsViewed.description": "Shu davrda eng ko'p ko'rilgan menyu pozitsiyalari.",
@@ -258,6 +258,8 @@ export const uzMessages: Messages = {
   "dashboard.loyalty.waitersTitle": "Birinchi buyurtma ofitsiantlari",
   "dashboard.loyalty.waitersDescription":
     "Birinchi buyurtmasi shu davrda ofitsiantga yozilgan a'zolar.",
+  "dashboard.loyalty.waitersEmptyWithOrders":
+    "Shu davrda sodiqlik buyurtmalari bor, lekin hech kimning birinchi buyurtmasi shu sanalarga to'g'ri kelmadi.",
   "dashboard.loyalty.unknownWaiter": "Noma'lum",
   "dashboard.loyalty.unavailable": "Sodiqlik analitikasini yuklab bo'lmadi.",
   "dashboard.loyalty.enrollFunnel": "{started} ta menyu boshlanishidan {enrolled} tasi yakunlandi.",
@@ -318,6 +320,20 @@ export const uzMessages: Messages = {
   "settings.signedInAs": "Tizimga kirgan",
   "settings.saveName": "Ismni saqlash",
   "settings.saving": "Saqlanmoqda...",
+  "settings.loading": "Yuklanmoqda...",
+  "settings.guestMenuTheme": "Mehmon menyusi ko'rinishi",
+  "settings.guestMenuThemeHelp":
+    "Ushbu restoran uchun mehmon menyusi skinini tanlang. Brend paketlari — mahsulot tomonidan boshqariladigan tayyor layoutlar, erkin rang tanlash emas.",
+  "settings.guestMenuThemeLabel": "Tema paketi",
+  "settings.guestMenuThemeDefault": "Standart (joriy)",
+  "settings.guestMenuThemeNote":
+    "Saqlash barcha lokatsiyalar mehmon menyularini qayta nashr qiladi — yangi skin darhol qo'llaniladi.",
+  "settings.guestMenuThemeSave": "Ko'rinishni saqlash",
+  "settings.guestMenuThemeSaved": "Mehmon menyusi ko'rinishi saqlandi va menyular qayta nashr qilindi.",
+  "settings.guestMenuThemeSavedExportPartial":
+    "Ko'rinish saqlandi, lekin {total} dan faqat {succeeded} lokatsiya menyusi qayta nashr qilindi. Keyinroq qayta urinib ko'ring.",
+  "settings.guestMenuThemeLoadError": "Mehmon menyusi ko'rinishini yuklab bo'lmadi.",
+  "settings.guestMenuThemeSaveError": "Mehmon menyusi ko'rinishini saqlab bo'lmadi.",
   "settings.password": "Parol",
   "settings.passwordHelp": "Hisob parolini o'zgartiring.",
   "settings.currentPassword": "Joriy parol",

@@ -54,9 +54,12 @@ import { useI18n } from "@/app/components/i18n-provider";
 import {
   isResolvedDashboardRange,
   resolveDashboardRange,
+  todayYmdInZone,
   type DashboardPreset,
 } from "@/lib/analytics/date-range";
 import type { GuestDashboardData, GuestFunnelStepKey } from "@/lib/analytics/types";
+import { DEFAULT_LOCATION_TIMEZONE } from "@/lib/location-timezones";
+import type { Location, LocationsResponse } from "@/lib/auth-api/types/locations";
 import { cn } from "@/lib/utils";
 
 const PRESETS: DashboardPreset[] = ["day", "week", "month", "custom"];
@@ -214,8 +217,10 @@ export function AcquisitionExplorerClient({
     undefined,
   );
   const [preset, setPreset] = useState<DashboardPreset>("week");
+  const [dayDate, setDayDate] = useState("");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [timeZone, setTimeZone] = useState(DEFAULT_LOCATION_TIMEZONE);
   const [source, setSource] = useState(initialSource || "2gis");
   const [sources, setSources] = useState<SourceRow[]>([]);
   const [dashboard, setDashboard] = useState<
@@ -235,18 +240,46 @@ export function AcquisitionExplorerClient({
   );
   const [timelineLoading, setTimelineLoading] = useState(false);
 
+  const restaurantToday = useMemo(() => todayYmdInZone(new Date(), timeZone), [timeZone]);
+
   const range = useMemo(() => {
-    return resolveDashboardRange({
-      preset,
-      from: preset === "custom" ? customFrom : null,
-      to: preset === "custom" ? customTo : null,
-    });
-  }, [preset, customFrom, customTo]);
+    if (preset === "custom") {
+      return resolveDashboardRange({
+        preset: "custom",
+        from: customFrom,
+        to: customTo,
+        timeZone,
+      });
+    }
+    if (preset === "day" && dayDate) {
+      return resolveDashboardRange({
+        preset: "day",
+        from: dayDate,
+        to: dayDate,
+        timeZone,
+      });
+    }
+    return resolveDashboardRange({ preset, timeZone });
+  }, [preset, dayDate, customFrom, customTo, timeZone]);
 
   const rangeKey = useMemo(() => {
     if (!isResolvedDashboardRange(range)) return "";
-    return `${range.from}:${range.to}`;
+    return `${range.from}:${range.to}:${range.timeZone}`;
   }, [range]);
+
+  function selectPreset(next: DashboardPreset) {
+    if (next === "day" && !dayDate) {
+      setDayDate(restaurantToday);
+    }
+    if (next === "custom" && (!customFrom || !customTo)) {
+      const week = resolveDashboardRange({ preset: "week", timeZone });
+      if (isResolvedDashboardRange(week)) {
+        setCustomFrom(week.from);
+        setCustomTo(week.to);
+      }
+    }
+    setPreset(next);
+  }
 
   const closeDrawer = useCallback(() => {
     setSelectedVisitor(null);
@@ -290,6 +323,29 @@ export function AcquisitionExplorerClient({
   }, []);
 
   useEffect(() => {
+    if (!restaurantId) {
+      setTimeZone(DEFAULT_LOCATION_TIMEZONE);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings/locations", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const payload = (await res.json()) as LocationsResponse | Location[];
+        const locations = Array.isArray(payload) ? payload : (payload.locations ?? []);
+        const tz = locations[0]?.timezone?.trim() || DEFAULT_LOCATION_TIMEZONE;
+        if (!cancelled) setTimeZone(tz);
+      } catch {
+        if (!cancelled) setTimeZone(DEFAULT_LOCATION_TIMEZONE);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId]);
+
+  useEffect(() => {
     if (restaurantId === undefined) return;
     if (!restaurantId || !rangeKey || !isResolvedDashboardRange(range)) {
       setLoading(false);
@@ -303,6 +359,7 @@ export function AcquisitionExplorerClient({
     const params = new URLSearchParams({
       from: range.from,
       to: range.to,
+      timeZone: range.timeZone,
       restaurantId,
     });
 
@@ -367,6 +424,7 @@ export function AcquisitionExplorerClient({
     const params = new URLSearchParams({
       from: range.from,
       to: range.to,
+      timeZone: range.timeZone,
       restaurantId,
     });
     void (async () => {
@@ -444,7 +502,7 @@ export function AcquisitionExplorerClient({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           value={preset}
-          onValueChange={(value) => setPreset(value as DashboardPreset)}
+          onValueChange={(value) => selectPreset(value as DashboardPreset)}
         >
           <TabsList>
             {PRESETS.map((p) => (
@@ -455,11 +513,22 @@ export function AcquisitionExplorerClient({
           </TabsList>
         </Tabs>
 
+        {preset === "day" ? (
+          <input
+            type="date"
+            value={dayDate || restaurantToday}
+            max={restaurantToday}
+            onChange={(e) => setDayDate(e.target.value)}
+            className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
+          />
+        ) : null}
+
         {preset === "custom" ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <input
               type="date"
               value={customFrom}
+              max={customTo && customTo < restaurantToday ? customTo : restaurantToday}
               onChange={(e) => setCustomFrom(e.target.value)}
               className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
             />
@@ -467,6 +536,8 @@ export function AcquisitionExplorerClient({
             <input
               type="date"
               value={customTo}
+              min={customFrom || undefined}
+              max={restaurantToday}
               onChange={(e) => setCustomTo(e.target.value)}
               className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
             />

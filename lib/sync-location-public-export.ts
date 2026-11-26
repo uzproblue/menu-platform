@@ -4,10 +4,12 @@ import {
   getLocationsWithAuthServer,
   getLocationWithAuthServer,
   getPublishedPromotionStoriesForLocationWithAuthServer,
+  getRestaurantGuestMenuThemeWithAuthServer,
   patchLocationMenuExportWithAuthServer,
   syncCategoryTranslationsWithAuthServer,
   syncMenuItemTranslationsWithAuthServer,
 } from "@/lib/auth-api";
+import { normalizeGuestMenuThemeId } from "@/lib/guest-menu-theme";
 import { getSelectedRestaurantIdFromCookies } from "@/lib/restaurant-context";
 import { purgeCloudflareUrls } from "@/lib/cloudflare-cache";
 import {
@@ -493,6 +495,7 @@ export async function syncLocationPublicExportToR2(
             ...payload,
             schemaVersion: LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
             exportedAt: new Date().toISOString(),
+            guestMenuThemeId: normalizeGuestMenuThemeId(payload.guestMenuThemeId),
             promotionStories: expandPromotionStoriesForExport(
               storiesRes.data.stories,
               r2Config.publicBaseUrl,
@@ -508,6 +511,7 @@ export async function syncLocationPublicExportToR2(
             ...payload,
             schemaVersion: LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
             exportedAt: new Date().toISOString(),
+            guestMenuThemeId: normalizeGuestMenuThemeId(payload.guestMenuThemeId),
           };
         }
       } else {
@@ -557,11 +561,24 @@ export async function syncLocationPublicExportToR2(
       );
     }
 
+    const themeRestaurantId = restaurantId || menuRes.data.restaurantId;
+    let guestMenuThemeId = "default";
+    if (themeRestaurantId) {
+      const themeRes = await getRestaurantGuestMenuThemeWithAuthServer(
+        accessToken,
+        themeRestaurantId,
+      );
+      if (themeRes.ok) {
+        guestMenuThemeId = normalizeGuestMenuThemeId(themeRes.data.guestMenuThemeId);
+      }
+    }
+
     payload = buildLocationPublicExport(
       locRes.data.location,
       menuRes.data,
       r2Config.publicBaseUrl,
       storiesRes.ok ? storiesRes.data.stories : [],
+      guestMenuThemeId,
     );
   }
 

@@ -18,3 +18,4 @@ export * from "./promotion-stories";
 export type * from "./types/promotion-stories";
 export * from "./meal-constructors";
 export type * from "./types/meal-constructors";
+export * from "./guest-menu-theme";

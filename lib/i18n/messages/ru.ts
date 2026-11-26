@@ -191,7 +191,7 @@ export const ruMessages: Messages = {
   "dashboard.range.custom": "Период",
   "dashboard.range.from": "С",
   "dashboard.range.to": "По",
-  "dashboard.range.active": "{from} – {to} UTC",
+  "dashboard.range.active": "{from} – {to} ({timezone})",
   "dashboard.range.vsPrevious": "Сравнение с {from} – {to}",
   "dashboard.range.invalid": "Дата начала должна быть не позже даты окончания, период до 366 дней.",
   "dashboard.range.updating": "Обновление…",
@@ -209,7 +209,7 @@ export const ruMessages: Messages = {
     "Уникальные посетители, просмотры страниц и добавления в корзину.",
   "dashboard.chart.funnel.title": "Воронка конверсии",
   "dashboard.chart.funnel.description": "Меню → категория → просмотр блюда → корзина.",
-  "dashboard.chart.hourly.title": "Почасовая активность (UTC)",
+  "dashboard.chart.hourly.title": "Почасовая активность ({timezone})",
   "dashboard.chart.hourly.description": "Когда гости просматривают меню в течение дня.",
   "dashboard.chart.topItemsViewed.title": "Топ просмотренных блюд",
   "dashboard.chart.topItemsViewed.description": "Самые просматриваемые позиции меню за период.",
@@ -258,6 +258,8 @@ export const ruMessages: Messages = {
   "dashboard.loyalty.waitersTitle": "Официанты первого заказа",
   "dashboard.loyalty.waitersDescription":
     "Участники, чей первый заказ в этом периоде засчитан официанту.",
+  "dashboard.loyalty.waitersEmptyWithOrders":
+    "В периоде есть заказы лояльности, но ни у кого из гостей первый заказ не пришёлся на эти даты.",
   "dashboard.loyalty.unknownWaiter": "Неизвестно",
   "dashboard.loyalty.unavailable": "Не удалось загрузить аналитику лояльности.",
   "dashboard.loyalty.enrollFunnel": "{enrolled} завершённых регистраций из {started} стартов в меню.",
@@ -318,6 +320,20 @@ export const ruMessages: Messages = {
   "settings.signedInAs": "Вы вошли как",
   "settings.saveName": "Сохранить имя",
   "settings.saving": "Сохранение...",
+  "settings.loading": "Загрузка...",
+  "settings.guestMenuTheme": "Внешний вид гостевого меню",
+  "settings.guestMenuThemeHelp":
+    "Выберите оформление гостевого меню для этого ресторана. Брендовые пакеты — готовые скины продукта, а не свободный выбор цветов.",
+  "settings.guestMenuThemeLabel": "Пакет темы",
+  "settings.guestMenuThemeDefault": "По умолчанию (текущий)",
+  "settings.guestMenuThemeNote":
+    "Сохранение заново публикует гостевые меню всех локаций, чтобы новый скин применился сразу.",
+  "settings.guestMenuThemeSave": "Сохранить оформление",
+  "settings.guestMenuThemeSaved": "Оформление сохранено, меню локаций переопубликованы.",
+  "settings.guestMenuThemeSavedExportPartial":
+    "Оформление сохранено, но переопубликовано только {succeeded} из {total} меню локаций. Попробуйте ещё раз позже.",
+  "settings.guestMenuThemeLoadError": "Не удалось загрузить оформление гостевого меню.",
+  "settings.guestMenuThemeSaveError": "Не удалось сохранить оформление гостевого меню.",
   "settings.password": "Пароль",
   "settings.passwordHelp": "Измените пароль учетной записи.",
   "settings.currentPassword": "Текущий пароль",

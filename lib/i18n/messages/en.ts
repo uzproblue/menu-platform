@@ -195,7 +195,7 @@ export const enMessages: Messages = {
   "dashboard.range.custom": "Custom",
   "dashboard.range.from": "From",
   "dashboard.range.to": "To",
-  "dashboard.range.active": "{from} – {to} UTC",
+  "dashboard.range.active": "{from} – {to} ({timezone})",
   "dashboard.range.vsPrevious": "Compared with {from} – {to}",
   "dashboard.range.invalid": "Choose a start date on or before the end date, up to 366 days.",
   "dashboard.range.updating": "Updating…",
@@ -213,7 +213,7 @@ export const enMessages: Messages = {
     "Unique visitors, page views, and cart adds.",
   "dashboard.chart.funnel.title": "Conversion funnel",
   "dashboard.chart.funnel.description": "Menu open → category → item view → cart add.",
-  "dashboard.chart.hourly.title": "Hourly activity (UTC)",
+  "dashboard.chart.hourly.title": "Hourly activity ({timezone})",
   "dashboard.chart.hourly.description": "When guests browse the menu during the day.",
   "dashboard.chart.topItemsViewed.title": "Top items viewed",
   "dashboard.chart.topItemsViewed.description": "Most viewed menu items in this range.",
@@ -262,6 +262,8 @@ export const enMessages: Messages = {
   "dashboard.loyalty.waitersTitle": "First-order waiters",
   "dashboard.loyalty.waitersDescription":
     "Members whose first order in this range is credited to each waiter.",
+  "dashboard.loyalty.waitersEmptyWithOrders":
+    "There were loyalty orders in this range, but no guest’s first-ever order fell in these dates.",
   "dashboard.loyalty.unknownWaiter": "Unknown",
   "dashboard.loyalty.unavailable": "Loyalty analytics could not be loaded.",
   "dashboard.loyalty.enrollFunnel": "{enrolled} completed enrollments from {started} menu starts.",
@@ -322,6 +324,20 @@ export const enMessages: Messages = {
   "settings.signedInAs": "Signed in as",
   "settings.saveName": "Save name",
   "settings.saving": "Saving...",
+  "settings.loading": "Loading...",
+  "settings.guestMenuTheme": "Guest menu appearance",
+  "settings.guestMenuThemeHelp":
+    "Choose the guest menu skin for this restaurant. Brand packs are product-managed layouts — not free color editing.",
+  "settings.guestMenuThemeLabel": "Theme pack",
+  "settings.guestMenuThemeDefault": "Default (current)",
+  "settings.guestMenuThemeNote":
+    "Saving republishes all location guest menus so the new skin applies immediately.",
+  "settings.guestMenuThemeSave": "Save appearance",
+  "settings.guestMenuThemeSaved": "Guest menu appearance saved and menus republished.",
+  "settings.guestMenuThemeSavedExportPartial":
+    "Appearance saved, but only {succeeded} of {total} location menus republished. Try again or refresh menus later.",
+  "settings.guestMenuThemeLoadError": "Failed to load guest menu appearance.",
+  "settings.guestMenuThemeSaveError": "Failed to save guest menu appearance.",
   "settings.password": "Password",
   "settings.passwordHelp": "Change your account password.",
   "settings.currentPassword": "Current password",

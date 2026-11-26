@@ -22,6 +22,7 @@ import { useI18n } from "@/app/components/i18n-provider";
 import {
   isResolvedDashboardRange,
   resolveDashboardRange,
+  todayYmdInZone,
   type DashboardPreset,
   type ResolvedDashboardRange,
 } from "@/lib/analytics/date-range";
@@ -29,6 +30,8 @@ import type { LoyaltyAnalytics, LoyaltyAnalyticsWaiter, LoyaltyWaiterMembers } f
 import type { GuestDashboardData, GuestFunnelStepKey } from "@/lib/analytics/types";
 import { AcquisitionSourcesTeaser } from "@/app/components/analytics/acquisition-sources-teaser";
 import { formatMinorCurrency } from "@/lib/currency-minor-units";
+import { DEFAULT_LOCATION_TIMEZONE } from "@/lib/location-timezones";
+import type { Location, LocationsResponse } from "@/lib/auth-api/types/locations";
 
 const PRESETS: DashboardPreset[] = ["day", "week", "month", "custom"];
 
@@ -141,7 +144,11 @@ function HorizontalBarChart({
   onItemClick?: (key: string) => void;
 }) {
   if (data.length === 0) {
-    return <p className="flex h-72 items-center justify-center text-sm text-foreground/50">{emptyLabel}</p>;
+    return (
+      <p className="flex h-72 items-center justify-center px-4 text-center text-sm text-foreground/50">
+        {emptyLabel}
+      </p>
+    );
   }
 
   return (
@@ -218,8 +225,10 @@ export function HomeDashboardCharts() {
   const { t, locale } = useI18n();
   const gradId = useId().replace(/:/g, "");
   const [preset, setPreset] = useState<DashboardPreset>("week");
+  const [dayDate, setDayDate] = useState("");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [timeZone, setTimeZone] = useState(DEFAULT_LOCATION_TIMEZONE);
   const [restaurantId, setRestaurantId] = useState<string | null | undefined>(undefined);
   const [guest, setGuest] = useState<GuestDashboardData | null>(null);
   const [loyalty, setLoyalty] = useState<LoyaltyAnalytics | null>(null);
@@ -231,13 +240,30 @@ export function HomeDashboardCharts() {
   const loyaltyRef = useRef<LoyaltyAnalytics | null>(null);
   const seenRestaurant = useRef<string | null | undefined>(undefined);
 
+  const restaurantToday = useMemo(() => todayYmdInZone(new Date(), timeZone), [timeZone]);
+
   const resolved = useMemo(() => {
     if (preset === "custom") {
-      return resolveDashboardRange({ preset: "custom", from: customFrom, to: customTo });
+      return resolveDashboardRange({
+        preset: "custom",
+        from: customFrom,
+        to: customTo,
+        timeZone,
+      });
     }
-    return resolveDashboardRange({ preset });
-  }, [preset, customFrom, customTo]);
-  const rangeKey = isResolvedDashboardRange(resolved) ? `${resolved.from}:${resolved.to}` : "";
+    if (preset === "day" && dayDate) {
+      return resolveDashboardRange({
+        preset: "day",
+        from: dayDate,
+        to: dayDate,
+        timeZone,
+      });
+    }
+    return resolveDashboardRange({ preset, timeZone });
+  }, [preset, dayDate, customFrom, customTo, timeZone]);
+  const rangeKey = isResolvedDashboardRange(resolved)
+    ? `${resolved.from}:${resolved.to}:${resolved.timeZone}`
+    : "";
 
   const trendConfig = useMemo(
     () =>
@@ -316,6 +342,29 @@ export function HomeDashboardCharts() {
   }, []);
 
   useEffect(() => {
+    if (!restaurantId) {
+      setTimeZone(DEFAULT_LOCATION_TIMEZONE);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/settings/locations", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const payload = (await res.json()) as LocationsResponse | Location[];
+        const locations = Array.isArray(payload) ? payload : (payload.locations ?? []);
+        const tz = locations[0]?.timezone?.trim() || DEFAULT_LOCATION_TIMEZONE;
+        if (!cancelled) setTimeZone(tz);
+      } catch {
+        if (!cancelled) setTimeZone(DEFAULT_LOCATION_TIMEZONE);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId]);
+
+  useEffect(() => {
     if (restaurantId === undefined) return;
     if (seenRestaurant.current !== undefined && seenRestaurant.current !== restaurantId) {
       guestRef.current = null;
@@ -332,17 +381,19 @@ export function HomeDashboardCharts() {
       setRefreshing(false);
       return;
     }
-    const [from, to] = rangeKey.split(":");
+    const [from, to, tz] = rangeKey.split(":");
     const controller = new AbortController();
     setRefreshing(true);
 
     const guestUrl = new URL("/api/analytics/guest-dashboard", window.location.origin);
     guestUrl.searchParams.set("from", from ?? "");
     guestUrl.searchParams.set("to", to ?? "");
+    guestUrl.searchParams.set("timeZone", tz || timeZone);
     guestUrl.searchParams.set("restaurantId", restaurantId);
     const loyaltyUrl = new URL("/api/analytics/loyalty", window.location.origin);
     loyaltyUrl.searchParams.set("from", from ?? "");
     loyaltyUrl.searchParams.set("to", to ?? "");
+    loyaltyUrl.searchParams.set("restaurantId", restaurantId);
 
     void (async () => {
       try {
@@ -387,8 +438,11 @@ export function HomeDashboardCharts() {
   }, [restaurantId, rangeKey]);
 
   function selectPreset(next: DashboardPreset) {
+    if (next === "day" && !dayDate) {
+      setDayDate(restaurantToday);
+    }
     if (next === "custom" && (!customFrom || !customTo)) {
-      const week = resolveDashboardRange({ preset: "week" });
+      const week = resolveDashboardRange({ preset: "week", timeZone });
       if (isResolvedDashboardRange(week)) {
         setCustomFrom(week.from);
         setCustomTo(week.to);
@@ -409,7 +463,11 @@ export function HomeDashboardCharts() {
             {activeRange ? (
               <p className="mt-2 text-xs text-foreground/55">
                 <span className="font-medium text-foreground/80">
-                  {t("dashboard.range.active", { from: activeRange.from, to: activeRange.to })}
+                  {t("dashboard.range.active", {
+                    from: activeRange.from,
+                    to: activeRange.to,
+                    timezone: activeRange.timeZone,
+                  })}
                 </span>
                 <span className="mx-2 text-foreground/30">·</span>
                 {t("dashboard.range.vsPrevious", {
@@ -440,6 +498,18 @@ export function HomeDashboardCharts() {
                 </button>
               ))}
             </div>
+            {preset === "day" ? (
+              <label className="text-xs text-foreground/60">
+                {t("dashboard.range.day")}
+                <input
+                  type="date"
+                  value={dayDate || restaurantToday}
+                  max={restaurantToday}
+                  onChange={(event) => setDayDate(event.target.value)}
+                  className="mt-1 block rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
+                />
+              </label>
+            ) : null}
             {preset === "custom" ? (
               <div className="flex flex-wrap items-end gap-2">
                 <label className="text-xs text-foreground/60">
@@ -447,7 +517,7 @@ export function HomeDashboardCharts() {
                   <input
                     type="date"
                     value={customFrom}
-                    max={customTo || undefined}
+                    max={customTo && customTo < restaurantToday ? customTo : restaurantToday}
                     onChange={(event) => setCustomFrom(event.target.value)}
                     className="mt-1 block rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
                   />
@@ -458,6 +528,7 @@ export function HomeDashboardCharts() {
                     type="date"
                     value={customTo}
                     min={customFrom || undefined}
+                    max={restaurantToday}
                     onChange={(event) => setCustomTo(event.target.value)}
                     className="mt-1 block rounded-lg border border-foreground/15 bg-background px-2 py-1.5 text-sm text-foreground"
                   />
@@ -494,6 +565,7 @@ export function HomeDashboardCharts() {
               locale={locale}
               t={t}
               gradId={gradId}
+              timeZone={timeZone}
               trendConfig={trendConfig}
               funnelConfig={funnelConfig}
               hourlyConfig={hourlyConfig}
@@ -505,6 +577,7 @@ export function HomeDashboardCharts() {
               restaurantId={restaurantId}
               from={rangeKey.split(":")[0] ?? ""}
               to={rangeKey.split(":")[1] ?? ""}
+              timeZone={rangeKey.split(":")[2] ?? timeZone}
             />
           ) : null}
         </section>
@@ -530,6 +603,7 @@ export function HomeDashboardCharts() {
           {loyalty ? (
             <LoyaltySection
               loyalty={loyalty}
+              restaurantId={restaurantId}
               locale={locale}
               gradId={gradId}
               trendConfig={loyaltyTrendConfig}
@@ -558,6 +632,7 @@ function GuestSection({
   locale,
   t,
   gradId,
+  timeZone,
   trendConfig,
   funnelConfig,
   hourlyConfig,
@@ -567,6 +642,7 @@ function GuestSection({
   locale: string;
   t: (key: string, values?: Record<string, string | number>) => string;
   gradId: string;
+  timeZone: string;
   trendConfig: ChartConfig;
   funnelConfig: ChartConfig;
   hourlyConfig: ChartConfig;
@@ -642,7 +718,11 @@ function GuestSection({
           </ChartContainer>
         </ChartCard>
 
-        <ChartCard className="lg:col-span-6" title={t("dashboard.chart.hourly.title")} description={t("dashboard.chart.hourly.description")}>
+        <ChartCard
+          className="lg:col-span-6"
+          title={t("dashboard.chart.hourly.title", { timezone: timeZone })}
+          description={t("dashboard.chart.hourly.description")}
+        >
           <ChartContainer config={hourlyConfig} className="h-72 w-full">
             <BarChart data={guest.hourlyActivity} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 6" />
@@ -701,6 +781,7 @@ function GuestSection({
 
 function LoyaltySection({
   loyalty,
+  restaurantId,
   locale,
   gradId,
   trendConfig,
@@ -708,6 +789,7 @@ function LoyaltySection({
   waiterConfig,
 }: {
   loyalty: LoyaltyAnalytics;
+  restaurantId: string;
   locale: string;
   gradId: string;
   trendConfig: ChartConfig;
@@ -724,6 +806,10 @@ function LoyaltySection({
     label: waiterLabel(row, unknown),
     count: row.members,
   }));
+  const waitersEmptyLabel =
+    loyalty.waiters.length === 0 && summary.orders > 0
+      ? t("dashboard.loyalty.waitersEmptyWithOrders")
+      : t("dashboard.noData");
   const trend = localizeTrend(loyalty.trend, locale);
   const tickInterval = trend.length > 16 ? ("preserveStartEnd" as const) : 0;
 
@@ -800,7 +886,7 @@ function LoyaltySection({
           <HorizontalBarChart
             data={waiterBars}
             config={waiterConfig}
-            emptyLabel={t("dashboard.noData")}
+            emptyLabel={waitersEmptyLabel}
             heightClass="h-80"
             onItemClick={(key) => {
               const row = loyalty.waiters.find((item) => waiterKey(item) === key);
@@ -816,7 +902,7 @@ function LoyaltySection({
           </div>
           <div className="max-h-[28rem] overflow-auto">
             {loyalty.waiters.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-foreground/50">{t("dashboard.noData")}</p>
+              <p className="px-4 py-10 text-center text-sm text-foreground/50">{waitersEmptyLabel}</p>
             ) : (
               <table className="w-full min-w-[40rem] text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-background/95 text-xs uppercase tracking-wide text-foreground/50 backdrop-blur-md">
@@ -853,6 +939,7 @@ function LoyaltySection({
       {selectedWaiter ? (
         <WaiterMembersDialog
           waiter={selectedWaiter}
+          restaurantId={restaurantId}
           from={loyalty.range.from}
           to={loyalty.range.to}
           locale={locale}
@@ -866,6 +953,7 @@ function LoyaltySection({
 
 function WaiterMembersDialog({
   waiter,
+  restaurantId,
   from,
   to,
   locale,
@@ -873,6 +961,7 @@ function WaiterMembersDialog({
   onClose,
 }: {
   waiter: LoyaltyAnalyticsWaiter;
+  restaurantId: string;
   from: string;
   to: string;
   locale: string;
@@ -898,6 +987,7 @@ function WaiterMembersDialog({
     const url = new URL("/api/analytics/loyalty/members", window.location.origin);
     url.searchParams.set("from", from);
     url.searchParams.set("to", to);
+    url.searchParams.set("restaurantId", restaurantId);
     url.searchParams.set("waiterId", waiter.waiterId);
     url.searchParams.set("waiterName", waiter.waiterName);
     if (waiter.unknown) url.searchParams.set("unknown", "1");
@@ -915,7 +1005,7 @@ function WaiterMembersDialog({
       }
     })();
     return () => controller.abort();
-  }, [from, to, waiter]);
+  }, [from, to, restaurantId, waiter]);
 
   const currency = payload?.currency ?? fallbackCurrency;
   const members = payload?.members ?? [];

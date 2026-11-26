@@ -1,3 +1,5 @@
+import { isoToYmdInZone, startOfDayUtcIso } from "../zoned-datetime.js";
+
 export const ANALYTICS_MAX_DAYS = 366;
 
 export type DashboardPreset = "day" | "week" | "month" | "custom";
@@ -16,6 +18,7 @@ export type ResolvedDashboardRange = {
   previousToExclusiveMs: number;
   bucket: AnalyticsBucket;
   dayCount: number;
+  timeZone: string;
 };
 
 export type DashboardRangeError = {
@@ -39,7 +42,7 @@ export function isResolvedDashboardRange(
   return !("error" in value);
 }
 
-function parseUtcDate(iso: string): Date | null {
+function parseCalendarDate(iso: string): Date | null {
   if (!DATE_RE.test(iso)) return null;
   const [year, month, day] = iso.split("-").map(Number);
   if (!year || !month || !day) return null;
@@ -54,26 +57,36 @@ function parseUtcDate(iso: string): Date | null {
   return date;
 }
 
-function formatUtcDate(date: Date): string {
+function formatCalendarDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function addUtcDays(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * DAY_MS);
+function addCalendarDays(ymd: string, days: number): string {
+  const date = parseCalendarDate(ymd);
+  if (!date) return ymd;
+  return formatCalendarDate(new Date(date.getTime() + days * DAY_MS));
 }
 
-function startOfUtcDay(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+function calendarWeekday(ymd: string): number {
+  return parseCalendarDate(ymd)?.getUTCDay() ?? 0;
 }
 
-function startOfUtcWeekMonday(day: Date): Date {
-  const weekday = day.getUTCDay();
+function startOfWeekMondayYmd(ymd: string): string {
+  const weekday = calendarWeekday(ymd);
   const offset = weekday === 0 ? 6 : weekday - 1;
-  return addUtcDays(day, -offset);
+  return addCalendarDays(ymd, -offset);
 }
 
-function startOfUtcMonth(day: Date): Date {
-  return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), 1));
+function startOfMonthYmd(ymd: string): string {
+  return `${ymd.slice(0, 8)}01`;
+}
+
+function dayStartMs(ymd: string, timeZone: string): number {
+  return Date.parse(startOfDayUtcIso(ymd, timeZone));
+}
+
+export function todayYmdInZone(now: Date = new Date(), timeZone = "UTC"): string {
+  return isoToYmdInZone(now.toISOString(), timeZone);
 }
 
 function bucketForDayCount(dayCount: number): AnalyticsBucket {
@@ -84,27 +97,36 @@ function bucketForDayCount(dayCount: number): AnalyticsBucket {
 
 function finishRange(
   preset: DashboardPreset,
-  fromDate: Date,
-  toDate: Date,
+  fromYmd: string,
+  toYmd: string,
+  timeZone: string,
 ): ResolvedDashboardRange | DashboardRangeError {
+  const fromDate = parseCalendarDate(fromYmd);
+  const toDate = parseCalendarDate(toYmd);
+  if (!fromDate || !toDate) return { error: "invalid_range" };
   if (fromDate.getTime() > toDate.getTime()) return { error: "invalid_range" };
   const dayCount = Math.round((toDate.getTime() - fromDate.getTime()) / DAY_MS) + 1;
   if (dayCount > ANALYTICS_MAX_DAYS) return { error: "range_too_long" };
-  const toExclusive = addUtcDays(toDate, 1);
-  const previousFrom = addUtcDays(fromDate, -dayCount);
-  const previousTo = addUtcDays(fromDate, -1);
+
+  const previousFrom = addCalendarDays(fromYmd, -dayCount);
+  const previousTo = addCalendarDays(fromYmd, -1);
+  const fromMs = dayStartMs(fromYmd, timeZone);
+  const toExclusiveMs = dayStartMs(addCalendarDays(toYmd, 1), timeZone);
+  const previousFromMs = dayStartMs(previousFrom, timeZone);
+
   return {
     preset,
-    from: formatUtcDate(fromDate),
-    to: formatUtcDate(toDate),
-    fromMs: fromDate.getTime(),
-    toExclusiveMs: toExclusive.getTime(),
-    previousFrom: formatUtcDate(previousFrom),
-    previousTo: formatUtcDate(previousTo),
-    previousFromMs: previousFrom.getTime(),
-    previousToExclusiveMs: fromDate.getTime(),
+    from: fromYmd,
+    to: toYmd,
+    fromMs,
+    toExclusiveMs,
+    previousFrom,
+    previousTo,
+    previousFromMs,
+    previousToExclusiveMs: fromMs,
     bucket: bucketForDayCount(dayCount),
     dayCount,
+    timeZone,
   };
 }
 
@@ -113,36 +135,49 @@ export function resolveDashboardRange(input: {
   from?: string | null;
   to?: string | null;
   now?: Date;
+  timeZone?: string | null;
 } = {}): ResolvedDashboardRange | DashboardRangeError {
+  const timeZone = input.timeZone?.trim() || "UTC";
   const from = input.from?.trim() ?? "";
   const to = input.to?.trim() ?? "";
   if (from || to) {
-    const fromDate = parseUtcDate(from);
-    const toDate = parseUtcDate(to);
-    if (!fromDate || !toDate) return { error: "invalid_range" };
-    const preset = input.preset === "day" || input.preset === "week" || input.preset === "month"
-      ? input.preset
-      : "custom";
-    return finishRange(preset, fromDate, toDate);
+    if (!parseCalendarDate(from) || !parseCalendarDate(to)) return { error: "invalid_range" };
+    const preset =
+      input.preset === "day" || input.preset === "week" || input.preset === "month"
+        ? input.preset
+        : "custom";
+    return finishRange(preset, from, to, timeZone);
   }
 
   const now = input.now ?? new Date();
-  const today = startOfUtcDay(now);
+  const today = todayYmdInZone(now, timeZone);
   const preset = input.preset ?? "week";
-  if (preset === "day") return finishRange("day", today, today);
-  if (preset === "week") return finishRange("week", startOfUtcWeekMonday(today), today);
-  if (preset === "month") return finishRange("month", startOfUtcMonth(today), today);
+  if (preset === "day") return finishRange("day", today, today, timeZone);
+  if (preset === "week") {
+    return finishRange("week", startOfWeekMondayYmd(today), today, timeZone);
+  }
+  if (preset === "month") {
+    return finishRange("month", startOfMonthYmd(today), today, timeZone);
+  }
   if (preset === "custom") return { error: "invalid_range" };
-  return finishRange("week", startOfUtcWeekMonday(today), today);
+  return finishRange("week", startOfWeekMondayYmd(today), today, timeZone);
 }
 
-function nextMondayMs(ms: number): number {
-  const weekday = new Date(ms).getUTCDay();
-  const add = weekday === 0 ? 1 : weekday === 1 ? 7 : 8 - weekday;
-  return ms + add * DAY_MS;
+function nextMondayExclusiveMs(
+  startMs: number,
+  timeZone: string,
+  toExclusiveMs: number,
+): number {
+  const ymd = isoToYmdInZone(new Date(startMs).toISOString(), timeZone);
+  const weekday = calendarWeekday(ymd);
+  const daysUntilNextMonday = weekday === 1 ? 7 : weekday === 0 ? 1 : 8 - weekday;
+  const nextYmd = addCalendarDays(ymd, daysUntilNextMonday);
+  return Math.min(dayStartMs(nextYmd, timeZone), toExclusiveMs);
 }
 
 export function buildTrendBuckets(range: ResolvedDashboardRange): TrendBucket[] {
+  const timeZone = range.timeZone || "UTC";
+
   if (range.bucket === "hour") {
     return Array.from({ length: 24 }, (_, hour) => {
       const label = String(hour).padStart(2, "0");
@@ -157,14 +192,15 @@ export function buildTrendBuckets(range: ResolvedDashboardRange): TrendBucket[] 
 
   if (range.bucket === "day") {
     const buckets: TrendBucket[] = [];
-    for (let ms = range.fromMs; ms < range.toExclusiveMs; ms += DAY_MS) {
-      const date = new Date(ms);
-      const key = formatUtcDate(date);
+    for (let ymd = range.from; ; ymd = addCalendarDays(ymd, 1)) {
+      const startMs = dayStartMs(ymd, timeZone);
+      if (startMs >= range.toExclusiveMs) break;
+      const endMs = dayStartMs(addCalendarDays(ymd, 1), timeZone);
       buckets.push({
-        key,
-        label: range.dayCount <= 7 ? (WEEKDAY_LABELS[date.getUTCDay()] ?? key) : key.slice(5),
-        startMs: ms,
-        endMs: ms + DAY_MS,
+        key: ymd,
+        label: range.dayCount <= 7 ? (WEEKDAY_LABELS[calendarWeekday(ymd)] ?? ymd) : ymd.slice(5),
+        startMs,
+        endMs,
       });
     }
     return buckets;
@@ -173,8 +209,8 @@ export function buildTrendBuckets(range: ResolvedDashboardRange): TrendBucket[] 
   const buckets: TrendBucket[] = [];
   let cursor = range.fromMs;
   while (cursor < range.toExclusiveMs) {
-    const end = Math.min(nextMondayMs(cursor), range.toExclusiveMs);
-    const key = formatUtcDate(new Date(cursor));
+    const end = nextMondayExclusiveMs(cursor, timeZone, range.toExclusiveMs);
+    const key = isoToYmdInZone(new Date(cursor).toISOString(), timeZone);
     buckets.push({
       key,
       label: key.slice(5),

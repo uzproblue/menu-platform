@@ -14,15 +14,21 @@ export type LoyaltyRestaurantAccess =
  * Defense-in-depth for platform loyalty proxies. The loyalty service still
  * authorizes requests, but platform routes must not trust a stale/tampered
  * restaurant-context cookie before forwarding staff credentials.
+ *
+ * Prefer an explicit `requestedRestaurantId` (query/body) over the cookie so
+ * dashboard fetches stay aligned with the UI-selected restaurant.
  */
 export async function requireLoyaltyRestaurantAccess(
   accessToken: string,
+  requestedRestaurantId?: string | null,
 ): Promise<LoyaltyRestaurantAccess> {
   const cookieRestaurantId = (await getSelectedRestaurantIdFromCookies())?.trim();
+  const requested = requestedRestaurantId?.trim() || "";
+  const preferredId = requested || cookieRestaurantId || undefined;
 
   const memberships = await getMyRestaurantsWithAuthServer(
     accessToken,
-    cookieRestaurantId,
+    preferredId,
   );
   if (!memberships.ok) {
     return {
@@ -34,7 +40,7 @@ export async function requireLoyaltyRestaurantAccess(
   }
 
   const restaurantId =
-    cookieRestaurantId ||
+    preferredId ||
     memberships.data.currentRestaurantId ||
     memberships.data.restaurants[0]?.id;
   if (!restaurantId) {

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import type { MenuV3PreviewResponse } from "@/lib/auth-api";
 import { buildImportActions } from "@/lib/menu-v3-populate-unassigned";
 import { useI18n } from "../i18n-provider";
+import { GuestMenuThemeSettings } from "./guest-menu-theme-settings";
 
 type SettingsPageClientProps = {
   initialName: string;
@@ -902,6 +903,8 @@ export function SettingsPageClient({
           </button>
         </form>
       </section>
+
+      <GuestMenuThemeSettings />
 
       <section className="rounded-2xl border border-foreground/10 bg-background/60 p-5 shadow-lg shadow-foreground/5 ring-1 ring-foreground/5 backdrop-blur-md sm:p-6">
         <h2 className="text-lg font-semibold tracking-tight text-foreground">

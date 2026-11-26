@@ -2,16 +2,18 @@ import type { GlobalMenuResponse, Location } from "@/lib/auth-api";
 import type { PublishedPromotionStoryExport } from "@/lib/auth-api/types/promotion-stories";
 import { expandR2AssetToPublicUrl } from "@/lib/r2-object-key";
 
-export const LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION = 4 as const;
+export const LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION = 5 as const;
 
 /**
  * Public snapshot written to R2 after menu publish. Safe for anonymous guest menu apps.
- * Shape is stable for `schemaVersion` 4; includes location timezone and story schedule fields.
+ * Shape is stable for `schemaVersion` 5; includes guestMenuThemeId for menu-customer skins.
  */
 export type LocationPublicExport = {
   schemaVersion: typeof LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION;
   exportedAt: string;
   restaurantId: string;
+  /** Code theme pack id for menu-customer (`default` or a registered brand pack). */
+  guestMenuThemeId: string;
   location: Location;
   /** Published sections + categories + items (same as GET /api/locations/:id/menu). */
   menu: {
@@ -81,12 +83,18 @@ export function buildLocationPublicExport(
   menu: GlobalMenuResponse,
   publicBaseUrl: string,
   promotionStories: PublishedPromotionStoryExport[] = [],
+  guestMenuThemeId = "default",
 ): LocationPublicExport {
   const base = publicBaseUrl.trim();
+  const themeId =
+    typeof guestMenuThemeId === "string" && guestMenuThemeId.trim()
+      ? guestMenuThemeId.trim()
+      : "default";
   return {
     schemaVersion: LOCATION_PUBLIC_EXPORT_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     restaurantId: menu.restaurantId,
+    guestMenuThemeId: themeId,
     location: expandLocationAssetsForExport(location, base),
     menu: expandMenuForExport(menu, base),
     promotionStories: expandPromotionStoriesForExport(promotionStories, base),
