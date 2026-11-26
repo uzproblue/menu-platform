@@ -8,3 +8,4 @@ export * from "./segments";
 export * from "./operations";
 export * from "./wallet";
 export * from "./telegram";
+export * from "./marketing-campaigns";

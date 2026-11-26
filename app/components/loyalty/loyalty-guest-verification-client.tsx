@@ -110,7 +110,12 @@ export function LoyaltyGuestVerificationClient() {
         setWhatsappChannel(null);
         return;
       }
-      const channel = payload?.channels?.find((item) => item.type === "whatsapp") ?? null;
+      const channel =
+        payload?.channels?.find(
+          (item) =>
+            item.type === "whatsapp" &&
+            (item.purpose == null || item.purpose === "default"),
+        ) ?? null;
       setWhatsappChannel(channel);
       setWhatsappError(null);
     } catch {

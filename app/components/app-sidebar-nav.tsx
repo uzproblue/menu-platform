@@ -52,6 +52,11 @@ const loyaltyChildren: Array<{
     match: (p) => p.startsWith("/loyalty/members"),
   },
   {
+    href: "/loyalty/broadcasts",
+    labelKey: "nav.loyaltyBroadcasts",
+    match: (p) => p.startsWith("/loyalty/broadcasts"),
+  },
+  {
     href: "/loyalty/segments",
     labelKey: "nav.loyaltySegments",
     match: (p) => p.startsWith("/loyalty/segments"),

@@ -4,9 +4,12 @@ export type WhatsappChannelStatus =
   | "error"
   | "disconnected";
 
+export type WhatsappChannelPurpose = "default" | "marketing";
+
 export type WhatsappChannelView = {
   id: string;
   type: "whatsapp" | "instagram";
+  purpose?: WhatsappChannelPurpose;
   externalId: string;
   displayName: string | null;
   status: WhatsappChannelStatus;

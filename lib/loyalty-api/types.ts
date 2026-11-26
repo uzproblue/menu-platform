@@ -145,6 +145,8 @@ export type LoyaltyGuestOrder = {
   waiterName: string | null;
   tableId: string | null;
   tableNumber: number | null;
+  /** Deleted/voided iiko order — history only. */
+  voided?: boolean;
   items: LoyaltyGuestOrderItem[];
 };
 
