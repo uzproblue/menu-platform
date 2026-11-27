@@ -44,8 +44,12 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function utf8Bytes(value: string): Uint8Array {
-  return new TextEncoder().encode(value);
+/** Copy into a fresh ArrayBuffer so WebCrypto BufferSource typings accept it (TS 5.7+/Node 24). */
+function utf8Bytes(value: string): Uint8Array<ArrayBuffer> {
+  const encoded = new TextEncoder().encode(value);
+  const copy = new Uint8Array(encoded.byteLength);
+  copy.set(encoded);
+  return copy;
 }
 
 async function importHmacKey(secret: string): Promise<CryptoKey> {
